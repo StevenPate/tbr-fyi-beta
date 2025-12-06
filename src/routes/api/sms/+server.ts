@@ -13,7 +13,7 @@ import { fetchBookMetadata, toISBN13, InvalidISBNError, searchBooks } from '$lib
 import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '$env/static/private';
 import { extractISBNFromAmazon } from '$lib/server/amazon-parser';
 import { detectBarcodes } from '$lib/server/vision';
-import { SMS_MESSAGES, detectCommand, getShelfUrl } from '$lib/server/sms-messages';
+import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl } from '$lib/server/sms-messages';
 import { logger, logBookAddition, logUserEvent, logError, startTimer } from '$lib/server/logger';
 import { upsertBookForUser } from '$lib/server/book-operations';
 
@@ -66,6 +66,74 @@ async function getUserStatus(phoneNumber: string): Promise<UserStatus> {
 	}
 
 	return { exists: false, hasStarted: false, optedOut: false };
+}
+
+/**
+ * Check if we should show account creation prompt
+ * Strategy: Show after 5+ books, but only once per week, max 5 times
+ */
+async function shouldShowAccountPrompt(phoneNumber: string): Promise<boolean> {
+	const { data: user } = await supabase
+		.from('users')
+		.select('auth_id, account_prompt_count, last_account_prompt_at')
+		.eq('phone_number', phoneNumber)
+		.single();
+
+	if (!user) return false;
+
+	// Don't prompt if already has auth account
+	if (user.auth_id) return false;
+
+	// Don't prompt if we've shown it 5 times already
+	if (user.account_prompt_count && user.account_prompt_count >= 5) return false;
+
+	// Check if we've shown it recently (within last 7 days)
+	if (user.last_account_prompt_at) {
+		const lastPrompt = new Date(user.last_account_prompt_at);
+		const daysSincePrompt = (Date.now() - lastPrompt.getTime()) / (1000 * 60 * 60 * 24);
+		if (daysSincePrompt < 7) return false;
+	}
+
+	// Count books for this user
+	const { count } = await supabase
+		.from('books')
+		.select('*', { count: 'exact' })
+		.eq('user_id', phoneNumber);
+
+	// Only show if they have 5+ books
+	return count && count >= 5;
+}
+
+/**
+ * Record that we showed the account prompt
+ */
+async function recordAccountPrompt(phoneNumber: string): Promise<void> {
+	const { data: user } = await supabase
+		.from('users')
+		.select('account_prompt_count')
+		.eq('phone_number', phoneNumber)
+		.single();
+
+	const currentCount = user?.account_prompt_count || 0;
+
+	await supabase
+		.from('users')
+		.update({
+			account_prompt_count: currentCount + 1,
+			last_account_prompt_at: new Date().toISOString()
+		})
+		.eq('phone_number', phoneNumber);
+}
+
+/**
+ * Potentially add account prompt to success message
+ */
+async function maybeAddAccountPrompt(baseMessage: string, phoneNumber: string): Promise<string> {
+	if (await shouldShowAccountPrompt(phoneNumber)) {
+		await recordAccountPrompt(phoneNumber);
+		return baseMessage + '\n\n' + SMS_MESSAGES.accountPromptBasic(phoneNumber);
+	}
+	return baseMessage;
 }
 
 /**
@@ -278,7 +346,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 
 			const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-			return twimlResponse(SMS_MESSAGES.bookAdded(metadata.title, userId, authorText));
+			const messageWithPrompt = await maybeAddAccountPrompt(
+				SMS_MESSAGES.bookAdded(metadata.title, userId, authorText),
+				userId
+			);
+			return twimlResponse(messageWithPrompt);
 		}
 
 		// Check if user is opted out
@@ -582,7 +654,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Success!
 		const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-		return twimlResponse(SMS_MESSAGES.bookAdded(metadata.title, userId, authorText));
+		const messageWithPrompt = await maybeAddAccountPrompt(
+			SMS_MESSAGES.bookAdded(metadata.title, userId, authorText),
+			userId
+		);
+		return twimlResponse(messageWithPrompt);
 	} catch (error) {
 		logError({
 			event: 'error',

@@ -16,6 +16,15 @@ export function getShelfUrl(phoneNumber: string): string {
 	return `${PUBLIC_BASE_URL}/${encodedPhone}`;
 }
 
+/**
+ * Format claim URL for a phone number
+ * Used for prompting users to create accounts
+ */
+export function getClaimUrl(phoneNumber: string): string {
+	const encodedPhone = encodeURIComponent(phoneNumber);
+	return `${PUBLIC_BASE_URL}/auth/claim?p=${encodedPhone}`;
+}
+
 export const SMS_COMMANDS = {
 	START: 'START',
 	STOP: 'STOP',
@@ -131,7 +140,18 @@ export const SMS_MESSAGES = {
 
 	// === Generic Error ===
 	GENERIC_ERROR:
-		'Sorry, something went wrong. Try again?'
+		'Sorry, something went wrong. Try again?',
+
+	// === Account Upgrade Prompts ===
+	// Shown after certain book count milestones
+	accountPromptBasic: (phoneNumber: string) =>
+		`📚 You've been adding books! Secure your shelf with a free account:\n${getClaimUrl(phoneNumber)}\n\nGet a custom username and make shelves private.`,
+
+	accountPromptAfterMultiple: (phoneNumber: string) =>
+		`🔒 Your reading list is growing! Create an account to get a custom username and privacy controls:\n${getClaimUrl(phoneNumber)}`,
+
+	accountPromptWeekly: (phoneNumber: string) =>
+		`💫 Build your reading community. Create an account for a custom username and more features:\n${getClaimUrl(phoneNumber)}`
 } as const;
 
 /**
