@@ -57,9 +57,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			to: phone
 		});
 
-		return json({ success: true, message: 'Verification code sent' });
+		return json({ data: { success: true }, error: null });
 	} catch (error) {
 		console.error('Error sending SMS:', error);
-		return json({ error: 'Failed to send verification code' }, { status: 500 });
+		return json({ data: null, error: 'Failed to send verification code' }, { status: 500 });
 	}
 };

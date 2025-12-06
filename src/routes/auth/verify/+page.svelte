@@ -24,29 +24,40 @@
 			return;
 		}
 
-		// Check if user has a username already
+		// Check if user has a username and phone number
 		try {
 			const response = await fetch('/api/auth/profile');
 			const { data: profile } = await response.json();
 
-			if (profile && !profile.username) {
-				// New user needs to set username
+			if (!profile) {
+				status = 'error';
+				errorMessage = 'Failed to load profile. Please try again.';
+				return;
+			}
+
+			// If they don't have a username yet, they need to go through claim flow
+			if (!profile.username) {
 				needsUsername = true;
 				status = 'success';
-				// Redirect to username selection
-				setTimeout(() => {
-					goto('/auth/username');
-				}, 2000);
+
+				// If they came from SMS claiming (phone pre-filled), redirect to username
+				const urlPhone = new URL(window.location.href).searchParams.get('p');
+				if (urlPhone) {
+					// Phone verification happens in claim flow, redirect there
+					setTimeout(() => {
+						goto(`/auth/claim?p=${encodeURIComponent(urlPhone)}`);
+					}, 2000);
+				} else {
+					// Regular signup, go to username selection
+					setTimeout(() => {
+						goto('/auth/username');
+					}, 2000);
+				}
 			} else {
-				// Existing user with username
+				// Existing account with username, redirect to shelf
 				status = 'success';
-				// Redirect to their shelf or home
 				setTimeout(() => {
-					if (profile?.username) {
-						goto(`/@${profile.username}`);
-					} else {
-						goto('/');
-					}
+					goto(`/@${profile.username}`);
 				}, 2000);
 			}
 		} catch (err) {

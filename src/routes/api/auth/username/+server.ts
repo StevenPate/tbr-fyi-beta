@@ -49,8 +49,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	return json({
-		success: true,
-		username: data.username
+		data: { username: data.username },
+		error: null
 	});
 };
 

@@ -75,9 +75,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.eq('phone_number', `auth_${authUser.id}`);
 
 		return json({
-			success: true,
-			message: 'Phone verified and account linked',
-			existingData: true
+			data: { success: true, existingData: true },
+			error: null
 		});
 	} else {
 		// Update the auth user's temporary record with real phone number
@@ -93,9 +92,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		return json({
-			success: true,
-			message: 'Phone verified',
-			existingData: false
+			data: { success: true, existingData: false },
+			error: null
 		});
 	}
 };

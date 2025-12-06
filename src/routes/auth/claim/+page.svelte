@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth';
+	import { supabase } from '$lib/supabase';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	// States for the multi-step flow
@@ -19,15 +21,24 @@
 			phoneNumber = decodeURIComponent(urlPhone);
 		}
 
-		// Check if user is already authenticated (came back from email verification)
-		const session = await auth.getSession();
-		if (session) {
-			emailVerified = true;
-			// If we have a phone number, proceed to phone verification
-			if (phoneNumber) {
-				currentStep = 'verify-email'; // Show email verified state
+		// Initialize auth and watch for session changes
+		await auth.initialize();
+
+		// Listen for auth state changes via Supabase
+		const { data: authListener } = supabase.auth.onAuthStateChange(async (_, session) => {
+			if (session) {
+				emailVerified = true;
+				// If we verified email and have phone number, go to phone verification
+				if (currentStep === 'verify-email' && phoneNumber) {
+					// Auto-proceed to phone verification
+					await sendVerificationCode();
+				}
 			}
-		}
+		});
+
+		return () => {
+			authListener?.subscription.unsubscribe();
+		};
 	});
 
 	// Step 1: Submit email for magic link
