@@ -25,27 +25,33 @@
 		}
 
 		// Check if user has a username already
-		const { data: profile } = await fetch('/api/auth/profile').then(r => r.json());
+		try {
+			const response = await fetch('/api/auth/profile');
+			const { data: profile } = await response.json();
 
-		if (profile && !profile.username) {
-			// New user needs to set username
-			needsUsername = true;
-			status = 'success';
-			// Redirect to username selection
-			setTimeout(() => {
-				goto('/auth/username');
-			}, 2000);
-		} else {
-			// Existing user with username
-			status = 'success';
-			// Redirect to their shelf or home
-			setTimeout(() => {
-				if (profile?.username) {
-					goto(`/@${profile.username}`);
-				} else {
-					goto('/');
-				}
-			}, 2000);
+			if (profile && !profile.username) {
+				// New user needs to set username
+				needsUsername = true;
+				status = 'success';
+				// Redirect to username selection
+				setTimeout(() => {
+					goto('/auth/username');
+				}, 2000);
+			} else {
+				// Existing user with username
+				status = 'success';
+				// Redirect to their shelf or home
+				setTimeout(() => {
+					if (profile?.username) {
+						goto(`/@${profile.username}`);
+					} else {
+						goto('/');
+					}
+				}, 2000);
+			}
+		} catch (err) {
+			status = 'error';
+			errorMessage = 'Failed to load profile. Please try again.';
 		}
 	});
 </script>

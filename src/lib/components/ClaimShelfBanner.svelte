@@ -10,7 +10,6 @@
 	let { phoneNumber, isOwner = false }: Props = $props();
 
 	let dismissed = $state(false);
-	let dismissedUntil = $state<Date | null>(null);
 
 	const STORAGE_KEY = 'tbr-claim-banner-dismissed';
 	const OWNER_STORAGE_KEY = 'tbr-claim-banner-owner-dismissed';

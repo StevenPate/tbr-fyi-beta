@@ -1,7 +1,6 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { supabase } from '$lib/server/supabase';
-import { getAuthUser } from '$lib/server/auth';
 import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } from '$env/static/private';
 
 // Import Twilio
@@ -15,15 +14,15 @@ async function getTwilioClient() {
 	return twilio.default(accountSid, authToken);
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const { phone } = await request.json();
 
 	if (!phone) {
 		return json({ error: 'Phone number required' }, { status: 400 });
 	}
 
-	// Get authenticated user
-	const authUser = await getAuthUser(request);
+	// Get authenticated user from locals
+	const authUser = locals.user;
 
 	if (!authUser) {
 		return json({ error: 'Not authenticated' }, { status: 401 });

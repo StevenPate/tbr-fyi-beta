@@ -205,9 +205,16 @@ function createAuthStore() {
     return data;
   }
 
+  // Get current session
+  async function getSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  }
+
   return {
     subscribe,
     initialize,
+    getSession,
     signInWithEmail,
     signUpWithEmail,
     signOut,

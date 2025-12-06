@@ -1,9 +1,8 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { supabase } from '$lib/server/supabase';
-import { getAuthUser } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const { username } = await request.json();
 
 	if (!username) {
@@ -18,8 +17,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		}, { status: 400 });
 	}
 
-	// Get authenticated user
-	const authUser = await getAuthUser(request);
+	// Get authenticated user from locals
+	const authUser = locals.user;
 
 	if (!authUser) {
 		return json({ error: 'Not authenticated' }, { status: 401 });
