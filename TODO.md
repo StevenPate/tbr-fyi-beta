@@ -1,18 +1,12 @@
 # To-Do List
 ## This Week
-
-- [x] simple json export
-- [x] use and save logtail queries
-- [x] add https://ko-fi.com/ link
-- [x] better ux for shelf links
-- [x] better design for books
-- [x] umami tracking for traffic
-- [x] important items from architecture audit
-- [x] clean repo and migrate
-- [x] update about page (github links)
-- [x] Choose shelf when adding from multimodal
+- [ ] Add ISBNdb to metadata pipeline (image enrichment, primarily)
+- [ ] Let users replace low quality images
 
 ## Soon
+- [ ] Amazon short link support 
+- [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
+- [ ] Improve usage tracking
 - [ ] different edition finder
 - [ ] Web UI Bulk Operations (Phase 1): `docs/designs/BULK_OPERATIONS_PLAN.md`
 - [ ] Enhanced Goodreads Import (Phase 2 of plan): `docs/designs/BULK_IMPORT_PLAN.md`
@@ -20,7 +14,7 @@
 ## Someday/Maybe
 - [ ] Production Hardening for Bulk Import (Phase 3) `docs/designs/BULK_IMPORT_PLAN.md`
 - [ ] SMS Multi-Photo Processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
-- [ ] Additional Bulk Operations - Export CSV, REMOVE LAST, Copy Shelf (Phase 3): `docs/designs/BULK_OPERATIONS_PLAN.md`
+- [ ] Additional Bulk Operations (Phase 3): `docs/designs/BULK_OPERATIONS_PLAN.md`
 - [ ] Paginate or otherwise deal with long lists (plan)
 - [ ] minor items from architecture audit
 - [ ] Parse goodreads links
@@ -40,13 +34,23 @@
 - [ ] Add vertical space in grids
 - [ ] All form elements and typography bigger
 
-## Last Week (Ending November 16, 2025)
+## Last Week (Ending November 23, 2025)
+- [x] simple json export
+- [x] use and save logtail queries
+- [x] add https://ko-fi.com/ link
+- [x] better ux for shelf links
+- [x] better design for books
+- [x] umami tracking for traffic
+- [x] important items from architecture audit
+- [x] clean repo and migrate
+- [x] update about page (github links)
+- [x] Choose shelf when adding from multimodal
+
+## Earlier
 - [x] High items on architecture audit
 - [x] Book Card Entry Animations 
 - [x] Responsive Grid
 - [x] Update README.md
-
-## Earlier
 - [x] Fix Book Selection UX Anti-pattern
 - [x] Bulk CSV/TXT Import (Phase 1): `docs/designs/BULK_IMPORT_PLAN.md`
 - [x] Test SMS end-to-end
@@ -73,7 +77,6 @@
 - [x] "Barcode" option
 - [x] Feedback form
 - [x] "Copy ISBN" Button
-- [x] Update PROJECT_CONTEXT.md
 - [x] Add observability for logging
 
 ## Questions/Thoughts

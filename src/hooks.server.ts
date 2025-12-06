@@ -1,5 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { logger, startTimer } from '$lib/server/logger';
+import { createServerClient } from '@supabase/ssr';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const requestTimer = startTimer();
@@ -8,6 +10,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Add request ID to locals for tracing
 	event.locals.requestId = requestId;
+
+	// Create Supabase client for this request
+	event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		cookies: {
+			getAll: () => event.cookies.getAll(),
+			setAll: (cookies) => {
+				cookies.forEach(({ name, value, options }) => {
+					event.cookies.set(name, value, { ...options, path: '/' });
+				});
+			}
+		}
+	});
+
+	// Get the session
+	const {
+		data: { user }
+	} = await event.locals.supabase.auth.getUser();
+
+	event.locals.user = user ?? null;
 
 	try {
 		// CSRF protection is disabled in svelte.config.js to allow Twilio webhooks

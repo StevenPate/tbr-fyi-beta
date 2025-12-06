@@ -4,18 +4,38 @@
 	import FeedbackModal from '$lib/components/ui/FeedbackModal.svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { auth, isAuthenticated } from '$lib/stores/auth';
+	import { browser } from '$app/environment';
+	import { invalidate } from '$app/navigation';
+	import { supabase } from '$lib/supabase';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	let feedbackModalOpen = $state(false);
 	let userId = $state<string | null>(null);
 
 	onMount(() => {
-		// Try to detect userId from localStorage
+		// Initialize auth store
+		auth.initialize();
+
+		// Listen for auth state changes
+		const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+			if (session) {
+				// Update user data when auth state changes
+				invalidate('supabase:auth');
+			}
+		});
+
+		// Try to detect userId from localStorage (for legacy users)
 		const stored = localStorage.getItem('tbr-userId');
 		if (stored) {
 			userId = stored;
 		}
+
+		// Cleanup listener on unmount
+		return () => {
+			authListener?.subscription.unsubscribe();
+		};
 	});
 
 	// Derived userId from current page URL or localStorage
