@@ -7,12 +7,31 @@
 	import { fade, scale } from 'svelte/transition';
 	import { Card, FlipCard, Button, Input, Badge } from '$lib/components/ui';
 	import JsBarcode from 'jsbarcode';
+	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
+	import { browser } from '$app/environment';
 
 	let { data }: { data: PageData } = $props();
 
 	let newShelfName = $state('');
 	let showNewShelfInput = $state(false);
 	let selectedBookForShelfMenu = $state<string | null>(null);
+
+	// Detect if current visitor is likely the shelf owner
+	let isOwner = $state(false);
+
+	onMount(() => {
+		if (browser && data.isPhoneBased) {
+			// Check if localStorage indicates this user owns the shelf
+			const storedUserId = localStorage.getItem('tbr-userId');
+			isOwner = storedUserId === data.userId;
+
+			// Also check if they recently added a book (referer-based)
+			const recentActivity = sessionStorage.getItem('tbr-recent-activity');
+			if (recentActivity === data.userId) {
+				isOwner = true;
+			}
+		}
+	});
 
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
@@ -766,8 +785,13 @@
 	});
 </script>
 
-<div class="min-h-screen bg-gray-50 py-8">
-	<div class="max-w-4xl mx-auto px-4">
+<div class="min-h-screen bg-gray-50">
+	{#if data.isPhoneBased}
+		<ClaimShelfBanner phoneNumber={data.userId} {isOwner} />
+	{/if}
+
+	<div class="py-8">
+		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header -->
 		<div class="mb-6 flex items-start justify-between">
 			<div>
@@ -1758,6 +1782,7 @@
 				</div>
 			{/if}
 		{/if}
+		</div>
 	</div>
 </div>
 

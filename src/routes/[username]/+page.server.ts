@@ -28,10 +28,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		console.error('Error loading shelves:', shelvesError);
 	}
 
-	// Get user's default shelf
+	// Get user's information including auth status
 	const { data: user } = await supabase
 		.from('users')
-		.select('default_shelf_id')
+		.select('default_shelf_id, auth_id, username')
 		.eq('phone_number', userId)
 		.single();
 
@@ -102,6 +102,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		filteredBooks = books?.filter(book => bookIdsOnShelf.includes(book.id)) || [];
 	}
 
+	// Check if this is a phone-based shelf (no auth account)
+	const isPhoneBased = userId.startsWith('+') && !user?.auth_id;
+	const hasUsername = !!user?.username;
+
 	return {
 		books: filteredBooks,
 		allBooks: books || [],
@@ -109,6 +113,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		bookShelves: bookShelves,
 		selectedShelfId,
 		defaultShelfId: user?.default_shelf_id || null,
-		userId
+		userId,
+		isPhoneBased,
+		hasUsername,
+		userHasAuth: !!user?.auth_id
 	};
 };
