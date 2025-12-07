@@ -101,7 +101,7 @@ async function shouldShowAccountPrompt(phoneNumber: string): Promise<boolean> {
 		.eq('user_id', phoneNumber);
 
 	// Only show if they have 5+ books
-	return count && count >= 5;
+	return (count ?? 0) >= 5;
 }
 
 /**

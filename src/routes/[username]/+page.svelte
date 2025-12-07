@@ -14,6 +14,7 @@
 
 	let newShelfName = $state('');
 	let showNewShelfInput = $state(false);
+	let creatingShelf = $state(false);
 	let selectedBookForShelfMenu = $state<string | null>(null);
 
 	// Detect if current visitor is likely the shelf owner
@@ -354,6 +355,7 @@
 			return;
 		}
 
+		creatingShelf = true;
 		try {
 			const response = await fetch('/api/shelves', {
 				method: 'POST',
@@ -373,6 +375,8 @@
 			}
 		} catch (error) {
 			console.error('Error creating shelf:', error);
+		} finally {
+			creatingShelf = false;
 		}
 	}
 
@@ -1699,10 +1703,10 @@
 						<div class="flex-1 overflow-y-auto p-4">
 							<div class="space-y-1">
 								{#each data.shelves as shelf}
-									{@const isOn = isBookOnShelf(shelfModalBookId, shelf.id)}
+									{@const isOn = isBookOnShelf(shelfModalBookId ?? '', shelf.id)}
 									{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
 									<button
-										onclick={() => toggleBookOnShelf(shelfModalBookId, shelf.id, isOn)}
+										onclick={() => toggleBookOnShelf(shelfModalBookId ?? '', shelf.id, isOn)}
 										class="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg hover:bg-stone-50 transition-colors group"
 									>
 										<div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 {isOn

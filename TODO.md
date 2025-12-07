@@ -1,5 +1,6 @@
 # To-Do List
 ## This Week
+- [ ] Add basic auth implementation 
 - [ ] Add ISBNdb to metadata pipeline (image enrichment, primarily)
 - [ ] Let users replace low quality images
 
