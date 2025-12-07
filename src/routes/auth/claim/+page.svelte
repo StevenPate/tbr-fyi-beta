@@ -48,6 +48,11 @@
 		loading = true;
 
 		try {
+			// Store phone number in localStorage so it survives the magic link redirect
+			if (phoneNumber) {
+				localStorage.setItem('tbr-claim-phone', phoneNumber);
+			}
+
 			await auth.signUpWithEmail(email);
 			// After magic link is sent, show email verification message
 			currentStep = 'verify-email';
@@ -82,13 +87,9 @@
 		try {
 			const result = await auth.verifyPhone(phoneNumber, verificationCode);
 
-			if (result.existingData) {
-				// User had existing data, move to username selection
-				currentStep = 'username';
-			} else {
-				// New user, also move to username
-				currentStep = 'username';
-			}
+			// Both branches move to username selection
+			// result.data.existingData indicates if we had existing data, but UI is same
+			currentStep = 'username';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Invalid or expired code';
 		} finally {

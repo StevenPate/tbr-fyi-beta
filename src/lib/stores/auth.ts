@@ -161,13 +161,14 @@ function createAuthStore() {
       body: JSON.stringify({ phone, code })
     });
 
-    const data = await response.json();
+    const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Verification failed');
+      throw new Error(result.error || 'Verification failed');
     }
 
-    return data;
+    // Return the result with data payload
+    return result;
   }
 
   // Send verification code to phone

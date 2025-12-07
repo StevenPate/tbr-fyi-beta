@@ -40,12 +40,13 @@
 				needsUsername = true;
 				status = 'success';
 
-				// If they came from SMS claiming (phone pre-filled), redirect to username
-				const urlPhone = new URL(window.location.href).searchParams.get('p');
-				if (urlPhone) {
-					// Phone verification happens in claim flow, redirect there
+				// Check if phone was stored in localStorage (from claim page)
+				const storedPhone = localStorage.getItem('tbr-claim-phone');
+				if (storedPhone) {
+					// They came from claim page, redirect back to claim with phone
+					localStorage.removeItem('tbr-claim-phone'); // Clean up
 					setTimeout(() => {
-						goto(`/auth/claim?p=${encodeURIComponent(urlPhone)}`);
+						goto(`/auth/claim?p=${encodeURIComponent(storedPhone)}`);
 					}, 2000);
 				} else {
 					// Regular signup, go to username selection

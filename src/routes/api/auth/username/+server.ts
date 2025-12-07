@@ -6,13 +6,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { username } = await request.json();
 
 	if (!username) {
-		return json({ error: 'Username required' }, { status: 400 });
+		return json({ data: null, error: 'Username required' }, { status: 400 });
 	}
 
 	// Validate username format
 	const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
 	if (!usernameRegex.test(username)) {
 		return json({
+			data: null,
 			error: 'Username must be 3-20 characters and contain only letters, numbers, underscores, and hyphens'
 		}, { status: 400 });
 	}
@@ -21,7 +22,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const authUser = locals.user;
 
 	if (!authUser) {
-		return json({ error: 'Not authenticated' }, { status: 401 });
+		return json({ data: null, error: 'Not authenticated' }, { status: 401 });
 	}
 
 	// Check if username is taken
@@ -45,7 +46,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	if (error) {
 		console.error('Error updating username:', error);
-		return json({ error: 'Failed to set username' }, { status: 500 });
+		return json({ data: null, error: 'Failed to set username' }, { status: 500 });
 	}
 
 	return json({

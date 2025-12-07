@@ -18,14 +18,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { phone } = await request.json();
 
 	if (!phone) {
-		return json({ error: 'Phone number required' }, { status: 400 });
+		return json({ data: null, error: 'Phone number required' }, { status: 400 });
 	}
 
 	// Get authenticated user from locals
 	const authUser = locals.user;
 
 	if (!authUser) {
-		return json({ error: 'Not authenticated' }, { status: 401 });
+		return json({ data: null, error: 'Not authenticated' }, { status: 401 });
 	}
 
 	// Generate a 6-digit code
@@ -45,7 +45,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	if (dbError) {
 		console.error('Error storing verification code:', dbError);
-		return json({ error: 'Failed to generate verification code' }, { status: 500 });
+		return json({ data: null, error: 'Failed to generate verification code' }, { status: 500 });
 	}
 
 	// Send SMS with verification code

@@ -6,14 +6,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const { phone, code } = await request.json();
 
 	if (!phone || !code) {
-		return json({ error: 'Phone number and code required' }, { status: 400 });
+		return json({ data: null, error: 'Phone number and code required' }, { status: 400 });
 	}
 
 	// Get authenticated user from locals
 	const authUser = locals.user;
 
 	if (!authUser) {
-		return json({ error: 'Not authenticated' }, { status: 401 });
+		return json({ data: null, error: 'Not authenticated' }, { status: 401 });
 	}
 
 	// Verify the code
@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.eq('auth_id', authUser.id)
 			.eq('is_used', false);
 
-		return json({ error: 'Invalid or expired code' }, { status: 400 });
+		return json({ data: null, error: 'Invalid or expired code' }, { status: 400 });
 	}
 
 	// Mark code as used
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.eq('phone_number', phone);
 
 		if (updateError) {
-			return json({ error: 'Failed to link account' }, { status: 500 });
+			return json({ data: null, error: 'Failed to link account' }, { status: 500 });
 		}
 
 		// Transfer any temporary user data to the phone account
@@ -88,7 +88,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.eq('auth_id', authUser.id);
 
 		if (updateError) {
-			return json({ error: 'Failed to update account' }, { status: 500 });
+			return json({ data: null, error: 'Failed to update account' }, { status: 500 });
 		}
 
 		return json({
