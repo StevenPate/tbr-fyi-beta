@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		.single();
 
 	if (existing) {
-		return json({ error: 'Username already taken' }, { status: 409 });
+		return json({ data: null, error: 'Username already taken' }, { status: 409 });
 	}
 
 	// Update user's username

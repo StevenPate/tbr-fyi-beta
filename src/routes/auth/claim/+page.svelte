@@ -15,7 +15,7 @@
 	let emailVerified = $state(false);
 
 	// Pre-fill phone number from URL or localStorage
-	onMount(async () => {
+	onMount(() => {
 		// First check URL parameter
 		const urlPhone = new URL(window.location.href).searchParams.get('p');
 		if (urlPhone) {
@@ -28,24 +28,41 @@
 			}
 		}
 
-		// Initialize auth and watch for session changes
-		await auth.initialize();
+		// Start async initialization (fire and forget)
+		const initAuth = async () => {
+			// Initialize auth and watch for session changes
+			await auth.initialize();
 
-		// Listen for auth state changes via Supabase
-		const { data: authListener } = supabase.auth.onAuthStateChange(async (_, session) => {
-			if (session) {
-				emailVerified = true;
-				// If we verified email and have phone number, go to phone verification
-				if (currentStep === 'verify-email' && phoneNumber) {
-					// Auto-proceed to phone verification
-					await sendVerificationCode();
+			// Listen for auth state changes via Supabase
+			const { data: authListener } = supabase.auth.onAuthStateChange(async (_, session) => {
+				if (session) {
+					emailVerified = true;
+					// If we verified email and have phone number, go to phone verification
+					if (currentStep === 'verify-email' && phoneNumber) {
+						// Auto-proceed to phone verification
+						await sendVerificationCode();
+					}
 				}
-			}
+			});
+
+			// Return cleanup function
+			return () => {
+				authListener?.subscription.unsubscribe();
+			};
+		};
+
+		// Execute init and store cleanup handler
+		let unsubscribe: (() => void) | undefined;
+
+		initAuth().then((cleanup) => {
+			unsubscribe = cleanup;
+		}).catch((err) => {
+			console.error('Error initializing auth:', err);
 		});
 
-		// Return cleanup function (not wrapped in async)
+		// Return cleanup function for onMount
 		return () => {
-			authListener?.subscription.unsubscribe();
+			unsubscribe?.();
 		};
 	});
 
