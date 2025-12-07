@@ -14,11 +14,18 @@
 	let error = $state<string | null>(null);
 	let emailVerified = $state(false);
 
-	// Pre-fill phone number from URL if provided
+	// Pre-fill phone number from URL or localStorage
 	onMount(async () => {
+		// First check URL parameter
 		const urlPhone = new URL(window.location.href).searchParams.get('p');
 		if (urlPhone) {
 			phoneNumber = decodeURIComponent(urlPhone);
+		} else {
+			// Fall back to localStorage if URL param not present
+			const storedPhone = localStorage.getItem('tbr-claim-phone');
+			if (storedPhone) {
+				phoneNumber = storedPhone;
+			}
 		}
 
 		// Initialize auth and watch for session changes
@@ -36,6 +43,7 @@
 			}
 		});
 
+		// Return cleanup function (not wrapped in async)
 		return () => {
 			authListener?.subscription.unsubscribe();
 		};
@@ -85,10 +93,10 @@
 		loading = true;
 
 		try {
-			const result = await auth.verifyPhone(phoneNumber, verificationCode);
+			await auth.verifyPhone(phoneNumber, verificationCode);
 
 			// Both branches move to username selection
-			// result.data.existingData indicates if we had existing data, but UI is same
+			// Phone verification succeeded, move forward
 			currentStep = 'username';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Invalid or expired code';

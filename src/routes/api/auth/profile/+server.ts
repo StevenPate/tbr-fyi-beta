@@ -7,7 +7,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	const authUser = locals.user;
 
 	if (!authUser) {
-		return json({ error: 'Not authenticated' }, { status: 401 });
+		return json({ data: null, error: 'Not authenticated' }, { status: 401 });
 	}
 
 	// Get user profile from our users table
@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		.single();
 
 	if (error || !profile) {
-		return json({ error: 'Profile not found' }, { status: 404 });
+		return json({ data: null, error: 'Profile not found' }, { status: 404 });
 	}
 
 	// Return profile data in expected format
