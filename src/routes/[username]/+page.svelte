@@ -1335,7 +1335,7 @@
 		<!-- Multimodal Add Book Modal -->
 		{#if showIsbnInput}
 			<div
-				class="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-20"
+				class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
 				role="button"
 				tabindex="0"
 				aria-label="Close add book dialog"
@@ -1368,7 +1368,7 @@
 				}}
 			>
 				<div
-					class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"
+					class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="addBookDialogTitle"
@@ -1384,11 +1384,37 @@
 						}
 					}}
 				>
-					<div class="flex items-start justify-between gap-4">
-						<h2 id="addBookDialogTitle" class="text-xl font-semibold text-gray-900 mb-4">Add Book</h2>
+					<!-- Header - Fixed at top -->
+					<div class="flex items-center justify-between gap-4 p-4 border-b border-gray-200">
+						{#if detectedBooks.length > 0}
+							<button
+								type="button"
+								class="text-gray-600 hover:text-gray-800 flex items-center gap-1"
+								aria-label="Back to search"
+								onclick={() => {
+									detectedBooks = [];
+									selectedBookIds = new Set();
+									selectedShelfIds = new Set();
+									showShelfSelection = false;
+									detectError = null;
+									inputText = '';
+									selectedFile = null;
+								}}
+							>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+								</svg>
+								<span>Back</span>
+							</button>
+							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-gray-900">
+								Select Books ({selectedBookIds.size}/{detectedBooks.length})
+							</h2>
+						{:else}
+							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-gray-900">Add Book</h2>
+						{/if}
 						<button
 							type="button"
-							class="ml-auto text-gray-500 hover:text-gray-700"
+							class="ml-auto text-gray-500 hover:text-gray-700 p-1"
 							aria-label="Close"
 							onclick={() => {
 								showIsbnInput = false;
@@ -1402,118 +1428,119 @@
 								addBookSuccess = false;
 							}}
 						>
-							<span aria-hidden="true">✕</span>
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
 						</button>
 					</div>
 
-					<div class="flex flex-col gap-4">
-						<div>
-							<p class="text-sm text-gray-600 mb-2">
-								Enter ISBN, paste Amazon link, search "Title by Author", or upload/drop a photo. Press Enter to detect.
-							</p>
-							<div class="text-xs text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded">
-								💡 <strong>Bulk import:</strong> Upload a CSV or TXT file with ISBNs (max 50 books). Files can have one ISBN per line or include other columns.
-							</div>
-						</div>
-
-						<textarea
-							bind:value={inputText}
-							bind:this={queryInput}
-							placeholder="ISBN, Amazon URL, or Title by Author..."
-							rows="3"
-							class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-							disabled={isDetecting || isAddingBook || detectedBooks.length > 0}
-							ondragover={handleDragOver}
-							ondrop={handleDrop}
-							onkeydown={(e: KeyboardEvent) => {
-								if (e.key === 'Enter' && !e.shiftKey) {
-									e.preventDefault();
-									if ((inputText.trim() || selectedFile) && !isDetecting && detectedBooks.length === 0) {
-										detectBooks();
-									}
-								}
-							}}
-						></textarea>
-
-						{#if selectedFile && selectedFile.size > 3 * 1024 * 1024}
-							<div class="text-sm text-yellow-600">
-								⚠️ Large file ({formatFileSize(selectedFile.size)}). Consider resizing for faster upload.
-							</div>
-						{/if}
-
+					<!-- Scrollable Content -->
+					<div class="flex-1 overflow-y-auto p-4">
 						{#if detectedBooks.length === 0}
-							<div class="flex items-center gap-2">
-								<div class="flex-grow border-t border-gray-300"></div>
-								<span class="text-sm text-gray-500">or</span>
-								<div class="flex-grow border-t border-gray-300"></div>
+							<!-- Search Input Section -->
+							<div class="space-y-4">
+								<textarea
+									bind:value={inputText}
+									bind:this={queryInput}
+									placeholder="ISBN, Amazon URL, Title by Author, or paste CSV/TXT for bulk import..."
+									rows="3"
+									aria-label="Book search input. Enter ISBN, Amazon URL, book title and author, paste CSV or TXT content for bulk import, or drag and drop an image"
+									class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+									disabled={isDetecting || isAddingBook}
+									ondragover={handleDragOver}
+									ondrop={handleDrop}
+									onkeydown={(e: KeyboardEvent) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault();
+											if ((inputText.trim() || selectedFile) && !isDetecting) {
+												detectBooks();
+											}
+										}
+									}}
+								></textarea>
+
+								{#if selectedFile && selectedFile.size > 3 * 1024 * 1024}
+									<div class="text-sm text-yellow-600">
+										⚠️ Large file ({formatFileSize(selectedFile.size)}). Consider resizing for faster upload.
+									</div>
+								{/if}
+
+								<div class="flex items-center gap-2">
+									<div class="flex-grow border-t border-gray-300"></div>
+									<span class="text-sm text-gray-500">or</span>
+									<div class="flex-grow border-t border-gray-300"></div>
+								</div>
+
+								<button
+									onclick={triggerFileInput}
+									disabled={isDetecting || isAddingBook}
+									class="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									📷 Take/Upload Photo or CSV
+								</button>
+
+								<input
+									type="file"
+									accept="image/*,.csv,.txt,text/plain,text/csv"
+									capture="environment"
+									bind:this={fileInput}
+									onchange={handleFileSelect}
+									hidden
+								/>
+
+								<p class="text-xs text-gray-500 text-center">
+									💡 Tip: Upload CSV/TXT files with ISBNs for bulk import (max 50)
+								</p>
 							</div>
 
-							<button
-								onclick={triggerFileInput}
-								disabled={isDetecting || isAddingBook || detectedBooks.length > 0}
-								class="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								📷 Take/Upload Photo
-							</button>
+							{#if isDetecting}
+								<div class="flex items-center gap-2 text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
+									<span class="animate-spin">⏳</span>
+									<span>Detecting books...</span>
+								</div>
+							{/if}
 
-							<input
-								type="file"
-								accept="image/*,.csv,.txt,text/plain,text/csv"
-								capture="environment"
-								bind:this={fileInput}
-								onchange={handleFileSelect}
-								hidden
-							/>
-						{/if}
+							{#if detectError}
+								<div
+									class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded border border-red-200"
+									role="alert"
+								>
+									{detectError}
+								</div>
+							{/if}
 
-						{#if isDetecting}
-							<div class="flex items-center gap-2 text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
-								<span class="animate-spin">⏳</span>
-								<span>Detecting books...</span>
-							</div>
-						{/if}
-
-						{#if detectError}
-							<div
-								class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded border border-red-200"
-								role="alert"
-							>
-								{detectError}
-							</div>
-						{/if}
-
-						{#if addBookSuccess}
-							<div
-								class="text-sm text-green-600 bg-green-50 px-4 py-3 rounded border border-green-200"
-								role="status"
-							>
-								Book(s) added successfully!
-							</div>
-						{/if}
-
-						{#if detectedBooks.length > 0}
-							<div class="border-t pt-4">
-								<h3 class="font-semibold mb-2">Found {detectedBooks.length} book(s):</h3>
+							{#if addBookSuccess}
+								<div
+									class="text-sm text-green-600 bg-green-50 px-4 py-3 rounded border border-green-200"
+									role="status"
+								>
+									Book(s) added successfully!
+								</div>
+							{/if}
+						{:else}
+							<!-- Books Results Section -->
+							<div class="space-y-4">
 
 								{#if detectionMetadata}
-									<div class="text-sm mb-3 space-y-1">
+									<div class="text-sm space-y-1">
 										<div class="text-gray-600">
 											Processed {detectionMetadata.totalLines} lines, found {detectionMetadata.validIsbns} valid ISBNs
 										</div>
 										{#if detectionMetadata.skippedLines > 0}
-											<div class="text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded">
-												⚠️ Skipped {detectionMetadata.skippedLines} lines with invalid or missing ISBNs
+											<div class="text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded text-xs">
+												⚠️ Skipped {detectionMetadata.skippedLines} lines with invalid ISBNs
 											</div>
 										{/if}
 										{#if detectionMetadata.duplicatesRemoved && detectionMetadata.duplicatesRemoved > 0}
-											<div class="text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded">
-												ℹ️ Removed {detectionMetadata.duplicatesRemoved} duplicate ISBN{detectionMetadata.duplicatesRemoved > 1 ? 's' : ''}
+											<div class="text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded text-xs">
+												ℹ️ Removed {detectionMetadata.duplicatesRemoved} duplicate{detectionMetadata.duplicatesRemoved > 1 ? 's' : ''}
 											</div>
 										{/if}
 									</div>
 								{/if}
 
-								<div class="space-y-2 max-h-64 overflow-y-auto">
+								<!-- Book Selection List -->
+								<div class="space-y-2">
 									{#each detectedBooks as book}
 										<label class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
 											<input
@@ -1553,7 +1580,7 @@
 
 								<!-- Shelf selection (collapsible) -->
 								{#if data.shelves.length > 0}
-									<div class="mt-4 border-t pt-4">
+									<div class="border-t pt-4">
 										<button
 											onclick={() => showShelfSelection = !showShelfSelection}
 											class="w-full flex items-center justify-between text-sm text-gray-700 py-2 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -1585,47 +1612,40 @@
 								{/if}
 							</div>
 						{/if}
+					</div>
 
-						<div class="flex gap-2 justify-end">
+					<!-- Fixed Footer with Actions - Away from bottom edge -->
+					<div class="border-t border-gray-200 bg-gray-50 p-4 pb-6 flex gap-2 justify-end">
+						{#if detectedBooks.length === 0}
 							<Button
-								variant="ghost"
+								variant="primary"
 								size="md"
-								disabled={isDetecting || isAddingBook}
+								onclick={detectBooks}
+								disabled={(!inputText.trim() && !selectedFile) || isDetecting}
+							>
+								{isDetecting ? 'Detecting...' : 'Search'}
+							</Button>
+						{:else}
+							<button
+								type="button"
+								class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
 								onclick={() => {
-									showIsbnInput = false;
-									inputText = '';
-									selectedFile = null;
-									detectedBooks = [];
 									selectedBookIds = new Set();
 									selectedShelfIds = new Set();
 									showShelfSelection = false;
-									detectError = null;
-									addBookSuccess = false;
 								}}
 							>
-								Cancel
+								Clear Selection
+							</button>
+							<Button
+								variant="primary"
+								size="md"
+								onclick={addSelectedBooks}
+								disabled={selectedBookIds.size === 0 || isAddingBook}
+							>
+								{isAddingBook ? 'Adding...' : `Add ${selectedBookIds.size} Book${selectedBookIds.size === 1 ? '' : 's'}`}
 							</Button>
-
-							{#if detectedBooks.length === 0}
-								<Button
-									variant="primary"
-									size="md"
-									onclick={detectBooks}
-									disabled={(!inputText.trim() && !selectedFile) || isDetecting || detectedBooks.length > 0}
-								>
-									{isDetecting ? 'Detecting...' : 'Detect'}
-								</Button>
-							{:else}
-								<Button
-									variant="primary"
-									size="md"
-									onclick={addSelectedBooks}
-									disabled={selectedBookIds.size === 0 || isAddingBook}
-								>
-									{isAddingBook ? 'Adding...' : `Add ${selectedBookIds.size} Book(s)`}
-								</Button>
-							{/if}
-						</div>
+						{/if}
 					</div>
 				</div>
 			</div>
