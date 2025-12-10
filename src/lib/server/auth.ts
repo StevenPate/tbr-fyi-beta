@@ -2,63 +2,26 @@
  * Authentication and Authorization Utilities
  *
  * Provides helpers for extracting and validating user IDs from requests.
- * Supports both session-based auth (via Supabase Auth) and legacy phone-based auth.
  */
 
-import { supabase } from '$lib/server/supabase';
-import type { User } from '@supabase/supabase-js';
-
-/**
- * Gets authenticated user from Authorization header
- * @param request - The incoming request object
- * @returns The authenticated user or null if not authenticated
- */
-async function getUserFromAuthHeader(request: Request): Promise<User | null> {
-	const authHeader = request.headers.get('authorization');
-	if (!authHeader || !authHeader.startsWith('Bearer ')) {
-		return null;
-	}
-
-	const token = authHeader.slice(7); // Remove 'Bearer ' prefix
-
-	try {
-		const { data: { user }, error } = await supabase.auth.getUser(token);
-		if (error || !user) {
-			return null;
-		}
-		return user;
-	} catch {
-		return null;
-	}
-}
-
-/**
- * Gets user profile from authenticated user
- * @param authUser - The authenticated user from Supabase Auth
- * @returns The user ID (phone_number) from users table
- */
-async function getUserIdFromAuthUser(authUser: User): Promise<string | null> {
-	const { data, error } = await supabase
-		.from('users')
-		.select('phone_number')
-		.eq('auth_id', authUser.id)
-		.single();
-
-	if (error || !data) {
-		// Try by email as fallback
-		const { data: emailData, error: emailError } = await supabase
-			.from('users')
-			.select('phone_number')
-			.eq('email', authUser.email)
-			.single();
-
-		if (emailError || !emailData) {
-			return null;
-		}
-		return emailData.phone_number;
-	}
-
-	return data.phone_number;
+export interface AuthUser {
+	/**
+	 * Unique identifier for the authenticated user.
+	 * For the current MVP, we reuse the phone number as the identifier.
+	 */
+	id: string;
+	/**
+	 * Primary phone number associated with the user.
+	 */
+	phone?: string | null;
+	phone_number?: string;
+	/**
+	 * Additional metadata about the user (matches Supabase auth shape).
+	 */
+	user_metadata?: {
+		phone?: string;
+		phone_number?: string;
+	};
 }
 
 /**
@@ -89,22 +52,44 @@ export function getUserIdFromReferer(request: Request): string | null {
 }
 
 /**
- * Gets user ID from request, checking auth session first, then referer
- * @param request - The incoming request object
- * @returns The user ID or null if not found
+ * Derive the authenticated user object from the incoming request.
+ *
+ * MVP implementation: treats the first path segment of the referer as the user ID.
+ * Future auth work can swap this with real session-aware logic while preserving callers.
  */
-export async function getUserId(request: Request): Promise<string | null> {
-	// Check session auth first
-	const authUser = await getUserFromAuthHeader(request);
-	if (authUser) {
-		const userId = await getUserIdFromAuthUser(authUser);
-		if (userId) {
-			return userId;
-		}
+export function getAuthUserFromRequest(request: Request): AuthUser | null {
+	const userId = getUserIdFromReferer(request);
+	if (!userId) {
+		return null;
 	}
 
-	// Fall back to referer-based auth (legacy)
-	return getUserIdFromReferer(request);
+	return {
+		id: userId,
+		phone: userId,
+		phone_number: userId,
+		user_metadata: { phone_number: userId, phone: userId }
+	};
+}
+
+/**
+ * Safely extract the canonical user ID from an AuthUser structure.
+ */
+type PhoneLikeUser = Pick<AuthUser, 'phone' | 'phone_number' | 'user_metadata'>;
+
+export function getAuthUserId(authUser: PhoneLikeUser | null | undefined): string | null {
+	if (!authUser) {
+		return null;
+	}
+
+	if (authUser.phone_number) {
+		return authUser.phone_number;
+	}
+
+	if (authUser.phone) {
+		return authUser.phone;
+	}
+
+	return authUser.user_metadata?.phone_number || authUser.user_metadata?.phone || null;
 }
 
 /**
@@ -124,46 +109,89 @@ export function requireUserId(request: Request): string {
 }
 
 /**
- * Async version that checks auth session first, then referer
- * Use this in endpoints that require authentication.
- *
- * @param request - The incoming request object
- * @returns The extracted user ID
- * @throws Error if user ID cannot be determined
+ * Session Management
+ * Secure cookie-based sessions with token hashing
  */
-export async function requireUserIdAsync(request: Request): Promise<string> {
-	const userId = await getUserId(request);
-	if (!userId) {
-		throw new Error('User ID could not be determined from request');
-	}
-	return userId;
+
+import { randomBytes, createHash } from 'crypto';
+import { dev } from '$app/environment';
+import { supabase } from '$lib/server/supabase';
+
+export interface User {
+	phone_number: string;
+	email: string | null;
+	username: string | null;
+	display_name: string | null;
+	verified_at: string | null;
+	created_at: string;
 }
 
-/**
- * Gets the authenticated user from the request
- * @param request - The incoming request object
- * @returns The authenticated user object or null
- */
-export async function getAuthUser(request: Request): Promise<User | null> {
-	return getUserFromAuthHeader(request);
+// Generate secure token and hash
+export function generateSessionToken(): { token: string; hash: string } {
+	const token = randomBytes(32).toString('base64url');
+	const hash = createHash('sha256').update(token).digest('hex');
+	return { token, hash };
 }
 
-/**
- * Check if a user owns a specific phone number
- * @param userId - The user ID to check
- * @param phoneNumber - The phone number to verify ownership of
- * @returns True if the user owns the phone number
- */
-export async function userOwnsPhone(userId: string, phoneNumber: string): Promise<boolean> {
-	const { data, error } = await supabase
-		.from('users')
-		.select('phone_number')
-		.eq('phone_number', userId)
-		.single();
+// Environment-aware cookie settings
+export const COOKIE_OPTIONS = {
+	path: '/',
+	httpOnly: true,
+	secure: !dev, // Only require HTTPS in production
+	sameSite: 'lax' as const,
+	maxAge: 60 * 60 * 24 * 7 // 7 days
+};
 
-	if (error || !data) {
-		return false;
+// Get or create user - handles both phone and email users
+export async function getOrCreateUser(params: {
+	phone?: string;
+	email?: string;
+}): Promise<User> {
+	if (params.phone) {
+		// Phone user - phone_number is the natural PK
+		const { data: existing } = await supabase
+			.from('users')
+			.select('*')
+			.eq('phone_number', params.phone)
+			.single();
+
+		if (existing) return existing as User;
+
+		const { data: newUser } = await supabase
+			.from('users')
+			.insert({
+				phone_number: params.phone,
+				verified_at: new Date().toISOString()
+			})
+			.select()
+			.single();
+
+		return newUser as User;
+	} else if (params.email) {
+		// Email user - check for existing first!
+		const { data: existing } = await supabase
+			.from('users')
+			.select('*')
+			.eq('email', params.email)
+			.single();
+
+		if (existing) return existing as User; // Return existing email user
+
+		// Only create new user if email doesn't exist
+		const fakePhoneNumber = `email_user_${crypto.randomUUID()}`;
+
+		const { data: user } = await supabase
+			.from('users')
+			.insert({
+				phone_number: fakePhoneNumber, // Satisfies PK requirement
+				email: params.email,
+				verified_at: new Date().toISOString()
+			})
+			.select()
+			.single();
+
+		return user as User;
 	}
 
-	return data.phone_number === phoneNumber;
+	throw new Error('Either phone or email must be provided');
 }

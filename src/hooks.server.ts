@@ -1,7 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { logger, startTimer } from '$lib/server/logger';
-import { createServerClient } from '@supabase/ssr';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { createHash } from 'crypto';
+import { supabase } from '$lib/server/supabase';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const requestTimer = startTimer();
@@ -11,24 +11,44 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Add request ID to locals for tracing
 	event.locals.requestId = requestId;
 
-	// Create Supabase client for this request
-	event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-		cookies: {
-			getAll: () => event.cookies.getAll(),
-			setAll: (cookies) => {
-				cookies.forEach(({ name, value, options }) => {
-					event.cookies.set(name, value, { ...options, path: '/' });
-				});
+	// Session validation
+	const sessionToken = event.cookies.get('tbr_session');
+
+	if (sessionToken) {
+		try {
+			// Hash the token to look up in database
+			const tokenHash = createHash('sha256').update(sessionToken).digest('hex');
+
+			// Validate session (join using phone_number)
+			const { data: session } = await supabase
+				.from('sessions')
+				.select(
+					`
+					*,
+					user:users!user_id(*)
+				`
+				)
+				.eq('token_hash', tokenHash)
+				.gt('expires_at', new Date().toISOString())
+				.single();
+
+			if (session && session.user) {
+				event.locals.user = session.user;
+
+				// Refresh activity timestamp
+				await supabase
+					.from('sessions')
+					.update({ last_activity: new Date().toISOString() })
+					.eq('token_hash', tokenHash);
 			}
+		} catch (error) {
+			// Invalid session - clear cookie
+			event.cookies.delete('tbr_session', { path: '/' });
+			event.locals.user = null;
 		}
-	});
-
-	// Get the session
-	const {
-		data: { user }
-	} = await event.locals.supabase.auth.getUser();
-
-	event.locals.user = user ?? null;
+	} else {
+		event.locals.user = null;
+	}
 
 	try {
 		// CSRF protection is disabled in svelte.config.js to allow Twilio webhooks
