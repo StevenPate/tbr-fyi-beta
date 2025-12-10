@@ -68,9 +68,12 @@
 	}
 
 	function handleClaimClick() {
-		// Navigate to claim page with phone pre-filled
-		const encodedPhone = encodeURIComponent(phoneNumber);
-		window.location.href = `/auth/claim?p=${encodedPhone}`;
+		// Store phone in localStorage for auto-fill in verify-phone page
+		if (browser) {
+			localStorage.setItem('tbr-claim-phone', phoneNumber);
+		}
+		// Navigate to phone verification page
+		window.location.href = '/auth/verify-phone';
 	}
 </script>
 

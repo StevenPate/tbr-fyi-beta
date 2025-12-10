@@ -2,18 +2,22 @@
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import type { PageData } from './$types';
+	import { page } from '$app/stores';
 
-	let { data }: { data: PageData } = $props();
-
-	let phoneNumber = $state(data.phoneNumber || '');
+	let phoneNumber = $state('');
 	let verificationCode = $state('');
 	let status = $state<'idle' | 'sending' | 'verifying' | 'error'>('idle');
 	let errorMessage = $state('');
 	let codeSent = $state(false);
 
 	onMount(async () => {
-		// Check localStorage for phone number if not in database
+		// Check URL query param first (for SMS links)
+		const phoneFromUrl = $page.url.searchParams.get('p');
+		if (phoneFromUrl) {
+			phoneNumber = decodeURIComponent(phoneFromUrl);
+		}
+
+		// Fallback to localStorage for phone number
 		if (!phoneNumber) {
 			const storedPhone = localStorage.getItem('tbr-claim-phone');
 			if (storedPhone) {
@@ -154,12 +158,15 @@
 							id="code"
 							type="text"
 							inputmode="numeric"
-							pattern="[0-9]{6}"
 							maxlength="6"
 							bind:value={verificationCode}
 							disabled={status === 'verifying'}
 							class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50 text-center text-2xl tracking-widest"
 							placeholder="000000"
+							oninput={(e) => {
+								const target = e.target as HTMLInputElement;
+								verificationCode = target.value.replace(/\D/g, '');
+							}}
 							required
 						/>
 					</div>

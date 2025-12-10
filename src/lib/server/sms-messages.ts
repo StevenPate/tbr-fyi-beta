@@ -18,11 +18,11 @@ export function getShelfUrl(phoneNumber: string): string {
 
 /**
  * Format claim URL for a phone number
- * Used for prompting users to create accounts
+ * Used for prompting users to create accounts via phone verification
  */
 export function getClaimUrl(phoneNumber: string): string {
 	const encodedPhone = encodeURIComponent(phoneNumber);
-	return `${PUBLIC_BASE_URL}/auth/claim?p=${encodedPhone}`;
+	return `${PUBLIC_BASE_URL}/auth/verify-phone?p=${encodedPhone}`;
 }
 
 export const SMS_COMMANDS = {

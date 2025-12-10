@@ -1,236 +1,144 @@
-// Auth store for managing user authentication state
-import { writable, derived, get } from 'svelte/store';
-import { supabase } from '$lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
-import { browser } from '$app/environment';
+// Client-side auth store
+// Handles phone and email verification flows
+
+import { writable } from 'svelte/store';
 import { goto } from '$app/navigation';
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  initialized: boolean;
+	user: any | null;
+	loading: boolean;
 }
 
-interface UserProfile {
-  phone_number: string;
-  username: string | null;
-  email: string | null;
-  display_name: string | null;
-  is_public: boolean;
-  has_started: boolean;
-  auth_id: string | null;
-}
-
-// Create auth store
 function createAuthStore() {
-  const { subscribe, set, update } = writable<AuthState>({
-    user: null,
-    session: null,
-    loading: true,
-    initialized: false
-  });
+	const { subscribe, set, update } = writable<AuthState>({
+		user: null,
+		loading: false
+	});
 
-  // Initialize auth state
-  async function initialize() {
-    if (!browser) return;
+	return {
+		subscribe,
+		initialize: async () => {
+			// Check current session status
+			try {
+				const response = await fetch('/api/auth/session');
+				const data = await response.json();
+				if (data.authenticated && data.user) {
+					update((state) => ({ ...state, user: data.user }));
+				}
+			} catch (error) {
+				console.error('Failed to initialize auth:', error);
+			}
+		},
+		signInWithEmail: async (email: string) => {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const response = await fetch('/api/auth/send-magic-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ email })
+				});
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to send magic link');
+				}
+			} finally {
+				update((state) => ({ ...state, loading: false }));
+			}
+		},
+		signUpWithEmail: async (email: string) => {
+			// Same as sign in for magic links - reuse the implementation
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const response = await fetch('/api/auth/send-magic-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ email })
+				});
 
-      set({
-        user: session?.user ?? null,
-        session: session,
-        loading: false,
-        initialized: true
-      });
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to send magic link');
+				}
+			} finally {
+				update((state) => ({ ...state, loading: false }));
+			}
+		},
+		signOut: async () => {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				await fetch('/api/auth/session', { method: 'DELETE' });
+				set({ user: null, loading: false });
+				goto('/');
+			} catch (error) {
+				console.error('Failed to sign out:', error);
+				update((state) => ({ ...state, loading: false }));
+			}
+		},
+		verifyPhone: async (phone: string, code: string) => {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const response = await fetch('/api/auth/verify-phone', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ phone, code })
+				});
 
-      // Set up auth state change listener
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', event);
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Verification failed');
+				}
 
-        update(state => ({
-          ...state,
-          user: session?.user ?? null,
-          session: session,
-          loading: false
-        }));
+				const data = await response.json();
+				update((state) => ({ ...state, user: data.user, loading: false }));
+				return data;
+			} catch (error) {
+				update((state) => ({ ...state, loading: false }));
+				throw error;
+			}
+		},
+		sendPhoneVerification: async (phone: string) => {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const response = await fetch('/api/auth/send-code', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ phone })
+				});
 
-        // Handle auth events
-        switch (event) {
-          case 'SIGNED_IN':
-            // Optionally redirect after sign in
-            if (window.location.pathname === '/auth/signin') {
-              await goto('/');
-            }
-            break;
-          case 'SIGNED_OUT':
-            // Clear any cached data
-            if (browser) {
-              localStorage.removeItem('tbr-userId');
-            }
-            break;
-          case 'USER_UPDATED':
-            // Refresh user data
-            await refreshProfile();
-            break;
-        }
-      });
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-      set({
-        user: null,
-        session: null,
-        loading: false,
-        initialized: true
-      });
-    }
-  }
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to send verification code');
+				}
 
-  // Sign in with magic link
-  async function signInWithEmail(email: string) {
-    update(state => ({ ...state, loading: true }));
+				return await response.json();
+			} finally {
+				update((state) => ({ ...state, loading: false }));
+			}
+		},
+		setUsername: async (username: string) => {
+			update((state) => ({ ...state, loading: true }));
+			try {
+				const response = await fetch('/api/auth/username', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username })
+				});
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/verify`
-      }
-    });
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to set username');
+				}
 
-    update(state => ({ ...state, loading: false }));
-
-    if (error) {
-      throw error;
-    }
-  }
-
-  // Sign up with email
-  async function signUpWithEmail(email: string) {
-    return signInWithEmail(email); // Same as sign in for magic links
-  }
-
-  // Sign out
-  async function signOut() {
-    update(state => ({ ...state, loading: true }));
-
-    const { error } = await supabase.auth.signOut();
-
-    update(state => ({
-      ...state,
-      user: null,
-      session: null,
-      loading: false
-    }));
-
-    if (error) {
-      throw error;
-    }
-
-    // Redirect to home
-    if (browser) {
-      await goto('/');
-    }
-  }
-
-  // Refresh user profile from database
-  async function refreshProfile() {
-    const state = get({ subscribe });
-    if (!state.user) return null;
-
-    try {
-      const { data, error } = await fetch('/api/auth/profile').then(r => r.json());
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-
-      return data as UserProfile;
-    } catch (error) {
-      console.error('Error refreshing profile:', error);
-      return null;
-    }
-  }
-
-  // Verify phone number for account claiming
-  async function verifyPhone(phone: string, code: string) {
-    const response = await fetch('/api/auth/verify-phone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Verification failed');
-    }
-
-    // Return the result with data payload
-    return result;
-  }
-
-  // Send verification code to phone
-  async function sendPhoneVerification(phone: string) {
-    const response = await fetch('/api/auth/send-verification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to send verification');
-    }
-
-    return data;
-  }
-
-  // Set username
-  async function setUsername(username: string) {
-    const response = await fetch('/api/auth/username', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to set username');
-    }
-
-    await refreshProfile();
-    return data;
-  }
-
-  // Get current session
-  async function getSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-  }
-
-  return {
-    subscribe,
-    initialize,
-    getSession,
-    signInWithEmail,
-    signUpWithEmail,
-    signOut,
-    refreshProfile,
-    verifyPhone,
-    sendPhoneVerification,
-    setUsername
-  };
+				const data = await response.json();
+				update((state) => ({ ...state, user: data.user, loading: false }));
+				return data;
+			} catch (error) {
+				update((state) => ({ ...state, loading: false }));
+				throw error;
+			}
+		}
+	};
 }
 
-// Create and export auth store
 export const auth = createAuthStore();
-
-// Derived stores
-export const user = derived(auth, $auth => $auth.user);
-export const session = derived(auth, $auth => $auth.session);
-export const isAuthenticated = derived(auth, $auth => !!$auth.session);
-export const isLoading = derived(auth, $auth => $auth.loading);

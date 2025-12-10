@@ -1,5 +1,5 @@
 import type { LayoutLoad } from './$types';
-import { supabase } from '$lib/supabase';
+import { getSupabaseClient } from '$lib/supabase';
 import { browser } from '$app/environment';
 
 export const load: LayoutLoad = async ({ data, depends }) => {
@@ -8,7 +8,10 @@ export const load: LayoutLoad = async ({ data, depends }) => {
 
 	// Get session on the client side
 	if (browser) {
-		const { data: { session } } = await supabase.auth.getSession();
+		const supabase = getSupabaseClient();
+		const {
+			data: { session }
+		} = await supabase.auth.getSession();
 
 		return {
 			...data,

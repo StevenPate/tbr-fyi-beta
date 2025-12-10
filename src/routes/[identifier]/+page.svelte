@@ -733,9 +733,9 @@
 	// Global keyboard shortcut: press "+" to open ISBN entry
 	onMount(() => {
 		// Save user ID to localStorage for quick access from homepage
-		const username = $page.params.username;
-		if (username) {
-			localStorage.setItem('tbr-userId', username);
+		const identifier = $page.params.identifier;
+		if (identifier) {
+			localStorage.setItem('tbr-userId', identifier);
 		}
 
 		const handleKeydown = (e: KeyboardEvent) => {
