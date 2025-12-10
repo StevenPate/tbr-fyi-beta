@@ -1,99 +1,80 @@
-import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
+import { getOrCreateUser, generateSessionToken, COOKIE_OPTIONS } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-	const { phone, code } = await request.json();
+export const POST: RequestHandler = async ({ request, cookies }) => {
+	try {
+		const { phone, code } = await request.json();
 
-	if (!phone || !code) {
-		return json({ data: null, error: 'Phone number and code required' }, { status: 400 });
-	}
-
-	// Get authenticated user from locals
-	const authUser = locals.user;
-
-	if (!authUser) {
-		return json({ data: null, error: 'Not authenticated' }, { status: 401 });
-	}
-
-	// Verify the code
-	const { data: verification, error: verifyError } = await supabase
-		.from('phone_verification_codes')
-		.select('*')
-		.eq('phone_number', phone)
-		.eq('code', code)
-		.eq('auth_id', authUser.id)
-		.eq('is_used', false)
-		.gt('expires_at', new Date().toISOString())
-		.single();
-
-	if (verifyError || !verification) {
-		// Increment attempts on failure
-		await supabase
-			.from('phone_verification_codes')
-			.update({ attempts: verification?.attempts ? verification.attempts + 1 : 1 })
-			.eq('phone_number', phone)
-			.eq('auth_id', authUser.id)
-			.eq('is_used', false);
-
-		return json({ data: null, error: 'Invalid or expired code' }, { status: 400 });
-	}
-
-	// Mark code as used
-	await supabase
-		.from('phone_verification_codes')
-		.update({ is_used: true, used_at: new Date().toISOString() })
-		.eq('id', verification.id);
-
-	// Link the phone number to the auth user
-	// First check if phone number already has an account
-	const { data: existingUser } = await supabase
-		.from('users')
-		.select('*')
-		.eq('phone_number', phone)
-		.single();
-
-	if (existingUser) {
-		// Update existing phone user with auth account
-		const { error: updateError } = await supabase
-			.from('users')
-			.update({
-				auth_id: authUser.id,
-				email: authUser.email,
-				account_created_at: new Date().toISOString()
-			})
-			.eq('phone_number', phone);
-
-		if (updateError) {
-			return json({ data: null, error: 'Failed to link account' }, { status: 500 });
+		if (!phone || !code) {
+			return json({ error: 'Phone and code are required' }, { status: 400 });
 		}
 
-		// Transfer any temporary user data to the phone account
-		await supabase
-			.from('users')
-			.delete()
-			.eq('phone_number', `auth_${authUser.id}`);
+		// First, check if there's an active code for this identifier
+		const { data: activeCode } = await supabase
+			.from('verification_codes')
+			.select('*')
+			.eq('identifier', phone)
+			.eq('code_type', 'sms_6digit')
+			.is('used_at', null)
+			.gt('expires_at', new Date().toISOString())
+			.single();
 
-		return json({
-			data: { success: true, existingData: true },
-			error: null
-		});
-	} else {
-		// Update the auth user's temporary record with real phone number
-		const { error: updateError } = await supabase
-			.from('users')
-			.update({
-				phone_number: phone
-			})
-			.eq('auth_id', authUser.id);
-
-		if (updateError) {
-			return json({ data: null, error: 'Failed to update account' }, { status: 500 });
+		// If no active code exists, fail immediately
+		if (!activeCode) {
+			return json({ error: 'No active verification code. Please request a new one.' }, { status: 400 });
 		}
 
-		return json({
-			data: { success: true, existingData: false },
-			error: null
+		// Check if the provided code matches
+		if (activeCode.code !== code) {
+			// Wrong code - increment attempts on the active code
+			const { data: attempts } = await supabase.rpc('increment_verification_attempts', {
+				code_id: activeCode.id
+			});
+
+			if (attempts && attempts >= 3) {
+				// Lock out this code
+				await supabase
+					.from('verification_codes')
+					.update({ used_at: new Date().toISOString() })
+					.eq('id', activeCode.id);
+				return json({ error: 'Too many failed attempts. Please request a new code.' }, { status: 400 });
+			}
+
+			return json({ error: 'Invalid verification code' }, { status: 400 });
+		}
+
+		// Code is valid - mark as used
+		await supabase
+			.from('verification_codes')
+			.update({ used_at: new Date().toISOString() })
+			.eq('id', activeCode.id);
+
+		// Get or create user (returns record with phone_number as PK)
+		const user = await getOrCreateUser({ phone });
+
+		// Create session with hashed token
+		const { token, hash } = generateSessionToken();
+		await supabase.from('sessions').insert({
+			token_hash: hash,
+			user_id: user.phone_number // PK is phone_number, not id!
 		});
+
+		// Set cookie (raw token)
+		cookies.set('tbr_session', token, COOKIE_OPTIONS);
+
+		return json({
+			success: true,
+			user: {
+				phone_number: user.phone_number,
+				email: user.email,
+				username: user.username,
+				display_name: user.display_name
+			}
+		});
+	} catch (error) {
+		console.error('Error in verify-phone:', error);
+		return json({ error: 'An unexpected error occurred' }, { status: 500 });
 	}
 };
