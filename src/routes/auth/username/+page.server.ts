@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// If user already has a username, redirect to their shelf
 	if (locals.user.username) {
-		throw redirect(303, `/@${locals.user.username}`);
+		throw redirect(303, `/${locals.user.username}`);
 	}
 
 	// Return user data for display

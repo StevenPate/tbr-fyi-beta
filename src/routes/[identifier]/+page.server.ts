@@ -3,7 +3,7 @@
  *
  * Loads books and shelves for the given user from Supabase.
  * Supports multiple URL formats:
- * - /@username (claimed usernames)
+ * - /{username} (claimed usernames)
  * - /+phone (phone numbers)
  * - /email_user_{uuid} (email-only users)
  */
@@ -19,22 +19,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	let userId: string;
 	let user: any;
 
-	if (identifier.startsWith('@')) {
-		// Username lookup
-		const username = identifier.slice(1);
-		const { data } = await supabase
-			.from('users')
-			.select('*')
-			.eq('username', username)
-			.single();
-
-		if (!data) {
-			throw error(404, 'User not found');
-		}
-
-		user = data;
-		userId = data.phone_number;
-	} else if (identifier.startsWith('+')) {
+	if (identifier.startsWith('+')) {
 		// Phone number lookup (backward compatible)
 		userId = identifier;
 
@@ -57,7 +42,19 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
 		user = data;
 	} else {
-		throw error(404, 'Invalid user identifier');
+		// Username lookup (default case)
+		const { data } = await supabase
+			.from('users')
+			.select('*')
+			.eq('username', identifier)
+			.single();
+
+		if (!data) {
+			throw error(404, 'User not found');
+		}
+
+		user = data;
+		userId = data.phone_number;
 	}
 
 	// Get requested shelf from URL query parameter

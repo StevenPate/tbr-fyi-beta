@@ -6,6 +6,7 @@
 	import { onMount, tick } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { Card, FlipCard, Button, Input, Badge } from '$lib/components/ui';
+	import ShareModal from '$lib/components/ui/ShareModal.svelte';
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
@@ -89,6 +90,12 @@
 	let shelfModalBookId = $state<string | null>(null);
 	let shelfModalOpen = $derived(shelfModalBookId !== null);
 	let shelfModalElement: HTMLDivElement | null = null;
+
+	// Share modal state
+	let shareModalBook = $state<{ isbn13: string; title: string } | null>(null);
+	let shareModalOpen = $derived(shareModalBook !== null);
+	// Canonical identifier for share URLs: prefer username if available
+	const canonicalIdentifier = $derived(data.username || data.userId);
 
 	// Focus modal when it opens
 	$effect(() => {
@@ -1298,6 +1305,20 @@
 									</div>
 								{/if}
 
+								<!-- Share button -->
+								<button
+									onclick={(e) => {
+										e.stopPropagation();
+										shareModalBook = { isbn13: book.isbn13, title: book.title };
+									}}
+									class="w-full flex items-center justify-center gap-1.5 text-sm text-stone-600 py-2 px-2 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+								>
+									<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+									</svg>
+									<span class="truncate">Share</span>
+								</button>
+
 								<!-- Remove button with inline confirmation -->
 								<button
 									onclick={(e) => {
@@ -1354,6 +1375,7 @@
 							// TODO: Implement edit details modal
 							console.log('Edit details for book:', book.id);
 						}}
+						onShare={(b: { isbn13: string; title: string }) => shareModalBook = b}
 					/>
 				{/each}
 			</div>
@@ -1789,6 +1811,16 @@
 		</div>
 	</div>
 </div>
+
+<!-- Share Modal -->
+{#if shareModalBook}
+	<ShareModal
+		book={shareModalBook}
+		identifier={canonicalIdentifier}
+		open={shareModalOpen}
+		onClose={() => shareModalBook = null}
+	/>
+{/if}
 
 <style>
 	/* Always show scrollbar on description text */

@@ -2,6 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { supabase } from '$lib/server/supabase';
 import { getOrCreateUser, generateSessionToken, COOKIE_OPTIONS } from '$lib/server/auth';
+import { fetchBookMetadata, toISBN13 } from '$lib/server/metadata';
+import { upsertBookForUser } from '$lib/server/book-operations';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
 	const token = url.searchParams.get('token');
@@ -45,11 +47,34 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 
 		cookies.set('tbr_session', sessionToken, COOKIE_OPTIONS);
 
-		// Redirect to username selection (new users) or shelf (existing users)
+		// Check for isbn param from share flow - auto-add the book
+		const isbn = url.searchParams.get('isbn');
+		if (isbn) {
+			try {
+				const normalizedIsbn = toISBN13(isbn);
+				const metadata = await fetchBookMetadata(normalizedIsbn);
+				if (metadata) {
+					await upsertBookForUser(user.phone_number, metadata);
+				}
+			} catch (e) {
+				// Log but don't block redirect - user can still add manually
+				console.warn('Auto-add from share failed:', e);
+			}
+		}
+
+		// Get redirect URL if provided
+		const redirectUrl = url.searchParams.get('redirect');
+
+		// Redirect to username selection (new users) or shelf/redirect URL (existing users)
 		if (!user.username) {
-			throw redirect(303, '/auth/username');
+			// Pass along redirect and isbn params to username page
+			const usernameUrl = new URL('/auth/username', url.origin);
+			if (redirectUrl) usernameUrl.searchParams.set('redirect', redirectUrl);
+			throw redirect(303, usernameUrl.toString());
+		} else if (redirectUrl) {
+			throw redirect(303, redirectUrl);
 		} else {
-			throw redirect(303, `/@${user.username}`);
+			throw redirect(303, `/${user.username}`);
 		}
 	} catch (error) {
 		// If it's already a redirect, re-throw it

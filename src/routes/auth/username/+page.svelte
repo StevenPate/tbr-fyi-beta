@@ -59,7 +59,7 @@
 			await auth.setUsername(username);
 
 			// Redirect to their new shelf
-			goto(`/@${username}`);
+			goto(`/${username}`);
 		} catch (err) {
 			status = 'error';
 			errorMessage = err instanceof Error ? err.message : 'Failed to set username';
@@ -76,7 +76,7 @@
 		<div class="text-center">
 			<h1 class="text-3xl font-bold text-gray-900">Choose Your Username</h1>
 			<p class="mt-2 text-sm text-gray-600">
-				This will be your custom URL: tbr.fyi/@{username || 'username'}
+				This will be your custom URL: tbr.fyi/{username || 'username'}
 			</p>
 		</div>
 

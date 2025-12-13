@@ -32,7 +32,7 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
 
 	try {
 		await resend.emails.send({
-			from: dev ? 'TBR.fyi <onboarding@resend.dev>' : 'TBR.fyi <noreply@tbr.fyi>',
+			from: dev ? 'TBR.fyi <onboarding@resend.dev>' : 'TBR.fyi <noreply@notifications.tbr.fyi>',
 			to,
 			subject,
 			html: body

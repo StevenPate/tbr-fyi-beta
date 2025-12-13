@@ -25,6 +25,14 @@ export function getClaimUrl(phoneNumber: string): string {
 	return `${PUBLIC_BASE_URL}/auth/verify-phone?p=${encodedPhone}`;
 }
 
+/**
+ * Format book share URL
+ * Used for generating shareable links to individual books
+ */
+export function getBookShareUrl(identifier: string, isbn13: string): string {
+	return `${PUBLIC_BASE_URL}/${encodeURIComponent(identifier)}/book/${isbn13}`;
+}
+
 export const SMS_COMMANDS = {
 	START: 'START',
 	STOP: 'STOP',

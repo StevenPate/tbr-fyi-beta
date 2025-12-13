@@ -2,6 +2,52 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
 
+// Reserved usernames that conflict with routes or are otherwise protected
+const RESERVED_USERNAMES = [
+	// Current routes
+	'about',
+	'help',
+	'auth',
+	'api',
+	'settings',
+	// Future-proofing
+	'admin',
+	'page',
+	'content',
+	'media',
+	'list',
+	'book',
+	'books',
+	'shelf',
+	'shelves',
+	'user',
+	'users',
+	'account',
+	'login',
+	'logout',
+	'signup',
+	'signin',
+	'signout',
+	'register',
+	'profile',
+	'search',
+	'explore',
+	'home',
+	'index',
+	'static',
+	'assets',
+	'public',
+	'private',
+	'feed',
+	'notifications',
+	'messages',
+	'support',
+	'contact',
+	'terms',
+	'privacy',
+	'legal'
+];
+
 // POST - Set username
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -29,6 +75,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				},
 				{ status: 400 }
 			);
+		}
+
+		// Check if username is reserved
+		if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+			return json({ error: 'This username is not available' }, { status: 400 });
 		}
 
 		// Check if username is already taken
@@ -82,6 +133,11 @@ export const GET: RequestHandler = async ({ url }) => {
 	const usernameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,19}$/;
 	if (!usernameRegex.test(username)) {
 		return json({ available: false, error: 'Invalid username format' });
+	}
+
+	// Check if username is reserved
+	if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+		return json({ available: false, error: 'This username is not available' });
 	}
 
 	// Check availability
