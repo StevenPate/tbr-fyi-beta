@@ -1,6 +1,6 @@
 # To-Do List
 ## This Week
-- [ ] Add basic auth implementation 
+- [ ] Add CSV Export: 'csv-export-specification.md'
 - [ ] Add ISBNdb to metadata pipeline (image enrichment, primarily)
 - [ ] Let users replace low quality images
 
@@ -36,6 +36,9 @@
 - [ ] All form elements and typography bigger
 
 ## Last Week (Ending November 23, 2025)
+
+## Earlier
+- [x] Add basic auth implementation 
 - [x] simple json export
 - [x] use and save logtail queries
 - [x] add https://ko-fi.com/ link
@@ -46,8 +49,6 @@
 - [x] clean repo and migrate
 - [x] update about page (github links)
 - [x] Choose shelf when adding from multimodal
-
-## Earlier
 - [x] High items on architecture audit
 - [x] Book Card Entry Animations 
 - [x] Responsive Grid
@@ -79,6 +80,3 @@
 - [x] Feedback form
 - [x] "Copy ISBN" Button
 - [x] Add observability for logging
-
-## Questions/Thoughts
-- How will we handle more than a handful of shelves?

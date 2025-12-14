@@ -1,14 +1,16 @@
 src/
-# TBR Delta – SMS-Powered Reading List
+# TBR.fyi – Your Book Inbox
 
-Capture books from anywhere (SMS, Amazon links, barcode photos, CSV exports) and review them on a multi-shelf web dashboard. Toggle read/owned status, jot inline notes, and manage your backlog without installing an app.
+Capture books from anywhere (SMS, Amazon links, barcode photos, CSV exports) and review them on a multi-shelf web dashboard. Toggle read/owned status, jot inline notes, share books with friends, and manage your backlog without installing an app.
 
 ---
 
 ## Highlights
 
-- **SMS-first capture**: START/STOP/HELP/ADD commands, ISBN parsing, Amazon link scraping, barcode OCR via Google Vision, and title/author search fallback.
+- **Dual-track authentication**: Sign up via email (magic link) or SMS verification. Claim a custom username for clean URLs like `tbr.fyi/yourname`.
+- **SMS capture**: START/STOP/HELP/ADD commands, ISBN parsing, Amazon link scraping, barcode OCR via Google Vision, and title/author search fallback.
 - **Web companion**: Grid/list views, inline note editing, shelf assignment, responsive barcode display, clipboard copy for ISBNs, and feedback modal tied to Trello.
+- **Book sharing**: Share individual books via link. Recipients see book details and can add to their own shelf with one click.
 - **Bulk import**: Upload CSV/TXT files (Goodreads exports, plain ISBN lists) through the multimodal modal; dedupes, validates, and surfaces skipped rows.
 - **Multi-shelf organization**: Custom shelves, default TBR auto-assignment, shelf deletion safeguards, and ownership checks on every mutating endpoint.
 - **Observability**: Structured logging with Pino (pretty output in dev, JSON in prod) covering book additions, API latency, and import metrics.
@@ -43,11 +45,13 @@ Required settings:
 
 Optional integrations:
 - `GOOGLE_BOOKS_API_KEY` for higher Google Books quota
+- `RESEND_API_KEY` for email verification (magic links)
 - `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_LIST_ID` (feedback modal uploads cards/screenshots)
 
 ### 3. Initialize the database
 Run the SQL scripts in `supabase/migrations/` **in order** using the Supabase SQL editor or CLI. The migrations create:
 - `users`, `books`, `shelves`, `book_shelves`, `sms_context`, `failed_book_imports`
+- `sessions`, `verification_codes`, `verification_rate_limits`, `ip_rate_limits` (authentication)
 - default shelf support (`default_shelf_id`) and extended book metadata (`publication_date`, `description`)
 
 ### 4. Start the dev server
@@ -55,7 +59,7 @@ Run the SQL scripts in `supabase/migrations/` **in order** using the Supabase SQ
 npm run dev
 ```
 
-Visit `http://localhost:5173/+15551234567` (replace with your phone number). The UI stores the last user ID in `localStorage` for quick returns.
+Visit `http://localhost:5173` to sign up via email or SMS. After claiming a username, your shelf is at `http://localhost:5173/yourusername`.
 
 ### 5. Expose the server to Twilio (optional but recommended)
 ```bash
@@ -78,18 +82,31 @@ Update the Twilio webhook (Messaging → “When a message comes in”) to the n
 
 ## Using the App
 
+### Authentication
+- **Email**: Enter your email on the homepage, click the magic link sent to your inbox
+- **SMS**: Text START to your Twilio number, then verify via the web UI
+- After verifying, choose a username for your permanent shelf URL
+
+### Adding Books
 1. **SMS** one of the following to your Twilio number:
    - ISBN (10/13 digits)
    - Amazon URL (`amazon.com` or `a.co` short links)
    - Photo of a barcode (MMS)
    - `ADD`, `START`, `STOP`, `HELP`, or free-form title/author text
-2. **Web UI** (`/[phone-number]`):
+2. **Web UI** (`/{username}`):
    - Toggle grid/list views, read/owned flags, and barcode overlays
    - Edit notes inline; blur to persist
-   - Manage shelf membership via the “Add to shelf” popover
+   - Manage shelf membership via the "Add to shelf" popover
    - Trigger multimodal modal (`+` button or keyboard `+`)
 3. **Bulk import**: In the modal, upload a `.csv` or `.txt` file (Goodreads exports supported). The UI surfaces processed counts, skipped lines, and duplicate removals before you commit the adds.
-4. **Feedback**: Hit the FAB to file a Trello card; screenshots are optional, failure states are non-blocking.
+
+### Sharing Books
+- Click the Share button on any book to get a shareable link
+- Recipients see full book details and can add to their own shelf
+- Share links work for non-users too (they'll be prompted to sign up)
+
+### Other Features
+- **Feedback**: Hit the FAB to file a Trello card; screenshots are optional, failure states are non-blocking.
 
 ---
 
@@ -110,21 +127,26 @@ Remember to mirror all environment variables into Vercel and update the Twilio w
 ```
 
 ├── lib/
-│   ├── components/ui/          # Button, Badge, FlipCard, Feedback modal, etc.
+│   ├── components/ui/          # Button, Badge, FlipCard, ShareModal, Feedback modal, etc.
 │   └── server/
-│       ├── auth.ts             # Referer-based ownership helpers
+│       ├── auth.ts             # Session management, token generation, cookie handling
+│       ├── email.ts            # Resend email integration for magic links
+│       ├── rate-limit.ts       # IP and identifier rate limiting
 │       ├── amazon-parser.ts    # Amazon ISBN extraction
 │       ├── metadata/           # Google Books + Open Library orchestrator
 │       ├── sms-messages.ts     # Twilio response templates & command handling
 │       └── vision.ts           # Google Vision client helper
 ├── routes/
 │   ├── +layout.svelte          # Layout + global feedback FAB
-│   ├── +page.svelte            # Landing page with getting started flow
+│   ├── +page.svelte            # Landing page with email sign-in
 │   ├── about/+page.svelte      # About copy
 │   ├── help/+page.svelte       # SMS command reference
-│   ├── [username]/+page.*      # Reading list dashboard (grid/list, modal, bulk import)
+│   ├── auth/                   # Email/SMS verification, username selection
+│   ├── [identifier]/+page.*    # Reading list dashboard (grid/list, modal, bulk import)
+│   ├── [identifier]/book/      # Shared book pages
 │   └── api/
-│       ├── books/              # add, update, delete, shelves, detect endpoints
+│       ├── auth/               # send-code, verify-phone, send-magic-link, username, session
+│       ├── books/              # add, update, delete, shelves, detect, add-from-share
 │       ├── shelves/+server.ts  # Shelf CRUD with ownership checks
 │       └── sms/+server.ts      # Twilio webhook
 └── app.css                     # Tailwind entry point

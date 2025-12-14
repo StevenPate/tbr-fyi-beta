@@ -1,5 +1,111 @@
 # Development Log
 
+## 2025-12-14 - Integration Research & Documentation
+
+### Comprehensive integration research for ecosystem expansion
+- **Goal**: Document integration possibilities with external book tracking platforms and evaluate API/export strategies
+- **Research Conducted**:
+  - **Hardcover.app**: Full GraphQL API (beta, free), read/write access, Bearer token auth
+  - **The StoryGraph**: No official API (4+ year roadmap item), CSV import only via Goodreads format
+  - **Shepherd.com**: Discovery-focused platform, no public API, TBR app in development
+  - **BookWyrm**: Federated ActivityPub platform, no authenticated API for external apps
+- **TBR.fyi Public API Design**: Designed comprehensive REST API specification
+  - `POST /api/v1/books` - Add book by ISBN
+  - `GET /api/v1/books` - List with filters (shelf, status, pagination)
+  - `PATCH /api/v1/books/:id` - Update read/owned status
+  - `DELETE /api/v1/books/:id` - Remove from library
+  - API key authentication with SHA256 hashing, `tbr_k_` prefix
+  - Estimated ~3-5 days implementation effort
+- **Integration Frontier**: Documented ROI tiers for Siri Shortcuts, Slack, Discord, Notion, Zapier, IFTTT, browser extensions
+- **Ecosystem Expansion**: Web components, WordPress/Shopify plugins, Open TBR Format standard, webhooks
+- **CSV Export Specification**: Complete Goodreads-compatible format (31 columns)
+  - Critical ISBN format: `="9780140449136"` wrapper to preserve leading zeros
+  - Field mapping from TBR.fyi data model
+  - Platform-specific import notes (StoryGraph, Hardcover, BookWyrm)
+  - Estimated ~2.5 days implementation effort
+- **Files Created**:
+  - `docs/research/integration-research.md` - Platform integration details (6 parts)
+  - `docs/research/ecosystem-expansion-research.md` - Network effect strategies
+  - `docs/plans/csv-export-specification.md` - Goodreads CSV export spec
+
+## 2025-12-12 - Book Sharing Feature
+
+### Individual book sharing with dedicated share pages
+- **Goal**: Allow users to share individual books from their shelf via shareable links
+- **Implementation**:
+  - Created shared book page at `/{identifier}/book/{isbn13}`
+  - ShareModal component for copying share links with "Copied!" feedback
+  - Share button added to shelf grid (FlipCard back) and list views
+  - Add-from-share API endpoint with 409 response for duplicates
+  - Auto-adds shared book after email verification (checks `isbn` query param)
+  - Share page includes Copy ISBN, Barcode toggle, and Share button
+- **URL Format**: `/{username}/book/{isbn13}` (canonical)
+  - Supports all identifier formats: username, +phone, email_user_{uuid}
+  - Redirects legacy formats to canonical username URL when available
+- **User Flow**:
+  - Sender: Views book → clicks Share → copies link
+  - Recipient: Opens link → sees book details + "Shared by @username" → clicks "Add to my shelf"
+  - Non-users: Can view book, prompted to sign up to add
+- **Open Graph Tags**: Added meta tags for social previews (title, author, cover image)
+- **Files Created**:
+  - `src/routes/[identifier]/book/[isbn13]/+page.server.ts` - Data loader
+  - `src/routes/[identifier]/book/[isbn13]/+page.svelte` - Share page UI
+  - `src/lib/components/ui/ShareModal.svelte` - Share link modal
+  - `src/routes/api/books/add-from-share/+server.ts` - Add book API
+- **Files Modified**:
+  - `src/routes/[identifier]/+page.svelte` - Added Share button and modal
+  - `src/lib/components/ui/Card.svelte` - Added `onShare` callback prop
+  - `src/lib/server/sms-messages.ts` - Added `getBookShareUrl()` helper
+  - `src/routes/auth/confirm/+server.ts` - Auto-add book after verification
+
+### URL cleanup: Removed @ prefix from username URLs
+- Changed from `/@{username}` to `/{username}` for cleaner URLs
+- Added reserved username validation (about, help, auth, api, etc.)
+- Updated all redirects and navigation throughout the app
+
+## 2025-12-08 - Custom Authentication System
+
+### Dual-track authentication for email and SMS users
+- **Goal**: Replace Supabase Auth with custom session system supporting both email magic links and SMS verification
+- **Design**: See `docs/plans/2025-12-08-simplified-auth-design.md`
+- **Implementation**:
+  - Custom session system with SHA256 token hashing
+  - HTTP-only cookies (7-day expiry, activity refresh)
+  - Rate limiting: 3 attempts/hour per IP, 5 codes/day per identifier
+  - Failed attempt tracking (3 max per verification code)
+- **Email Flow (Magic Link)**:
+  - User enters email → magic link sent via Resend
+  - Click link → server-side verification → username selection
+  - Sender: `noreply@notifications.tbr.fyi`
+- **SMS Flow (6-Digit Code)**:
+  - User enters phone → 6-digit code sent via Twilio
+  - Enter code on web → session created → username selection
+- **Database Schema** (4 new tables):
+  - `sessions` - SHA256 token hashes, user_id, expiry
+  - `verification_codes` - codes/tokens with type, attempts, expiry
+  - `verification_rate_limits` - per-identifier rate limiting
+  - `ip_rate_limits` - IP-based rate limiting
+- **API Endpoints**:
+  - `POST /api/auth/send-code` - Send SMS verification code
+  - `POST /api/auth/verify-phone` - Verify phone + code
+  - `POST /api/auth/send-magic-link` - Send email magic link
+  - `GET /auth/confirm` - Server-side magic link verification
+  - `POST /api/auth/username` - Set/check username availability
+  - `GET/DELETE /api/auth/session` - Session management
+- **Username Rules**: 3-20 chars, alphanumeric + underscore/hyphen, must start with letter/number
+- **Reserved Usernames**: about, help, auth, api, settings, etc.
+- **Phone Number as Primary Key**: All users have `phone_number` as PK (email users get `email_user_{uuid}`)
+- **Files Created**:
+  - `src/lib/server/auth.ts` - Session management, token generation
+  - `src/lib/server/rate-limit.ts` - Rate limiting utilities
+  - `src/routes/auth/` - Verification UI pages
+  - `src/routes/api/auth/` - Auth API endpoints
+  - `supabase/migrations/012-013` - Session system migrations
+- **Files Modified**:
+  - `src/hooks.server.ts` - Session validation middleware
+  - `src/app.d.ts` - TypeScript types for `locals.user`
+  - `src/lib/server/email.ts` - Magic link email template
+
 ## 2025-11-22 - Architecture Audit Implementation (Important Items)
 
 ### Implemented code quality improvements from architecture audit
