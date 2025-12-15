@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
 import { getOrCreateUser, generateSessionToken, COOKIE_OPTIONS } from '$lib/server/auth';
+import { incrementFailedVerification, resetFailedVerification } from '$lib/server/rate-limit';
+import { logger } from '$lib/server/logger';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -28,21 +30,27 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// Check if the provided code matches
 		if (activeCode.code !== code) {
-			// Wrong code - increment attempts on the active code
-			const { data: attempts } = await supabase.rpc('increment_verification_attempts', {
-				code_id: activeCode.id
-			});
+			// Wrong code - increment IDENTIFIER-level failed attempts (persists across code regenerations)
+			const failedCount = await incrementFailedVerification(phone);
 
-			if (attempts && attempts >= 3) {
-				// Lock out this code
+			if (failedCount === -1) {
+				// Mark code as used to prevent further attempts
 				await supabase
 					.from('verification_codes')
 					.update({ used_at: new Date().toISOString() })
 					.eq('id', activeCode.id);
-				return json({ error: 'Too many failed attempts. Please request a new code.' }, { status: 400 });
+
+				return json(
+					{ error: 'Too many failed attempts. Please wait an hour before trying again.' },
+					{ status: 429 }
+				);
 			}
 
-			return json({ error: 'Invalid verification code' }, { status: 400 });
+			const remainingAttempts = 10 - failedCount;
+			return json(
+				{ error: `Invalid verification code. ${remainingAttempts} attempts remaining.` },
+				{ status: 400 }
+			);
 		}
 
 		// Code is valid - mark as used
@@ -50,6 +58,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			.from('verification_codes')
 			.update({ used_at: new Date().toISOString() })
 			.eq('id', activeCode.id);
+
+		// Reset failed verification attempts on success
+		await resetFailedVerification(phone);
 
 		// Get or create user (returns record with phone_number as PK)
 		const user = await getOrCreateUser({ phone });
@@ -74,7 +85,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Error in verify-phone:', error);
+		logger.error({ error: error instanceof Error ? error.message : 'Unknown error' }, 'Error in verify-phone');
 		return json({ error: 'An unexpected error occurred' }, { status: 500 });
 	}
 };

@@ -55,3 +55,47 @@ export async function checkIdentifierRateLimit(identifier: string): Promise<stri
 	await supabase.rpc('increment_identifier_attempts', { ident: identifier });
 	return null;
 }
+
+/**
+ * Check if identifier is rate limited for failed verification attempts
+ * Returns true if allowed, false if rate limited (10+ failed attempts in last hour)
+ */
+export async function checkVerificationAttemptLimit(identifier: string): Promise<boolean> {
+	const { data, error } = await supabase.rpc('check_verification_rate_limit', {
+		ident: identifier,
+		max_attempts: 10
+	});
+
+	if (error) {
+		// Fail open for availability
+		console.error('Verification rate limit check failed:', error);
+		return true;
+	}
+
+	return data === true;
+}
+
+/**
+ * Increment failed verification attempts for identifier
+ * Returns current count, or -1 if over limit
+ */
+export async function incrementFailedVerification(identifier: string): Promise<number> {
+	const { data, error } = await supabase.rpc('increment_failed_verification', {
+		ident: identifier,
+		max_attempts: 10
+	});
+
+	if (error) {
+		console.error('Failed to increment verification attempts:', error);
+		return 0;
+	}
+
+	return data;
+}
+
+/**
+ * Reset failed verification attempts on successful verification
+ */
+export async function resetFailedVerification(identifier: string): Promise<void> {
+	await supabase.rpc('reset_failed_verification', { ident: identifier });
+}

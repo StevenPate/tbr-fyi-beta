@@ -1,8 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
-import { checkIPRateLimit, checkIdentifierRateLimit } from '$lib/server/rate-limit';
+import { checkIPRateLimit, checkIdentifierRateLimit, checkVerificationAttemptLimit } from '$lib/server/rate-limit';
 import { getTwilioClient, TWILIO_FROM_NUMBER } from '$lib/server/twilio';
+import { logger } from '$lib/server/logger';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	try {
@@ -13,21 +14,38 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'Phone number is required' }, { status: 400 });
 		}
 
+		// Validate phone number format (E.164)
+		const phoneRegex = /^\+[1-9]\d{1,14}$/;
+		if (!phoneRegex.test(phone)) {
+			return json(
+				{ error: 'Phone number must be in international format (e.g., +15551234567)' },
+				{ status: 400 }
+			);
+		}
+
 		// Check IP rate limit (3 per hour)
 		if (!(await checkIPRateLimit(ip))) {
 			return json({ error: 'Too many attempts from this IP. Try again later.' }, { status: 429 });
 		}
 
-		// Check identifier rate limit (5 per day)
+		// Check identifier rate limit (5 codes per day)
 		const rateLimitError = await checkIdentifierRateLimit(phone);
 		if (rateLimitError) {
 			return json({ error: rateLimitError }, { status: 429 });
 		}
 
-		// Delete existing unused codes for this phone
+		// Check failed verification attempts (10 per hour across all codes)
+		if (!(await checkVerificationAttemptLimit(phone))) {
+			return json(
+				{ error: 'Too many failed verification attempts. Please wait an hour.' },
+				{ status: 429 }
+			);
+		}
+
+		// Mark existing unused codes as superseded (don't delete - preserve audit trail)
 		await supabase
 			.from('verification_codes')
-			.delete()
+			.update({ used_at: new Date().toISOString() })
 			.eq('identifier', phone)
 			.eq('code_type', 'sms_6digit')
 			.is('used_at', null);
@@ -44,7 +62,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		});
 
 		if (insertError) {
-			console.error('Error storing verification code:', insertError);
+			logger.error({ error: insertError }, 'Error storing verification code');
 			return json({ error: 'Failed to generate verification code' }, { status: 500 });
 		}
 
@@ -59,11 +77,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 			return json({ success: true });
 		} catch (smsError) {
-			console.error('Error sending SMS:', smsError);
+			logger.error({ error: smsError }, 'Error sending SMS');
 			return json({ error: 'Failed to send SMS. Please verify your phone number.' }, { status: 500 });
 		}
 	} catch (error) {
-		console.error('Unexpected error in send-code:', error);
+		logger.error({ error }, 'Unexpected error in send-code');
 		return json({ error: 'An unexpected error occurred' }, { status: 500 });
 	}
 };
