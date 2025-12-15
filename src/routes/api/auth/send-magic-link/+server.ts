@@ -16,9 +16,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'Email is required' }, { status: 400 });
 		}
 
-		// Basic email validation
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(email)) {
+		// Comprehensive email validation
+		// - Must have local part, @, domain, and TLD
+		// - Local part allows typical characters
+		// - Domain allows subdomains
+		// - TLD must be 2+ characters
+		const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+		if (!emailRegex.test(email) || email.length > 254) {
 			return json({ error: 'Invalid email address' }, { status: 400 });
 		}
 
