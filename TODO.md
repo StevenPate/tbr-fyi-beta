@@ -1,63 +1,109 @@
 # To-Do List
-## This Week
-- [ ] Add CSV Export: 'csv-export-specification.md'
-- [ ] Add ISBNdb to metadata pipeline (image enrichment, primarily)
-- [ ] Let users replace low quality images
 
-## Soon
-- [ ] Amazon short link support 
+## Validation Phases
+
+**Checkpoint 1: Core Product Validation**
+- Can users easily capture and manage their TBR?
+- Do users return and engage with their shelf?
+- Can users trust their data (export/portability)?
+
+**Checkpoint 2: Growth & Ecosystem**
+- Platform API for third-party integrations
+- Bookstore/retail partnerships
+- Cross-platform sync (Hardcover, StoryGraph)
+
+---
+
+## Checkpoint 1: Build Now
+
+### Data Portability (Critical for Trust)
+- [ ] CSV Export (Goodreads format): `docs/plans/csv-export-specification.md`
+
+### Core UX Improvements
 - [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
-- [ ] Improve usage tracking
-- [ ] different edition finder
+- [ ] Amazon short link support (`a.co` redirects)
+- [ ] Paginate or infinite scroll for long lists
+
+### Book Discovery & Metadata
+- [ ] Add ISBNdb to metadata pipeline (image enrichment)
+- [ ] Let users replace low quality cover images
+- [ ] Different edition finder (same book, better cover)
+
+### Bulk Operations
 - [ ] Web UI Bulk Operations (Phase 1): `docs/designs/BULK_OPERATIONS_PLAN.md`
-- [ ] Enhanced Goodreads Import (Phase 2 of plan): `docs/designs/BULK_IMPORT_PLAN.md`
+- [ ] Enhanced Goodreads Import (Phase 2): `docs/designs/BULK_IMPORT_PLAN.md`
 
-## Someday/Maybe
-- [ ] Production Hardening for Bulk Import (Phase 3) `docs/designs/BULK_IMPORT_PLAN.md`
-- [ ] SMS Multi-Photo Processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
-- [ ] Additional Bulk Operations (Phase 3): `docs/designs/BULK_OPERATIONS_PLAN.md`
-- [ ] Paginate or otherwise deal with long lists (plan)
-- [ ] minor items from architecture audit
-- [ ] Parse goodreads links
-- [ ] Add screenshots or a demo GIF showing the SMS → shelf workflow
-- [ ] Show mobile + desktop views (homepage)
-- [ ] Share shelf publicly
+### Polish & Retention
+- [ ] Improve usage tracking/analytics
+- [ ] Add screenshots or demo GIF to README
+- [ ] Share shelf publicly (read-only URL)
+
+---
+
+## Checkpoint 2: Defer
+
+### Platform API & Integrations
+- [ ] TBR.fyi Public API
+- [ ] Hardcover sync (GraphQL API)
+- [ ] Zapier/IFTTT integration
+- [ ] Siri Shortcuts support
+
+### Advanced Features
+- [ ] OCR for book cover images (text extraction)
+- [ ] Parse Goodreads links for ISBN extraction
+- [ ] SMS: `LAST n` command (show n titles from TBR)
+- [ ] Drag to reorder books/shelves
+
+### Infrastructure
+- [ ] Store/cache images (CDN)
 - [ ] Handle rate limiting systematically
-- [ ] Add more help text to HELP sms command
-- [ ] SMS: LAST n  -> shows n titles from tbr
-- [ ] Drag to reorder
-- [ ] Store images (cache? CDN?)
-- [ ] OCR for book cover images
-- [ ] Refactor with semantic css and design tokens
-- [ ] Remove non-component markup
-- [ ] Standardize sizes of form elements
-- [ ] Bigger Note area, more styled
+- [ ] Production hardening for bulk import (Phase 3): `docs/designs/BULK_IMPORT_PLAN.md`
+- [ ] SMS multi-photo processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
+
+### Design System
+- [ ] Refactor with semantic CSS and design tokens
+- [ ] Standardize form element sizes
+- [ ] Bigger note area, improved styling
 - [ ] Add vertical space in grids
-- [ ] All form elements and typography bigger
+- [ ] Remove non-component markup
 
-## Last Week (Ending November 23, 2025)
+### Minor Items
+- [ ] Add more help text to HELP SMS command
+- [ ] Minor items from architecture audit
 
-## Earlier
-- [x] Add basic auth implementation 
-- [x] simple json export
-- [x] use and save logtail queries
-- [x] add https://ko-fi.com/ link
-- [x] better ux for shelf links
-- [x] better design for books
-- [x] umami tracking for traffic
-- [x] important items from architecture audit
-- [x] clean repo and migrate
-- [x] update about page (github links)
+---
+
+## Completed
+
+### December 2025
+- [x] Book sharing feature (individual book share links)
+- [x] Custom authentication system (email magic links, SMS codes)
+- [x] URL cleanup (removed @ prefix from usernames)
+- [x] Integration research documentation
+
+### November 2025
+- [x] Add basic auth implementation
+- [x] Simple JSON export
+- [x] Use and save Logtail queries
+- [x] Add Ko-fi link
+- [x] Better UX for shelf links
+- [x] Better design for books
+- [x] Umami tracking for traffic
+- [x] Important items from architecture audit
+- [x] Clean repo and migrate
+- [x] Update about page (GitHub links)
 - [x] Choose shelf when adding from multimodal
 - [x] High items on architecture audit
-- [x] Book Card Entry Animations 
+- [x] Book Card Entry Animations
 - [x] Responsive Grid
 - [x] Update README.md
 - [x] Fix Book Selection UX Anti-pattern
 - [x] Bulk CSV/TXT Import (Phase 1): `docs/designs/BULK_IMPORT_PLAN.md`
+
+### Earlier
 - [x] Test SMS end-to-end
 - [x] Add minimal design
-- [x] Implement amazon link parsing
+- [x] Implement Amazon link parsing
 - [x] Deploy to Vercel
 - [x] Google Vision for photo barcodes
 - [x] Multiple shelves
@@ -66,17 +112,17 @@
 - [x] Remove a book
 - [x] Improve image quality
 - [x] Manual ISBN entry (web UI)
-- [x] SMS Command parsing
+- [x] SMS command parsing
 - [x] Multimodal input
-- [x] Homepage: has basic instructions
-- [x] Homepage: link to # in localstorage
+- [x] Homepage: basic instructions
+- [x] Homepage: link to # in localStorage
 - [x] Basic title/author -> ISBN search
-- [x] Default to TBR
+- [x] Default to TBR shelf
 - [x] Delete shelf
 - [x] Add publication date and publisher description
 - [x] Help page
 - [x] About page
-- [x] "Barcode" option
+- [x] Barcode option
 - [x] Feedback form
-- [x] "Copy ISBN" Button
+- [x] Copy ISBN button
 - [x] Add observability for logging
