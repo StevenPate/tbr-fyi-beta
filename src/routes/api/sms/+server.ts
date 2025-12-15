@@ -75,14 +75,14 @@ async function getUserStatus(phoneNumber: string): Promise<UserStatus> {
 async function shouldShowAccountPrompt(phoneNumber: string): Promise<boolean> {
 	const { data: user } = await supabase
 		.from('users')
-		.select('auth_id, account_prompt_count, last_account_prompt_at')
+		.select('verified_at, account_prompt_count, last_account_prompt_at')
 		.eq('phone_number', phoneNumber)
 		.single();
 
 	if (!user) return false;
 
-	// Don't prompt if already has auth account
-	if (user.auth_id) return false;
+	// Don't prompt if already claimed account
+	if (user.verified_at) return false;
 
 	// Don't prompt if we've shown it 5 times already
 	if (user.account_prompt_count && user.account_prompt_count >= 5) return false;
