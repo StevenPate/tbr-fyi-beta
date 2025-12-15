@@ -2,16 +2,60 @@
  * Shelf Page Loader
  *
  * Loads books and shelves for the given user from Supabase.
+ * Supports multiple URL formats:
+ * - /{username} (claimed usernames)
+ * - /+phone (phone numbers)
+ * - /email_user_{uuid} (email-only users)
  */
 
 import { supabase } from '$lib/server/supabase';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
-	const { username } = params;
+	const { identifier } = params;
 
-	// For MVP, username is the phone number (e.g., +13123756327)
-	const userId = username;
+	// Determine userId (phone_number) based on identifier format
+	let userId: string;
+	let user: any;
+
+	if (identifier.startsWith('+')) {
+		// Phone number lookup (backward compatible)
+		userId = identifier;
+
+		const { data } = await supabase
+			.from('users')
+			.select('*')
+			.eq('phone_number', userId)
+			.single();
+
+		user = data;
+	} else if (identifier.startsWith('email_user_')) {
+		// Email user lookup (synthetic phone number)
+		userId = identifier;
+
+		const { data } = await supabase
+			.from('users')
+			.select('*')
+			.eq('phone_number', userId)
+			.single();
+
+		user = data;
+	} else {
+		// Username lookup (default case)
+		const { data } = await supabase
+			.from('users')
+			.select('*')
+			.eq('username', identifier)
+			.single();
+
+		if (!data) {
+			throw error(404, 'User not found');
+		}
+
+		user = data;
+		userId = data.phone_number;
+	}
 
 	// Get requested shelf from URL query parameter
 	const requestedShelfId = url.searchParams.get('shelf');
@@ -28,13 +72,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		console.error('Error loading shelves:', shelvesError);
 	}
 
-	// Get user's default shelf
-	const { data: user } = await supabase
-		.from('users')
-		.select('default_shelf_id')
-		.eq('phone_number', userId)
-		.single();
-
 	// Determine which shelf to display
 	let selectedShelfId: string | null = null;
 
@@ -43,7 +80,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		selectedShelfId = null;
 	} else if (requestedShelfId) {
 		// Validate requested shelf belongs to user
-		const shelfExists = shelves?.some(s => s.id === requestedShelfId);
+		const shelfExists = shelves?.some((s) => s.id === requestedShelfId);
 		if (shelfExists) {
 			selectedShelfId = requestedShelfId;
 		}
@@ -77,7 +114,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	}
 
 	// Fetch book_shelves filtered by user's shelves (security + performance)
-	const shelfIds = shelves?.map(s => s.id) || [];
+	const shelfIds = shelves?.map((s) => s.id) || [];
 	let bookShelves: any[] = [];
 
 	if (shelfIds.length > 0) {
@@ -97,10 +134,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	let filteredBooks = books || [];
 	if (selectedShelfId) {
 		const bookIdsOnShelf = bookShelves
-			.filter(bs => bs.shelf_id === selectedShelfId)
-			.map(bs => bs.book_id);
-		filteredBooks = books?.filter(book => bookIdsOnShelf.includes(book.id)) || [];
+			.filter((bs) => bs.shelf_id === selectedShelfId)
+			.map((bs) => bs.book_id);
+		filteredBooks = books?.filter((book) => bookIdsOnShelf.includes(book.id)) || [];
 	}
+
+	// Check if this is a phone-based shelf (no username)
+	const isPhoneBased = userId.startsWith('+') && !user?.username;
+	const hasUsername = !!user?.username;
 
 	return {
 		books: filteredBooks,
@@ -109,6 +150,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		bookShelves: bookShelves,
 		selectedShelfId,
 		defaultShelfId: user?.default_shelf_id || null,
-		userId
+		userId,
+		isPhoneBased,
+		hasUsername,
+		username: user?.username || null
 	};
 };

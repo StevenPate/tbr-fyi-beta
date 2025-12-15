@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui';
 
-	const username = $page.params.username;
+	const identifier = $page.params.identifier;
 	let isExporting = $state(false);
 	let exportError = $state<string | null>(null);
 

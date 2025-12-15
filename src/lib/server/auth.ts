@@ -4,6 +4,26 @@
  * Provides helpers for extracting and validating user IDs from requests.
  */
 
+export interface AuthUser {
+	/**
+	 * Unique identifier for the authenticated user.
+	 * For the current MVP, we reuse the phone number as the identifier.
+	 */
+	id: string;
+	/**
+	 * Primary phone number associated with the user.
+	 */
+	phone?: string | null;
+	phone_number?: string;
+	/**
+	 * Additional metadata about the user (matches Supabase auth shape).
+	 */
+	user_metadata?: {
+		phone?: string;
+		phone_number?: string;
+	};
+}
+
 /**
  * Extracts user ID from the referer header.
  * The user ID is expected to be the first path segment (e.g., /+13123756327)
@@ -32,6 +52,47 @@ export function getUserIdFromReferer(request: Request): string | null {
 }
 
 /**
+ * Derive the authenticated user object from the incoming request.
+ *
+ * MVP implementation: treats the first path segment of the referer as the user ID.
+ * Future auth work can swap this with real session-aware logic while preserving callers.
+ */
+export function getAuthUserFromRequest(request: Request): AuthUser | null {
+	const userId = getUserIdFromReferer(request);
+	if (!userId) {
+		return null;
+	}
+
+	return {
+		id: userId,
+		phone: userId,
+		phone_number: userId,
+		user_metadata: { phone_number: userId, phone: userId }
+	};
+}
+
+/**
+ * Safely extract the canonical user ID from an AuthUser structure.
+ */
+type PhoneLikeUser = Pick<AuthUser, 'phone' | 'phone_number' | 'user_metadata'>;
+
+export function getAuthUserId(authUser: PhoneLikeUser | null | undefined): string | null {
+	if (!authUser) {
+		return null;
+	}
+
+	if (authUser.phone_number) {
+		return authUser.phone_number;
+	}
+
+	if (authUser.phone) {
+		return authUser.phone;
+	}
+
+	return authUser.user_metadata?.phone_number || authUser.user_metadata?.phone || null;
+}
+
+/**
  * Extracts user ID from referer and throws an error if not found.
  * Use this in endpoints that require authentication.
  *
@@ -45,4 +106,92 @@ export function requireUserId(request: Request): string {
 		throw new Error('User ID could not be determined from request');
 	}
 	return userId;
+}
+
+/**
+ * Session Management
+ * Secure cookie-based sessions with token hashing
+ */
+
+import { randomBytes, createHash } from 'crypto';
+import { dev } from '$app/environment';
+import { supabase } from '$lib/server/supabase';
+
+export interface User {
+	phone_number: string;
+	email: string | null;
+	username: string | null;
+	display_name: string | null;
+	verified_at: string | null;
+	created_at: string;
+}
+
+// Generate secure token and hash
+export function generateSessionToken(): { token: string; hash: string } {
+	const token = randomBytes(32).toString('base64url');
+	const hash = createHash('sha256').update(token).digest('hex');
+	return { token, hash };
+}
+
+// Environment-aware cookie settings
+export const COOKIE_OPTIONS = {
+	path: '/',
+	httpOnly: true,
+	secure: !dev, // Only require HTTPS in production
+	sameSite: 'lax' as const,
+	maxAge: 60 * 60 * 24 * 7 // 7 days
+};
+
+// Get or create user - handles both phone and email users
+export async function getOrCreateUser(params: {
+	phone?: string;
+	email?: string;
+}): Promise<User> {
+	if (params.phone) {
+		// Phone user - phone_number is the natural PK
+		const { data: existing } = await supabase
+			.from('users')
+			.select('*')
+			.eq('phone_number', params.phone)
+			.single();
+
+		if (existing) return existing as User;
+
+		const { data: newUser } = await supabase
+			.from('users')
+			.insert({
+				phone_number: params.phone,
+				verified_at: new Date().toISOString()
+			})
+			.select()
+			.single();
+
+		return newUser as User;
+	} else if (params.email) {
+		// Email user - check for existing first!
+		const { data: existing } = await supabase
+			.from('users')
+			.select('*')
+			.eq('email', params.email)
+			.single();
+
+		if (existing) return existing as User; // Return existing email user
+
+		// Only create new user if email doesn't exist
+		const fakePhoneNumber = `email_user_${crypto.randomUUID()}`;
+
+		const { data: user } = await supabase
+			.from('users')
+			.insert({
+				phone_number: fakePhoneNumber, // Satisfies PK requirement
+				email: params.email,
+				verified_at: new Date().toISOString()
+			})
+			.select()
+			.single();
+
+		return user as User;
+	}
+
+	throw new Error('Either phone or email must be provided');
 }

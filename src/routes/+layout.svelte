@@ -5,13 +5,13 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	let feedbackModalOpen = $state(false);
 	let userId = $state<string | null>(null);
 
 	onMount(() => {
-		// Try to detect userId from localStorage
+		// Try to detect userId from localStorage (for legacy users)
 		const stored = localStorage.getItem('tbr-userId');
 		if (stored) {
 			userId = stored;

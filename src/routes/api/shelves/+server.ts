@@ -6,22 +6,36 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { getAuthUserId } from '$lib/server/auth';
 import { supabase } from '$lib/server/supabase';
-import { requireUserId } from '$lib/server/auth';
 
 // GET: List all shelves for a user
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	try {
+		const authUser = locals.user;
+		if (!authUser) {
+			return json({ error: 'Not authenticated' }, { status: 401 });
+		}
+
+		const authUserId = getAuthUserId(authUser);
+		if (!authUserId) {
+			return json({ error: 'User ID not found' }, { status: 400 });
+		}
+
 		const userId = url.searchParams.get('user_id');
 
 		if (!userId) {
 			return json({ error: 'User ID required' }, { status: 400 });
 		}
 
+		if (userId !== authUserId) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
+
 		const { data, error } = await supabase
 			.from('shelves')
 			.select('*')
-			.eq('user_id', userId)
+			.eq('user_id', authUserId)
 			.order('created_at', { ascending: true });
 
 		if (error) {
@@ -37,10 +51,17 @@ export const GET: RequestHandler = async ({ url }) => {
 };
 
 // POST: Create a new shelf
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
-		// Extract and verify user ID from referer instead of trusting client
-		const userId = requireUserId(request);
+		const authUser = locals.user;
+		if (!authUser) {
+			return json({ error: 'Not authenticated' }, { status: 401 });
+		}
+
+		const userId = getAuthUserId(authUser);
+		if (!userId) {
+			return json({ error: 'User ID not found' }, { status: 400 });
+		}
 
 		const body = await request.json();
 		const { name } = body;
@@ -69,16 +90,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		console.error('Create shelf error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
-		return json({ error: message }, { status });
+		return json({ error: message }, { status: 500 });
 	}
 };
 
 // DELETE: Delete a shelf
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async ({ request, locals }) => {
 	try {
-		// Extract and verify user ID from referer instead of trusting client
-		const userId = requireUserId(request);
+		const authUser = locals.user;
+		if (!authUser) {
+			return json({ error: 'Not authenticated' }, { status: 401 });
+		}
+
+		const userId = getAuthUserId(authUser);
+		if (!userId) {
+			return json({ error: 'User ID not found' }, { status: 400 });
+		}
 
 		const body = await request.json();
 		const { id } = body;
@@ -124,7 +151,6 @@ export const DELETE: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		console.error('Delete shelf error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
-		return json({ error: message }, { status });
+		return json({ error: message }, { status: 500 });
 	}
 };
