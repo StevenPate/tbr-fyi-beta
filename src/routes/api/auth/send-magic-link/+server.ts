@@ -5,6 +5,7 @@ import { checkIPRateLimit, checkIdentifierRateLimit } from '$lib/server/rate-lim
 import { sendEmail, generateMagicLinkEmail } from '$lib/server/email';
 import { PUBLIC_BASE_URL } from '$env/static/public';
 import { randomBytes } from 'crypto';
+import { logger } from '$lib/server/logger';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	try {
@@ -52,7 +53,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		});
 
 		if (insertError) {
-			console.error('Error storing verification token:', insertError);
+			logger.error({ error: insertError }, 'Error storing verification token');
 			return json({ error: 'Failed to generate verification link' }, { status: 500 });
 		}
 
@@ -66,14 +67,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 			return json({ success: true });
 		} catch (emailError) {
-			console.error('Error sending email:', emailError);
+			logger.error({ error: emailError }, 'Error sending email');
 			return json(
 				{ error: 'Failed to send verification email. Please try again.' },
 				{ status: 500 }
 			);
 		}
 	} catch (error) {
-		console.error('Unexpected error in send-magic-link:', error);
+		logger.error({ error: error instanceof Error ? error : new Error(String(error)) }, 'Unexpected error in send-magic-link');
 		return json({ error: 'An unexpected error occurred' }, { status: 500 });
 	}
 };

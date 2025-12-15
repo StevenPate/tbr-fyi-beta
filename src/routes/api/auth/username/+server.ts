@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
+import { logger } from '$lib/server/logger';
 
 // Reserved usernames that conflict with routes or are otherwise protected
 const RESERVED_USERNAMES = [
@@ -100,7 +101,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.eq('phone_number', locals.user.phone_number);
 
 		if (updateError) {
-			console.error('Error setting username:', updateError);
+			logger.error({ error: updateError }, 'Error setting username');
 			return json({ error: 'Failed to set username' }, { status: 500 });
 		}
 
@@ -116,7 +117,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			user: updatedUser
 		});
 	} catch (error) {
-		console.error('Unexpected error in username:', error);
+		logger.error({ error: error instanceof Error ? error : new Error(String(error)) }, 'Unexpected error in username');
 		return json({ error: 'An unexpected error occurred' }, { status: 500 });
 	}
 };
