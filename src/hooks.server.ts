@@ -35,11 +35,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (session && session.user) {
 				event.locals.user = session.user;
 
-				// Refresh activity timestamp
-				await supabase
-					.from('sessions')
-					.update({ last_activity: new Date().toISOString() })
-					.eq('token_hash', tokenHash);
+				// Throttle activity updates to once per hour
+				const lastActivity = new Date(session.last_activity).getTime();
+				const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+				if (lastActivity < oneHourAgo) {
+					// Update in background, don't await
+					supabase
+						.from('sessions')
+						.update({ last_activity: new Date().toISOString() })
+						.eq('token_hash', tokenHash)
+						.then(
+							() => {
+								// Success - no action needed
+							},
+							(err: unknown) => {
+								logger.error({ error: err }, 'Failed to update session activity');
+							}
+						);
+				}
 			}
 		} catch (error) {
 			// Invalid session - clear cookie
