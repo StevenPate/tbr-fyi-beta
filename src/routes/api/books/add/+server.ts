@@ -13,6 +13,7 @@ import { fetchBookMetadata, toISBN13, InvalidISBNError } from '$lib/server/metad
 import { logger, logBookAddition, logError, startTimer } from '$lib/server/logger';
 import { validateISBNFormat } from '$lib/server/validation';
 import { upsertBookForUser } from '$lib/server/book-operations';
+import { supabase } from '$lib/server/supabase';
 
 export const POST: RequestHandler = async ({ request, url }) => {
 	const requestTimer = startTimer();
@@ -28,31 +29,50 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ error: validation.error }, { status: 400 });
 		}
 
-		// Derive userId from referer (the [username] route parameter)
+		// Derive userId from referer (the [identifier] route parameter)
 		// This prevents client-side userId spoofing
 		const referer = request.headers.get('referer');
 		if (!referer) {
 			return json({ error: 'Invalid request origin' }, { status: 400 });
 		}
 
-		// Extract username from referer URL (e.g., /+13123756327)
+		// Extract identifier from referer URL (e.g., /stevenpate or /+13123756327)
 		const refererUrl = new URL(referer);
 		const pathSegments = refererUrl.pathname.split('/').filter(Boolean);
-		const userIdRaw = pathSegments[0]; // First segment is the username/phone
+		const identifier = pathSegments[0];
 
-		if (!userIdRaw) {
+		if (!identifier) {
 			return json({ error: 'User ID could not be determined' }, { status: 400 });
 		}
 
 		// Decode URL encoding (e.g., %2B -> +)
-		userId = decodeURIComponent(userIdRaw);
+		const decodedIdentifier = decodeURIComponent(identifier);
+
+		// Resolve identifier to phone_number (the actual user_id in books table)
+		// Supports: +phone, email_user_*, or username
+		if (decodedIdentifier.startsWith('+') || decodedIdentifier.startsWith('email_user_')) {
+			// Phone number or email user - use directly
+			userId = decodedIdentifier;
+		} else {
+			// Username - look up phone_number
+			const { data: user } = await supabase
+				.from('users')
+				.select('phone_number')
+				.eq('username', decodedIdentifier)
+				.single();
+
+			if (!user) {
+				return json({ error: 'User not found' }, { status: 404 });
+			}
+			userId = user.phone_number;
+		}
 
 		logger.debug({
 			referer,
 			pathname: refererUrl.pathname,
-			userIdRaw,
+			identifier: decodedIdentifier,
 			userId
-		}, 'Web book addition - userId extraction');
+		}, 'Web book addition - userId resolution');
 
 		// Normalize ISBN to ISBN-13
 		let isbn13: string;
