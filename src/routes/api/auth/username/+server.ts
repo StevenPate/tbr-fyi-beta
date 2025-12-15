@@ -94,13 +94,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'Username is already taken' }, { status: 409 });
 		}
 
-		// Update user with username
+		// Update user with username (rely on unique constraint for race condition)
 		const { error: updateError } = await supabase
 			.from('users')
 			.update({ username })
 			.eq('phone_number', locals.user.phone_number);
 
 		if (updateError) {
+			// Check for unique constraint violation (race condition)
+			if (updateError.code === '23505') {
+				return json({ error: 'Username was just taken. Please try another.' }, { status: 409 });
+			}
 			logger.error({ error: updateError }, 'Error setting username');
 			return json({ error: 'Failed to set username' }, { status: 500 });
 		}
