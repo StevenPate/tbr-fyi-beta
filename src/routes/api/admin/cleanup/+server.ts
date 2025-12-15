@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
 import { logger } from '$lib/server/logger';
-import { CLEANUP_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 // POST - Run cleanup (protected by secret)
 export const POST: RequestHandler = async ({ request }) => {
@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const authHeader = request.headers.get('Authorization');
 	const providedSecret = authHeader?.replace('Bearer ', '');
 
-	if (!CLEANUP_SECRET || providedSecret !== CLEANUP_SECRET) {
+	if (!env.CLEANUP_SECRET || providedSecret !== env.CLEANUP_SECRET) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
