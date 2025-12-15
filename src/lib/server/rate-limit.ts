@@ -8,37 +8,21 @@ import { supabase } from '$lib/server/supabase';
 /**
  * Check IP rate limit (3 attempts per hour)
  * Returns true if allowed, false if rate limited
+ * Uses atomic database function to prevent race conditions
  */
 export async function checkIPRateLimit(ip: string): Promise<boolean> {
-	const now = new Date();
-	const limit = 3;
+	const { data, error } = await supabase.rpc('check_and_increment_ip_limit', {
+		ip_addr: ip,
+		max_attempts: 3
+	});
 
-	// Check existing rate limit
-	const { data: rateLimit } = await supabase
-		.from('ip_rate_limits')
-		.select('*')
-		.eq('ip_address', ip)
-		.gt('window_end', now.toISOString())
-		.single();
-
-	if (!rateLimit) {
-		// Create new window
-		await supabase.from('ip_rate_limits').upsert({
-			ip_address: ip,
-			attempts: 1,
-			window_start: now.toISOString(),
-			window_end: new Date(now.getTime() + 60 * 60 * 1000).toISOString()
-		});
+	if (error) {
+		// Log error but allow request (fail open for availability)
+		console.error('Rate limit check failed:', error);
 		return true;
 	}
 
-	if (rateLimit.attempts >= limit) {
-		return false; // Rate limited
-	}
-
-	// Increment atomically using Supabase RPC
-	await supabase.rpc('increment_ip_attempts', { ip_addr: ip });
-	return true;
+	return data === true;
 }
 
 /**
