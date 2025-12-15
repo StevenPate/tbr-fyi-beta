@@ -700,3 +700,8 @@ function escapeXml(text: string): string {
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&apos;');
 }
+
+// Disable CSRF for Twilio webhook only
+export const config = {
+	csrf: false
+};
