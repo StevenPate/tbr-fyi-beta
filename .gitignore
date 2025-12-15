@@ -35,3 +35,4 @@ claude.md
 *.db
 .env.local
 .vercel
+supabase/.temp/
