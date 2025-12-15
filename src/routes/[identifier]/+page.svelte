@@ -80,6 +80,7 @@
 	let noteEditingMap = $state<Map<string, boolean>>(new Map());
 	let noteExpandedMap = $state<Map<string, boolean>>(new Map());
 	let descriptionOpenMap = $state<Map<string, boolean>>(new Map());
+	let linksOpenMap = $state<Map<string, boolean>>(new Map());
 	let shelvesOpenMap = $state<Map<string, boolean>>(new Map());
 	let barcodeOpenMap = $state<Map<string, boolean>>(new Map());
 	let removeConfirmMap = $state<Map<string, boolean>>(new Map());
@@ -1062,6 +1063,7 @@
 						{@const isNoteExpanded = noteExpandedMap.get(book.id) || false}
 						{@const tempNote = tempNoteMap.get(book.id) || book.note || ''}
 						{@const isDescOpen = descriptionOpenMap.get(book.id) || false}
+						{@const isLinksOpen = linksOpenMap.get(book.id) || false}
 						{@const isShelvesOpen = shelvesOpenMap.get(book.id) || false}
 						{@const isBarcodeOpen = barcodeOpenMap.get(book.id) || false}
 						{@const showRemoveConfirm = removeConfirmMap.get(book.id) || false}
@@ -1232,6 +1234,71 @@
 											{book.description}
 										</p>
 									{/if}
+								{/if}
+
+								<!-- Find Elsewhere links -->
+								<button
+									onclick={(e) => {
+										e.stopPropagation();
+										const newMap = new Map(linksOpenMap);
+										newMap.set(book.id, !isLinksOpen);
+										linksOpenMap = newMap;
+									}}
+									class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+								>
+									<span>Find Elsewhere</span>
+									<svg class="w-4 h-4 transition-transform" class:rotate-90={!isLinksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+									</svg>
+								</button>
+								{#if isLinksOpen}
+									<div class="flex flex-col gap-1.5 px-3 py-2 bg-stone-50 rounded-lg -mt-1">
+										<a
+											href={`https://www.google.com/books/edition/_/${book.isbn13}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+											onclick={(e) => e.stopPropagation()}
+										>
+											Google Books ↗
+										</a>
+										<a
+											href={`https://bookshop.org/a/5733/${book.isbn13}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+											onclick={(e) => e.stopPropagation()}
+										>
+											Bookshop.org ↗
+										</a>
+										<a
+											href={`https://www.powells.com/book/-${book.isbn13}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+											onclick={(e) => e.stopPropagation()}
+										>
+											Powell's ↗
+										</a>
+										<a
+											href={`https://www.portbooknews.com/book/${book.isbn13}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+											onclick={(e) => e.stopPropagation()}
+										>
+											Port Book & News ↗
+										</a>
+										<a
+											href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+											onclick={(e) => e.stopPropagation()}
+										>
+											WorldCat (Libraries) ↗
+										</a>
+									</div>
 								{/if}
 
 								<!-- Shelves button - opens modal -->
