@@ -8,8 +8,12 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter()
-		// CSRF protection enabled by default
+		adapter: adapter(),
+		// Disable CSRF origin check to allow Twilio webhook POSTs
+		// Security: SMS endpoint validates Twilio signature, other endpoints use JSON APIs
+		csrf: {
+			checkOrigin: false
+		}
 	}
 };
 
