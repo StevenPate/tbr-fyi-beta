@@ -84,11 +84,11 @@ Update the Twilio webhook (Messaging → “When a message comes in”) to the n
 
 ### Authentication
 - **Email**: Enter your email on the homepage, click the magic link sent to your inbox
-- **SMS**: Text START to your Twilio number, then verify via the web UI
+- **SMS**: Text START to (360) 504-4327, then verify via the web UI
 - After verifying, choose a username for your permanent shelf URL
 
 ### Adding Books
-1. **SMS** one of the following to your Twilio number:
+1. **SMS** one of the following to (360) 504-4327:
    - ISBN (10/13 digits)
    - Amazon URL (`amazon.com` or `a.co` short links)
    - Photo of a barcode (MMS)

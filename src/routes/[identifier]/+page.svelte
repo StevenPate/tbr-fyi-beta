@@ -1003,7 +1003,7 @@
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
 				<div class="text-gray-400 text-5xl mb-4">📚</div>
 				<h2 class="text-xl font-semibold text-gray-900 mb-2">No books yet!</h2>
-				<p class="text-gray-600 mb-4">Text an ISBN or send a photo of a barcode to your Twilio number to get started.</p>
+				<p class="text-gray-600 mb-4">Text an ISBN or send a photo of a barcode to (360) 504-4327 to get started.</p>
 				<div class="text-sm text-gray-500 space-y-2">
 					<p>Try texting an ISBN: <code class="bg-gray-100 px-2 py-1 rounded">9780140449136</code></p>
 					<p>Or send a photo of a book barcode!</p>

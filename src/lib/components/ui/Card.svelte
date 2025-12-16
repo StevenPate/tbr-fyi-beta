@@ -54,6 +54,7 @@
 
 	// State
 	let descriptionOpen = $state(false);
+	let linksOpen = $state(false);
 	let shelvesOpen = $state(false);
 	let barcodeOpen = $state(false);
 	let noteEditing = $state(false);
@@ -321,6 +322,63 @@
 				{/if}
 			</div>
 		{/if}
+
+		<!-- Find Elsewhere - collapsible -->
+		<div class="mt-5">
+			<button
+				onclick={() => linksOpen = !linksOpen}
+				class="flex items-center gap-2 text-base text-stone-500 hover:text-stone-700 transition-colors"
+			>
+				<svg class="w-[18px] h-[18px] transition-transform" class:rotate-90={!linksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+				</svg>
+				<span>Find Elsewhere</span>
+			</button>
+			{#if linksOpen}
+				<div class="mt-4 flex flex-col gap-2">
+					<a
+						href={`https://www.google.com/books/edition/_/${book.isbn13}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-base text-blue-600 hover:text-blue-800 hover:underline"
+					>
+						Google Books ↗
+					</a>
+					<a
+						href={`https://bookshop.org/a/5733/${book.isbn13}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-base text-blue-600 hover:text-blue-800 hover:underline"
+					>
+						Bookshop.org ↗
+					</a>
+					<a
+						href={`https://www.powells.com/book/-${book.isbn13}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-base text-blue-600 hover:text-blue-800 hover:underline"
+					>
+						Powell's ↗
+					</a>
+					<a
+						href={`https://www.portbooknews.com/book/${book.isbn13}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-base text-blue-600 hover:text-blue-800 hover:underline"
+					>
+						Port Book & News ↗
+					</a>
+					<a
+						href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-base text-blue-600 hover:text-blue-800 hover:underline"
+					>
+						WorldCat (Libraries) ↗
+					</a>
+				</div>
+			{/if}
+		</div>
 
 		<!-- Shelves - collapsible -->
 		<div class="mt-5">
