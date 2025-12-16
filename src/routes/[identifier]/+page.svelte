@@ -83,6 +83,7 @@
 	let linksOpenMap = $state<Map<string, boolean>>(new Map());
 	let shelvesOpenMap = $state<Map<string, boolean>>(new Map());
 	let barcodeOpenMap = $state<Map<string, boolean>>(new Map());
+	let menuOpenMap = $state<Map<string, boolean>>(new Map());
 	let removeConfirmMap = $state<Map<string, boolean>>(new Map());
 	let copiedMap = $state<Map<string, boolean>>(new Map());
 	let tempNoteMap = $state<Map<string, string>>(new Map());
@@ -1066,6 +1067,7 @@
 						{@const isLinksOpen = linksOpenMap.get(book.id) || false}
 						{@const isShelvesOpen = shelvesOpenMap.get(book.id) || false}
 						{@const isBarcodeOpen = barcodeOpenMap.get(book.id) || false}
+						{@const isMenuOpen = menuOpenMap.get(book.id) || false}
 						{@const showRemoveConfirm = removeConfirmMap.get(book.id) || false}
 						{@const isCopied = copiedMap.get(book.id) || false}
 						{@const activeShelfCount = data.bookShelves.filter(bs => bs.book_id === book.id).length}
@@ -1081,18 +1083,81 @@
 										<p class="text-sm text-stone-500 mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
 									{/if}
 								</div>
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										setFlipped(book.id, false);
-									}}
-									class="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors flex-shrink-0"
-									aria-label="Close details"
-								>
-									<svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-									</svg>
-								</button>
+								<!-- Overflow menu -->
+								<div class="relative flex-shrink-0">
+									<button
+										onclick={(e) => {
+											e.stopPropagation();
+											const newMap = new Map(menuOpenMap);
+											newMap.set(book.id, !isMenuOpen);
+											menuOpenMap = newMap;
+										}}
+										class="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+										aria-label="More options"
+									>
+										<svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+											<circle cx="12" cy="5" r="2"/>
+											<circle cx="12" cy="12" r="2"/>
+											<circle cx="12" cy="19" r="2"/>
+										</svg>
+									</button>
+									{#if isMenuOpen}
+										<div
+											class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[140px] z-10"
+											onclick={(e) => e.stopPropagation()}
+											onkeydown={(e) => e.stopPropagation()}
+											role="menu"
+											tabindex="-1"
+										>
+											<button
+												onclick={() => {
+													shareModalBook = { isbn13: book.isbn13, title: book.title };
+													const newMap = new Map(menuOpenMap);
+													newMap.set(book.id, false);
+													menuOpenMap = newMap;
+												}}
+												class="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+												role="menuitem"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+												</svg>
+												Share
+											</button>
+											<button
+												onclick={() => {
+													if (showRemoveConfirm) {
+														deleteBook(book.id, book.title);
+														const newMap = new Map(removeConfirmMap);
+														newMap.set(book.id, false);
+														removeConfirmMap = newMap;
+														const menuMap = new Map(menuOpenMap);
+														menuMap.set(book.id, false);
+														menuOpenMap = menuMap;
+													} else {
+														const newMap = new Map(removeConfirmMap);
+														newMap.set(book.id, true);
+														removeConfirmMap = newMap;
+														setTimeout(() => {
+															const resetMap = new Map(removeConfirmMap);
+															resetMap.set(book.id, false);
+															removeConfirmMap = resetMap;
+														}, 3000);
+													}
+												}}
+												class="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors {showRemoveConfirm
+													? 'bg-red-600 text-white hover:bg-red-700'
+													: 'text-red-600 hover:bg-red-50'}"
+												role="menuitem"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+												</svg>
+												{showRemoveConfirm ? 'Tap to confirm' : 'Remove'}
+											</button>
+										</div>
+									{/if}
+								</div>
 							</div>
 
 							<!-- Scrollable content area -->
@@ -1371,50 +1436,6 @@
 										<p class="text-xs font-mono text-stone-600 mt-1">{book.isbn13}</p>
 									</div>
 								{/if}
-
-								<!-- Share button -->
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										shareModalBook = { isbn13: book.isbn13, title: book.title };
-									}}
-									class="w-full flex items-center justify-center gap-1.5 text-sm text-stone-600 py-2 px-2 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-								>
-									<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-									</svg>
-									<span class="truncate">Share</span>
-								</button>
-
-								<!-- Remove button with inline confirmation -->
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										if (showRemoveConfirm) {
-											deleteBook(book.id, book.title);
-											const newMap = new Map(removeConfirmMap);
-											newMap.set(book.id, false);
-											removeConfirmMap = newMap;
-										} else {
-											const newMap = new Map(removeConfirmMap);
-											newMap.set(book.id, true);
-											removeConfirmMap = newMap;
-											setTimeout(() => {
-												const resetMap = new Map(removeConfirmMap);
-												resetMap.set(book.id, false);
-												removeConfirmMap = resetMap;
-											}, 3000);
-										}
-									}}
-									class="w-full flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg border transition-colors {showRemoveConfirm
-										? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
-										: 'text-red-600 border-red-200 hover:bg-red-50'}"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-									</svg>
-									{showRemoveConfirm ? 'Tap again to confirm' : 'Remove from shelf'}
-								</button>
 							</div>
 						</div>
 					{/snippet}
