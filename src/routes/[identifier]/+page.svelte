@@ -5,7 +5,7 @@
 	import { page } from '$app/stores';
 	import { onMount, tick } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
-	import { Card, FlipCard, Button, Input, Badge } from '$lib/components/ui';
+	import { Card, FlipCard, Button, Input, Badge, SearchBar } from '$lib/components/ui';
 	import ShareModal from '$lib/components/ui/ShareModal.svelte';
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
@@ -37,6 +37,37 @@
 
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
+
+	// Search state
+	let searchExpanded = $state(false);
+	let searchQuery = $state('');
+
+	// Search matching logic
+	function matchesSearchQuery(book: { title: string; author?: string[]; note?: string | null }, query: string): boolean {
+		if (!query.trim()) return true;
+		const q = query.toLowerCase();
+		const titleMatch = book.title?.toLowerCase().includes(q) ?? false;
+		const authorMatch = book.author?.some(a => a.toLowerCase().includes(q)) ?? false;
+		const noteMatch = book.note?.toLowerCase().includes(q) ?? false;
+		return titleMatch || authorMatch || noteMatch;
+	}
+
+	// Filtered books based on search query
+	const displayedBooks = $derived(
+		searchQuery.trim()
+			? data.books.filter(b => matchesSearchQuery(b, searchQuery))
+			: data.books
+	);
+
+	// Scroll to and highlight a book
+	function scrollToBook(book: { id: string }) {
+		const element = document.getElementById(`book-${book.id}`);
+		if (element) {
+			element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			element.classList.add('highlight-pulse');
+			setTimeout(() => element.classList.remove('highlight-pulse'), 1000);
+		}
+	}
 
 	// Manual ISBN entry state (kept for backward-compat, modal replaced below)
 	let showIsbnInput = $state(false);
@@ -748,7 +779,17 @@
 		}
 
 		const handleKeydown = (e: KeyboardEvent) => {
-			// Don't trigger if user is typing in an input
+			// Cmd+K / Ctrl+K toggles search (works even in inputs)
+			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+				e.preventDefault();
+				searchExpanded = !searchExpanded;
+				if (!searchExpanded) {
+					searchQuery = '';
+				}
+				return;
+			}
+
+			// Don't trigger other shortcuts if user is typing in an input
 			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
 				return;
 			}
@@ -817,8 +858,17 @@
 				</p>
 			</div>
 
-			<!-- View Toggle and Manual ISBN Entry -->
+			<!-- Search, View Toggle and Manual ISBN Entry -->
 			<div class="flex gap-2 items-start">
+				<!-- Search -->
+				<SearchBar
+					books={data.books}
+					bind:expanded={searchExpanded}
+					bind:query={searchQuery}
+					onSelect={scrollToBook}
+					onQueryChange={(q) => searchQuery = q}
+				/>
+
 				<div class="flex gap-1 border border-gray-300 rounded-lg p-1" role="group" aria-label="View mode toggle">
 					<button
 						onclick={() => viewMode = 'grid'}
@@ -1020,9 +1070,10 @@
 					in:fade={{ duration: 300, delay: 150 }}
 					out:fade={{ duration: 150 }}
 				>
-					{#each data.books as book, index (book.id)}
+					{#each displayedBooks as book, index (book.id)}
 					{@const flipped = getFlipped(book.id)}
 					<FlipCard
+						id="book-{book.id}"
 						{flipped}
 						class="w-full"
 						ariaLabel="Flip card for {book.title}"
@@ -1449,8 +1500,9 @@
 				in:fade={{ duration: 300, delay: 150 }}
 				out:fade={{ duration: 150 }}
 			>
-				{#each data.books as book (book.id)}
+				{#each displayedBooks as book (book.id)}
 					<Card
+						id="book-{book.id}"
 						{book}
 						shelves={data.shelves}
 						bookShelves={data.bookShelves}
@@ -1931,6 +1983,23 @@
 {/if}
 
 <style>
+	/* Highlight pulse animation for search jump-to */
+	:global(.highlight-pulse) {
+		animation: pulse 0.6s ease-out;
+	}
+
+	@keyframes pulse {
+		0% {
+			box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+		}
+		70% {
+			box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+		}
+		100% {
+			box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+		}
+	}
+
 	/* Always show scrollbar on description text */
 	.description-scroll {
 		scrollbar-width: thin;

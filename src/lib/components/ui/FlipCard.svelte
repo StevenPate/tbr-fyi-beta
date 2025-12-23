@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
+		id?: string;
 		flipped?: boolean;
 		duration?: number;
 		aspectRatio?: string;
@@ -15,6 +16,7 @@
 	}
 
 	let {
+		id,
 		flipped = $bindable(false),
 		duration = 600,
 		aspectRatio = '2/3',
@@ -97,6 +99,7 @@
 
 <div
 	bind:this={containerEl}
+	{id}
 	class="flip-card fly-in {className || ''}"
 	class:reduced-motion={prefersReducedMotion}
 	class:auto-flip={autoFlipOnMount && !prefersReducedMotion}

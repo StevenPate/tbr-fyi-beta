@@ -27,6 +27,7 @@
 	}
 
 	interface Props {
+		id?: string;
 		book: Book;
 		shelves: Shelf[];
 		bookShelves: BookShelf[];
@@ -40,6 +41,7 @@
 	}
 
 	let {
+		id,
 		book,
 		shelves,
 		bookShelves,
@@ -152,7 +154,7 @@
 	});
 </script>
 
-<div class="w-full bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+<div {id} class="w-full bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
 	<!-- Main content area -->
 	<div class="p-7">
 		<div class="flex gap-6">

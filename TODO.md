@@ -76,6 +76,7 @@
 ## Completed
 
 ### December 2025
+- [x] Search books by title, author, or notes (Cmd+K toggle, dropdown + live filter)
 - [x] Book sharing feature (individual book share links)
 - [x] Custom authentication system (email magic links, SMS codes)
 - [x] URL cleanup (removed @ prefix from usernames)

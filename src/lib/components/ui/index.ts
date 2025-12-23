@@ -4,3 +4,4 @@ export { default as Input } from './Input.svelte';
 export { default as Badge } from './Badge.svelte';
 export { default as Card } from './Card.svelte';
 export { default as FlipCard } from './FlipCard.svelte';
+export { default as SearchBar } from './SearchBar.svelte';

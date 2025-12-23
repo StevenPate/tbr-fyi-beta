@@ -10,6 +10,7 @@ Capture books from anywhere (SMS, Amazon links, barcode photos, CSV exports) and
 - **Dual-track authentication**: Sign up via email (magic link) or SMS verification. Claim a custom username for clean URLs like `tbr.fyi/yourname`.
 - **SMS capture**: START/STOP/HELP/ADD commands, ISBN parsing, Amazon link scraping, barcode OCR via Google Vision, and title/author search fallback.
 - **Web companion**: Grid/list views, inline note editing, shelf assignment, responsive barcode display, clipboard copy for ISBNs, and feedback modal tied to Trello.
+- **Quick search**: Toggle-able search bar (click icon or `Cmd+K`) filters books by title, author, or notes. Dropdown shows top matches for quick navigation; selecting scrolls to the book with a highlight animation.
 - **Book sharing**: Share individual books via link. Recipients see book details and can add to their own shelf with one click.
 - **Bulk import**: Upload CSV/TXT files (Goodreads exports, plain ISBN lists) through the multimodal modal; dedupes, validates, and surfaces skipped rows.
 - **Multi-shelf organization**: Custom shelves, default TBR auto-assignment, shelf deletion safeguards, and ownership checks on every mutating endpoint.
@@ -104,6 +105,12 @@ Update the Twilio webhook (Messaging → “When a message comes in”) to the n
 - Click the Share button on any book to get a shareable link
 - Recipients see full book details and can add to their own shelf
 - Share links work for non-users too (they'll be prompted to sign up)
+
+### Searching Your Shelf
+- Click the magnifying glass icon in the header or press `Cmd+K` (Ctrl+K on Windows/Linux)
+- Type to filter by title, author, or personal notes
+- Dropdown shows top 7 matches—click one to jump directly to that book
+- Press Escape or click outside to close and clear the filter
 
 ### Other Features
 - **Feedback**: Hit the FAB to file a Trello card; screenshots are optional, failure states are non-blocking.
