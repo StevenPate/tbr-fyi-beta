@@ -839,6 +839,11 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi</title>
+	<meta name="description" content="{data.books.length} {data.books.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
+</svelte:head>
+
 <div class="min-h-screen bg-gray-50">
 	{#if data.isPhoneBased}
 		<ClaimShelfBanner phoneNumber={data.userId} {isOwner} />
