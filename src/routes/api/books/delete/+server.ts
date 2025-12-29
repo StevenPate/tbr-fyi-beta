@@ -7,12 +7,18 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
-import { requireUserId } from '$lib/server/auth';
+import { requireUserId, resolveIdentifierToUserId } from '$lib/server/auth';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		// Extract and verify user ID from referer
-		const userId = requireUserId(request);
+		// Extract identifier from referer (could be username, phone, or email_user_*)
+		const identifier = requireUserId(request);
+
+		// Resolve to actual user_id (phone_number)
+		const userId = await resolveIdentifierToUserId(identifier);
+		if (!userId) {
+			return json({ error: 'User not found' }, { status: 404 });
+		}
 
 		const { bookId } = await request.json();
 

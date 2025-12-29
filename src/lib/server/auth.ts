@@ -109,6 +109,32 @@ export function requireUserId(request: Request): string {
 }
 
 /**
+ * Resolve an identifier (username, phone, or email_user_*) to actual phone_number (user_id)
+ *
+ * URL paths can contain usernames (/steven), phone numbers (/+15551234567),
+ * or email user IDs (/email_user_uuid). This function resolves any of these
+ * to the canonical phone_number used as user_id in the database.
+ *
+ * @param identifier - The URL identifier to resolve
+ * @returns The actual phone_number (user_id) or null if not found
+ */
+export async function resolveIdentifierToUserId(identifier: string): Promise<string | null> {
+	// Phone numbers and email_user_* are already user_ids
+	if (identifier.startsWith('+') || identifier.startsWith('email_user_')) {
+		return identifier;
+	}
+
+	// Username lookup
+	const { data } = await supabase
+		.from('users')
+		.select('phone_number')
+		.eq('username', identifier)
+		.single();
+
+	return data?.phone_number || null;
+}
+
+/**
  * Session Management
  * Secure cookie-based sessions with token hashing
  */
