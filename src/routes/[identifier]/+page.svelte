@@ -143,6 +143,10 @@
 
 	// Share modal state
 	let shareModalBook = $state<{ isbn13: string; title: string } | null>(null);
+
+	// Detail modal state (for FlipCard "View Details")
+	let detailModalBookId = $state<string | null>(null);
+	let detailModalBook = $derived(detailModalBookId ? data.books.find(b => b.id === detailModalBookId) : null);
 	let shareModalOpen = $derived(shareModalBook !== null);
 	// Canonical identifier for share URLs: prefer username if available
 	const canonicalIdentifier = $derived(data.username || data.userId);
@@ -1380,168 +1384,19 @@
 									</div>
 								{/if}
 
-								<!-- Description disclosure button -->
+								<!-- View Details button -->
 								<button
 									onclick={(e) => {
 										e.stopPropagation();
-										const newMap = new Map(descriptionOpenMap);
-										newMap.set(book.id, !isDescOpen);
-										descriptionOpenMap = newMap;
+										detailModalBookId = book.id;
 									}}
-									class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+									class="w-full flex items-center justify-center gap-2 text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 active:bg-stone-100 transition-colors"
 								>
-									<span>Description</span>
-									<svg class="w-4 h-4 transition-transform" class:rotate-90={!isDescOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-									</svg>
-								</button>
-								{#if isDescOpen}
-									{#if book.description}
-										<p class="text-sm text-stone-600 leading-relaxed px-3 py-2 bg-stone-50 rounded-lg -mt-1">
-											{book.description}
-										</p>
-									{:else}
-										<p class="text-sm text-stone-400 italic px-3 py-2 bg-stone-50 rounded-lg -mt-1">
-											No description available
-										</p>
-									{/if}
-								{/if}
-
-								<!-- Find Elsewhere links -->
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										const newMap = new Map(linksOpenMap);
-										newMap.set(book.id, !isLinksOpen);
-										linksOpenMap = newMap;
-									}}
-									class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-								>
-									<span>Find Elsewhere</span>
-									<svg class="w-4 h-4 transition-transform" class:rotate-90={!isLinksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-									</svg>
-								</button>
-								{#if isLinksOpen}
-									<div class="flex flex-col gap-1.5 px-3 py-2 bg-stone-50 rounded-lg -mt-1">
-										<a
-											href={`https://www.google.com/books/edition/_/${book.isbn13}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-											onclick={(e) => e.stopPropagation()}
-										>
-											Google Books ↗
-										</a>
-										<a
-											href={`https://bookshop.org/a/5733/${book.isbn13}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-											onclick={(e) => e.stopPropagation()}
-										>
-											Bookshop.org ↗
-										</a>
-										<a
-											href={`https://www.powells.com/book/-${book.isbn13}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-											onclick={(e) => e.stopPropagation()}
-										>
-											Powell's ↗
-										</a>
-										<a
-											href={`https://www.portbooknews.com/book/${book.isbn13}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-											onclick={(e) => e.stopPropagation()}
-										>
-											Port Book & News ↗
-										</a>
-										<a
-											href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-											onclick={(e) => e.stopPropagation()}
-										>
-											WorldCat (Libraries) ↗
-										</a>
-									</div>
-								{/if}
-
-								<!-- Shelves button - opens modal -->
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										shelfModalBookId = book.id;
-									}}
-									class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-								>
-									<span>Shelves ({activeShelfCount})</span>
 									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
 									</svg>
+									<span>View Details</span>
 								</button>
-
-								<!-- Copy ISBN and Barcode buttons on same line -->
-								<div class="flex gap-2">
-									<button
-										onclick={async (e) => {
-											e.stopPropagation();
-											await copyISBN(book.isbn13);
-											const newMap = new Map(copiedMap);
-											newMap.set(book.id, true);
-											copiedMap = newMap;
-											setTimeout(() => {
-												const resetMap = new Map(copiedMap);
-												resetMap.set(book.id, false);
-												copiedMap = resetMap;
-											}, 2000);
-										}}
-										class="flex-1 flex items-center justify-center gap-1.5 text-sm text-stone-600 py-2 px-2 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-									>
-										<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-										</svg>
-										<span class="truncate">{isCopied ? 'Copied!' : 'Copy ISBN'}</span>
-									</button>
-
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											const newMap = new Map(barcodeOpenMap);
-											newMap.set(book.id, !isBarcodeOpen);
-											barcodeOpenMap = newMap;
-										}}
-										class="flex-1 flex items-center justify-center gap-1.5 text-sm text-stone-600 py-2 px-2 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-									>
-										<svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-											<path d="M2 6h2v12H2V6zm4 0h1v12H6V6zm2 0h2v12H8V6zm3 0h1v12h-1V6zm2 0h2v12h-2V6zm3 0h1v12h-1V6zm2 0h2v12h-2V6zm4 0h1v12h-1V6z"/>
-										</svg>
-										<span class="truncate">{isBarcodeOpen ? 'Hide' : 'Barcode'}</span>
-									</button>
-								</div>
-								{#if isBarcodeOpen}
-									<div
-										class="bg-stone-50 rounded-lg p-2 -mt-1 text-center overflow-hidden"
-										onclick={(e) => e.stopPropagation()}
-										onkeydown={(e) => e.stopPropagation()}
-										role="region"
-										aria-label="Barcode display"
-									>
-										<p class="text-xs text-stone-500 mb-1">Scan at bookstore or library</p>
-										<div class="w-full flex justify-center items-center">
-											<canvas
-												use:generateBarcode={book.isbn13}
-												class="max-w-full h-auto mx-auto"
-											></canvas>
-										</div>
-										<p class="text-xs font-mono text-stone-600 mt-1">{book.isbn13}</p>
-									</div>
-								{/if}
 							</div>
 						</div>
 					{/snippet}
@@ -2048,6 +1903,44 @@
 		out:fade={{ duration: 200 }}
 	>
 		{savedFeedback}
+	</div>
+{/if}
+
+<!-- Book Detail Modal (from FlipCard "View Details") -->
+{#if detailModalBook}
+	<div
+		class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+		onclick={() => detailModalBookId = null}
+		onkeydown={(e) => e.key === 'Escape' && (detailModalBookId = null)}
+		role="dialog"
+		aria-modal="true"
+		aria-label="Book details"
+		tabindex="-1"
+		in:fade={{ duration: 150 }}
+		out:fade={{ duration: 100 }}
+	>
+		<div
+			class="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<Card
+				book={detailModalBook}
+				shelves={data.shelves}
+				bookShelves={data.bookShelves}
+				onToggleRead={(bookId, current) => toggleRead(bookId, current)}
+				onToggleOwned={(bookId, current) => toggleOwned(bookId, current)}
+				onUpdateNote={(bookId, note) => updateNote(bookId, note)}
+				onToggleShelf={(bookId, shelfId, isOn) => toggleBookOnShelf(bookId, shelfId, isOn)}
+				onDelete={(bookId, title) => deleteBook(bookId, title)}
+				onShare={(book) => shareModalBook = book}
+			/>
+			<button
+				onclick={() => detailModalBookId = null}
+				class="mt-3 w-full py-2.5 text-sm text-stone-600 bg-white rounded-xl border border-stone-200 hover:bg-stone-50 transition-colors"
+			>
+				Close
+			</button>
+		</div>
 	</div>
 {/if}
 
