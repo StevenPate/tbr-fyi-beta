@@ -1110,7 +1110,7 @@
 					<!-- Front: Book Cover -->
 					{#snippet front()}
 						<div
-							class="w-full h-full bg-gray-100 flex items-center justify-center"
+							class="w-full h-full bg-gray-100 flex items-center justify-center relative"
 						>
 							{#if book.cover_url}
 								<img
@@ -1133,6 +1133,11 @@
 									{/if}
 								</div>
 							{/if}
+							<!-- Corner fold hint -->
+							<div class="absolute top-0 right-0 w-6 h-6 pointer-events-none">
+								<div class="absolute top-0 right-0 w-0 h-0 border-t-[24px] border-t-white/90 border-l-[24px] border-l-transparent"></div>
+								<div class="absolute top-0 right-0 w-6 h-6 bg-gradient-to-br from-stone-200/50 to-transparent"></div>
+							</div>
 						</div>
 					{/snippet}
 
