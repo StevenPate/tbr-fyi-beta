@@ -39,7 +39,8 @@
 		onDelete?: (bookId: string, title: string) => void;
 		onEditDetails?: (bookId: string) => void;
 		onShare?: (book: { isbn13: string; title: string }) => void;
-		defaultExpanded?: boolean;
+		expanded?: boolean;
+		onToggleExpand?: (bookId: string, isExpanded: boolean) => void;
 	}
 
 	let {
@@ -54,11 +55,9 @@
 		onDelete,
 		onEditDetails,
 		onShare,
-		defaultExpanded = false
+		expanded = $bindable(false),
+		onToggleExpand
 	}: Props = $props();
-
-	// Expand/collapse state
-	let expanded = $state(defaultExpanded);
 
 	// State for expandable sections (only used when expanded)
 	let descriptionOpen = $state(false);
@@ -253,6 +252,7 @@
 	// Toggle expand/collapse
 	function toggleExpanded() {
 		expanded = !expanded;
+		onToggleExpand?.(book.id, expanded);
 	}
 </script>
 

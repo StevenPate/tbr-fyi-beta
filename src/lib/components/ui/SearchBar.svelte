@@ -29,6 +29,17 @@
 	let inputEl: HTMLInputElement | null = null;
 	let highlightedIndex = $state(0);
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let dropdownPosition = $state({ top: 0, left: 0 });
+
+	// Portal action to render dropdown at body level (escapes all stacking contexts)
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node);
+		return {
+			destroy() {
+				node.remove();
+			}
+		};
+	}
 
 	// Search matching logic
 	function matchesQuery(book: Book, q: string): boolean {
@@ -51,6 +62,27 @@
 		}
 	});
 
+	// Update dropdown position when visible
+	function updateDropdownPosition() {
+		if (inputEl) {
+			const rect = inputEl.getBoundingClientRect();
+			// Viewport coordinates for fixed positioning
+			dropdownPosition = {
+				top: rect.bottom + 4,
+				left: rect.left
+			};
+		}
+	}
+
+	// Update position when dropdown should be visible
+	$effect(() => {
+		if (expanded && query.trim() && inputEl) {
+			requestAnimationFrame(() => {
+				updateDropdownPosition();
+			});
+		}
+	});
+
 	// Focus input when expanded
 	$effect(() => {
 		if (expanded && inputEl) {
@@ -66,7 +98,19 @@
 		debounceTimer = setTimeout(() => {
 			query = value;
 			onQueryChange?.(value);
+			debounceTimer = null;
 		}, 150);
+	}
+
+	// Clear debounce timer and reset search state
+	function closeSearch() {
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
+		expanded = false;
+		query = '';
+		onQueryChange?.('');
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -74,9 +118,7 @@
 
 		if (e.key === 'Escape') {
 			e.preventDefault();
-			expanded = false;
-			query = '';
-			onQueryChange?.('');
+			closeSearch();
 		} else if (e.key === 'ArrowDown') {
 			e.preventDefault();
 			if (matchingBooks.length > 0) {
@@ -97,25 +139,22 @@
 
 	function selectBook(book: Book) {
 		onSelect?.(book);
-		expanded = false;
-		query = '';
-		onQueryChange?.('');
+		closeSearch();
 	}
 
 	function toggle() {
-		expanded = !expanded;
-		if (!expanded) {
-			query = '';
-			onQueryChange?.('');
+		if (expanded) {
+			closeSearch();
+		} else {
+			expanded = true;
 		}
 	}
 
 	function handleClickOutside(e: MouseEvent) {
 		const target = e.target as HTMLElement;
-		if (!target.closest('.search-container')) {
-			expanded = false;
-			query = '';
-			onQueryChange?.('');
+		// Check both search container and the portaled dropdown
+		if (!target.closest('.search-container') && !target.closest('.search-dropdown-portal')) {
+			closeSearch();
 		}
 	}
 
@@ -165,9 +204,13 @@
 			{/if}
 		</div>
 
-		<!-- Dropdown results -->
+		<!-- Dropdown results (portaled to body to escape all stacking contexts) -->
 		{#if query.trim()}
-			<div class="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+			<div
+				use:portal
+				class="search-dropdown-portal fixed w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto"
+				style="top: {dropdownPosition.top}px; left: {dropdownPosition.left}px; z-index: 99999;"
+			>
 				{#if matchingBooks.length === 0}
 					<div class="px-4 py-3 text-sm text-gray-500">
 						No books match "{query}"

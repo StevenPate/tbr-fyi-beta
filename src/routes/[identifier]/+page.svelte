@@ -127,14 +127,23 @@
 			: booksForCurrentShelf()
 	);
 
-	// Scroll to and highlight a book
+	// Scroll to and highlight a book, expand/flip it based on view mode
 	function scrollToBook(book: { id: string }) {
-		const element = document.getElementById(`book-${book.id}`);
-		if (element) {
-			element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			element.classList.add('highlight-pulse');
-			setTimeout(() => element.classList.remove('highlight-pulse'), 1000);
-		}
+		// Small delay to let DOM settle after search clears
+		requestAnimationFrame(() => {
+			const element = document.getElementById(`book-${book.id}`);
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				element.classList.add('highlight-pulse');
+				setTimeout(() => element.classList.remove('highlight-pulse'), 1000);
+			}
+			// Flip or expand the card based on view mode
+			if (viewMode === 'grid') {
+				flippedBookId = book.id;
+			} else {
+				expandedCardId = book.id;
+			}
+		});
 	}
 
 	// Manual ISBN entry state (kept for backward-compat, modal replaced below)
@@ -176,6 +185,9 @@
 
 	// Cover card state (for grid view with FlipCard) - only one card flipped at a time
 	let flippedBookId = $state<string | null>(null);
+
+	// Expanded card state (for list view) - only one card expanded at a time
+	let expandedCardId = $state<string | null>(null);
 
 	// Grid flip hint (one-time for new users)
 	let showFlipHint = $state(false);
@@ -1571,11 +1583,13 @@
 				out:fade={{ duration: 150 }}
 			>
 				{#each displayedBooks as book (book.id)}
+					{@const isExpanded = expandedCardId === book.id}
 					<Card
 						id="book-{book.id}"
 						{book}
 						shelves={data.shelves}
 						bookShelves={data.bookShelves}
+						expanded={isExpanded}
 						onToggleRead={toggleRead}
 						onToggleOwned={toggleOwned}
 						onUpdateNote={updateNote}
@@ -1586,6 +1600,9 @@
 							console.log('Edit details for book:', book.id);
 						}}
 						onShare={(b: { isbn13: string; title: string }) => shareModalBook = b}
+						onToggleExpand={(bookId, isNowExpanded) => {
+							expandedCardId = isNowExpanded ? bookId : null;
+						}}
 					/>
 				{/each}
 			</div>
@@ -2087,7 +2104,7 @@
 				book={detailModalBook}
 				shelves={data.shelves}
 				bookShelves={data.bookShelves}
-				defaultExpanded={true}
+				expanded={true}
 				onToggleRead={(bookId, current) => toggleRead(bookId, current)}
 				onToggleOwned={(bookId, current) => toggleOwned(bookId, current)}
 				onUpdateNote={(bookId, note) => updateNote(bookId, note)}
