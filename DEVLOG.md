@@ -1,5 +1,58 @@
 # Development Log
 
+## 2025-12-30 - Search, Performance & UI Polish
+
+### Instant client-side shelf filtering
+- **Performance win**: Shelf switching is now instant with no server round-trip
+- Books are filtered locally using pre-loaded `allBooks` and `bookShelves` data
+- Uses `history.pushState()` for shallow URL updates without page reload
+- Added `popstate` listener for browser back/forward navigation
+
+### Search dropdown fixes
+- **Portal pattern**: Dropdown now renders at `document.body` level to escape header's transform stacking context
+- Fixed z-index issues where dropdown appeared behind sticky shelf filter pills
+- Position calculated dynamically using `getBoundingClientRect()` for accurate placement
+- **Debounce fix**: Pending timer now cleared on all close paths (Escape, select, toggle, click outside)
+
+### Search result navigation
+- Clicking a search result scrolls to the book and expands/flips the card
+- **List view**: Scrolls to book, highlights with pulse animation, expands the card
+- **Grid view**: Scrolls to book, highlights with pulse animation, flips the card
+- Only one card can be expanded/flipped at a time
+
+### Card component enhancements
+- **Compact/expanded redesign**: Card refactored with collapsible compact view and expandable details
+- Made `expanded` prop bindable for external state control
+- Added `onToggleExpand` callback for parent state sync
+- **Note sync fix**: Note value now syncs correctly when book data updates externally
+
+### Card hover and background styling
+- **Compact cards**: Semi-transparent white (`bg-white/50`) blends with page
+- **Hover state**: Solid white with subtle shadow (`hover:shadow-sm`)
+- **Expanded state**: Solid white with medium shadow (`shadow-md`)
+- **Page background**: Changed from `gray-50` to `gray-100` for better card contrast
+- Updated sticky headers and gradients to match new background
+
+### FlipCard improvements
+- Simplified back: Shows note preview with "View Details" button for full modal
+- Corner fold hint: Visual indicator that cards are flippable
+- One-time flip hint: First-time users see "Click to flip" tooltip on first card
+- Note expansion: Notes fill available space on card back
+- Soft success feedback: Visual confirmation when actions complete
+
+### Mobile UI polish
+- **Smart sticky header**: Slides up when scrolling down, reappears when scrolling up
+- **Shelf filter pills**: Auto-scroll to selected shelf, improved overflow handling
+- **More Shelves dropdown**: Fixed positioning and behavior
+
+### SEO improvements
+- Added proper `<title>` and meta description to shelf pages
+- Meta description includes book count
+
+### Bug fixes
+- **API username resolution**: Username identifiers now properly resolve to `user_id` in API endpoints
+- **Note editing accessibility**: Notes can be edited from both grid and list layouts
+
 ## 2025-12-14 - Integration Research & Documentation
 
 ### Comprehensive integration research for ecosystem expansion

@@ -76,6 +76,13 @@
 ## Completed
 
 ### December 2025
+- [x] Instant client-side shelf filtering (no server round-trip)
+- [x] Search result navigation (scroll to + expand/flip card)
+- [x] Card hover/expanded states with page contrast
+- [x] FlipCard polish (corner fold hint, one-time flip hint, note expansion)
+- [x] Smart sticky header (hides on scroll down, shows on scroll up)
+- [x] Shelf pills auto-scroll + More Shelves dropdown fix
+- [x] SEO: title and meta description on shelf pages
 - [x] Search books by title, author, or notes (Cmd+K toggle, dropdown + live filter)
 - [x] Book sharing feature (individual book share links)
 - [x] Custom authentication system (email magic links, SMS codes)
