@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount, tick } from 'svelte';
@@ -12,6 +11,14 @@
 	import { browser } from '$app/environment';
 
 	let { data }: { data: PageData } = $props();
+
+	// Local shelf selection state for instant filtering (no server round-trip)
+	let selectedShelfId = $state<string | null>(data.selectedShelfId);
+
+	// Sync with server data on navigation (e.g., browser back/forward)
+	$effect(() => {
+		selectedShelfId = data.selectedShelfId;
+	});
 
 	let newShelfName = $state('');
 	let showNewShelfInput = $state(false);
@@ -41,13 +48,13 @@
 	// Shelf pills scroll container ref
 	let shelfScrollContainer: HTMLDivElement | null = null;
 
-	// Scroll to selected shelf pill on load
+	// Scroll to selected shelf pill when selection changes
 	$effect(() => {
-		if (!browser || !shelfScrollContainer || !data.selectedShelfId) return;
+		if (!browser || !shelfScrollContainer || !selectedShelfId) return;
 
 		// Small delay to ensure DOM is ready
 		setTimeout(() => {
-			const selectedPill = shelfScrollContainer?.querySelector(`[data-shelf-id="${data.selectedShelfId}"]`);
+			const selectedPill = shelfScrollContainer?.querySelector(`[data-shelf-id="${selectedShelfId}"]`);
 			if (selectedPill) {
 				selectedPill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 			}
@@ -98,11 +105,26 @@
 		return titleMatch || authorMatch || noteMatch;
 	}
 
-	// Filtered books based on search query
+	// Filter books by selected shelf (client-side for instant switching)
+	const booksForCurrentShelf = $derived(() => {
+		if (!selectedShelfId) {
+			// "All Books" view
+			return data.allBooks;
+		}
+		// Filter to books on the selected shelf
+		const bookIdsOnShelf = new Set(
+			data.bookShelves
+				.filter(bs => bs.shelf_id === selectedShelfId)
+				.map(bs => bs.book_id)
+		);
+		return data.allBooks.filter(book => bookIdsOnShelf.has(book.id));
+	});
+
+	// Then apply search filter
 	const displayedBooks = $derived(
 		searchQuery.trim()
-			? data.books.filter(b => matchesSearchQuery(b, searchQuery))
-			: data.books
+			? booksForCurrentShelf().filter(b => matchesSearchQuery(b, searchQuery))
+			: booksForCurrentShelf()
 	);
 
 	// Scroll to and highlight a book
@@ -207,7 +229,7 @@
 
 	// Detail modal state (for FlipCard "View Details")
 	let detailModalBookId = $state<string | null>(null);
-	let detailModalBook = $derived(detailModalBookId ? data.books.find(b => b.id === detailModalBookId) : null);
+	let detailModalBook = $derived(detailModalBookId ? data.allBooks.find(b => b.id === detailModalBookId) : null);
 	let shareModalOpen = $derived(shareModalBook !== null);
 	// Canonical identifier for share URLs: prefer username if available
 	const canonicalIdentifier = $derived(data.username || data.userId);
@@ -225,7 +247,7 @@
 	$effect(() => {
 		if (viewMode === 'grid' && browser) {
 			const dismissed = localStorage.getItem('tbr-flip-hint-dismissed');
-			if (!dismissed && data.books.length > 0) {
+			if (!dismissed && data.allBooks.length > 0) {
 				showFlipHint = true;
 				// Auto-dismiss after 3 seconds
 				flipHintTimeout = setTimeout(() => {
@@ -273,7 +295,7 @@
 	// Compute which shelves should be visible (always include selected shelf)
 	const visibleShelves = $derived(() => {
 		const shelves = data.shelves;
-		const selectedId = data.selectedShelfId;
+		const selectedId = selectedShelfId;
 
 		// If we have fewer shelves than max, show all
 		if (shelves.length <= MAX_VISIBLE_SHELVES) {
@@ -578,7 +600,11 @@
 		}
 	}
 
-	async function selectShelf(shelfId: string | null) {
+	function selectShelf(shelfId: string | null) {
+		// Update local state immediately (instant UI response)
+		selectedShelfId = shelfId;
+
+		// Update URL for bookmarkability/sharing (shallow - no server round-trip)
 		const params = new URLSearchParams(window.location.search);
 		if (shelfId) {
 			params.set('shelf', shelfId);
@@ -589,8 +615,9 @@
 		}
 		const queryString = params.toString();
 		const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
-		await goto(newUrl);
-		await invalidateAll();
+
+		// Use replaceState for shallow URL update (supports back/forward via popstate)
+		history.pushState({}, '', newUrl);
 	}
 
 	async function deleteShelf(shelfId: string, shelfName: string) {
@@ -603,7 +630,7 @@
 		}
 
 		// Add note about current view if viewing this shelf
-		if (data.selectedShelfId === shelfId) {
+		if (selectedShelfId === shelfId) {
 			message += '\n\nYou are currently viewing this shelf. After deletion, you will be redirected to "All Books".';
 		}
 
@@ -628,9 +655,10 @@
 				throw new Error(result.error || 'Failed to delete shelf');
 			}
 
-			// If we're currently viewing the deleted shelf, redirect to All Books
-			if (data.selectedShelfId === shelfId) {
-				await goto(`${window.location.pathname}?view=all`);
+			// If we're currently viewing the deleted shelf, switch to All Books
+			if (selectedShelfId === shelfId) {
+				selectedShelfId = null;
+				history.replaceState({}, '', `${window.location.pathname}?view=all`);
 			}
 
 			// Refresh the page data to update shelf list
@@ -792,7 +820,7 @@
 			if (selectedShelfIds.size > 0) {
 				for (const book of booksToAdd) {
 					// Find the book in the updated data
-					const addedBook = data.books.find(b => b.isbn13 === book.isbn13);
+					const addedBook = data.allBooks.find(b => b.isbn13 === book.isbn13);
 					if (addedBook) {
 						// Add to each selected shelf
 						for (const shelfId of selectedShelfIds) {
@@ -939,11 +967,31 @@
 			console.warn('Failed to parse query params', e);
 		}
 
+		// Handle browser back/forward for shelf navigation
+		const handlePopState = () => {
+			const params = new URLSearchParams(window.location.search);
+			const shelfParam = params.get('shelf');
+			const viewParam = params.get('view');
+
+			if (viewParam === 'all') {
+				selectedShelfId = null;
+			} else if (shelfParam) {
+				// Validate shelf exists
+				const shelfExists = data.shelves.some(s => s.id === shelfParam);
+				selectedShelfId = shelfExists ? shelfParam : null;
+			} else {
+				// No params - use default shelf if available
+				selectedShelfId = data.defaultShelfId || null;
+			}
+		};
+
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('click', handleClick);
+		window.addEventListener('popstate', handlePopState);
 		return () => {
 			window.removeEventListener('keydown', handleKeydown);
 			window.removeEventListener('click', handleClick);
+			window.removeEventListener('popstate', handlePopState);
 		};
 	});
 
@@ -957,7 +1005,7 @@
 
 <svelte:head>
 	<title>{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi</title>
-	<meta name="description" content="{data.books.length} {data.books.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
+	<meta name="description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">
@@ -977,7 +1025,7 @@
 					<div class="min-w-0">
 						<h1 class="text-xl md:text-3xl font-bold text-gray-900 truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
 						<p class="text-xs md:text-sm text-gray-400 font-normal">
-							<span class="font-semibold text-gray-600">{data.books.length}</span> {data.books.length === 1 ? 'book' : 'books'}{#if data.selectedShelfId} on this shelf{/if}
+							<span class="font-semibold text-gray-600">{booksForCurrentShelf().length}</span> {booksForCurrentShelf().length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
 						</p>
 					</div>
 
@@ -985,7 +1033,7 @@
 					<div class="flex gap-1 md:gap-2 items-start flex-shrink-0">
 						<!-- Search -->
 						<SearchBar
-							books={data.books}
+							books={booksForCurrentShelf()}
 							bind:expanded={searchExpanded}
 							bind:query={searchQuery}
 							onSelect={scrollToBook}
@@ -1053,7 +1101,7 @@
 			>
 				<!-- All Books Tab -->
 				<Button
-					variant={!data.selectedShelfId ? 'primary' : 'secondary'}
+					variant={!selectedShelfId ? 'primary' : 'secondary'}
 					size="md"
 					onclick={() => selectShelf(null)}
 					class="flex-shrink-0 snap-start"
@@ -1069,11 +1117,11 @@
 						class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start"
 					>
 						<Button
-							variant={data.selectedShelfId === shelf.id ? 'primary' : 'secondary'}
+							variant={selectedShelfId === shelf.id ? 'primary' : 'secondary'}
 							size="md"
 							onclick={() => selectShelf(shelf.id)}
 							disabled={deletingShelfId === shelf.id}
-							class="rounded-none cursor-pointer whitespace-nowrap {data.selectedShelfId === shelf.id ? 'pr-0' : 'pl-4 pr-0'}"
+							class="rounded-none cursor-pointer whitespace-nowrap {selectedShelfId === shelf.id ? 'pr-0' : 'pl-4 pr-0'}"
 						>
 							{#if deletingShelfId === shelf.id}
 								Deleting...
@@ -1087,7 +1135,7 @@
 								deleteShelf(shelf.id, shelf.name);
 							}}
 							disabled={deletingShelfId === shelf.id}
-							class="px-2 py-1.5 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {data.selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
+							class="px-2 py-1.5 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
 							aria-label={`Delete shelf ${shelf.name}`}
 							title="Delete shelf"
 						>
@@ -1174,7 +1222,8 @@
 		{/if}
 
 		<!-- Empty State -->
-		{#if data.books.length === 0}
+		{#if data.allBooks.length === 0}
+			<!-- No books at all -->
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
 				<div class="text-gray-400 text-5xl mb-4">📚</div>
 				<h2 class="text-xl font-semibold text-gray-900 mb-2">No books yet!</h2>
@@ -1184,10 +1233,17 @@
 					<p>Or send a photo of a book barcode!</p>
 				</div>
 			</div>
+		{:else if displayedBooks.length === 0}
+			<!-- Shelf is empty but user has books -->
+			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+				<div class="text-gray-400 text-5xl mb-4">📖</div>
+				<h2 class="text-xl font-semibold text-gray-900 mb-2">No books on this shelf</h2>
+				<p class="text-gray-600">Add books to this shelf from your library, or switch to "All" to see all your books.</p>
+			</div>
 		{/if}
 
 		<!-- Books Grid/List -->
-		{#key data.selectedShelfId}
+		{#key selectedShelfId}
 			{#if viewMode === 'grid'}
 				<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 				<div class="relative" onclick={handleGridClick}>
@@ -1857,7 +1913,7 @@
 
 		<!-- Shelf Selection Modal -->
 		{#if shelfModalOpen && shelfModalBookId}
-			{@const currentBook = data.books.find(b => b.id === shelfModalBookId)}
+			{@const currentBook = data.allBooks.find(b => b.id === shelfModalBookId)}
 			{#if currentBook}
 				<div
 					class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
