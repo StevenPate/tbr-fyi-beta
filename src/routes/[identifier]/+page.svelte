@@ -1020,7 +1020,7 @@
 	<meta name="description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-100">
 	{#if data.isPhoneBased}
 		<ClaimShelfBanner phoneNumber={data.userId} {isOwner} />
 	{/if}
@@ -1029,7 +1029,7 @@
 		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header - slides up/down based on scroll direction (mobile only) -->
 		<div
-			class="sticky top-0 z-30 -mx-4 px-4 bg-gray-50 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
+			class="sticky top-0 z-30 -mx-4 px-4 bg-gray-100 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
 			style="will-change: transform;"
 		>
 			<div class="py-2 md:py-0">
@@ -1100,12 +1100,12 @@
 		<!-- Shelf Navigation - separate sticky element, always visible -->
 		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
 		<div
-			class="sticky z-20 -mx-4 px-4 bg-gray-50/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
+			class="sticky z-20 -mx-4 px-4 bg-gray-100/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
 			style="top: {headerVisible ? '60px' : '0px'};"
 		>
 			<div class="relative py-2 md:py-0">
 			<!-- Fade gradient on right edge (mobile) -->
-			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50/95 to-transparent pointer-events-none z-10 md:hidden"></div>
+			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100/95 to-transparent pointer-events-none z-10 md:hidden"></div>
 
 			<div
 				bind:this={shelfScrollContainer}

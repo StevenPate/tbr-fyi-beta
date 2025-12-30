@@ -258,8 +258,7 @@
 
 <div
 	{id}
-	class="relative w-full bg-[#FAFAFA] rounded-xl border border-stone-200/60 overflow-hidden transition-colors duration-150"
-	class:hover:bg-stone-50={!expanded}
+	class="relative w-full rounded-xl border border-stone-200/60 overflow-hidden transition-all duration-200 {expanded ? 'bg-white shadow-md' : 'bg-white/50 hover:bg-white hover:shadow-sm'}"
 >
 	<!-- Header row (always visible, clickable to expand) -->
 	<div
