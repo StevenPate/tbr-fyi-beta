@@ -1983,6 +1983,7 @@
 				book={detailModalBook}
 				shelves={data.shelves}
 				bookShelves={data.bookShelves}
+				defaultExpanded={true}
 				onToggleRead={(bookId, current) => toggleRead(bookId, current)}
 				onToggleOwned={(bookId, current) => toggleOwned(bookId, current)}
 				onUpdateNote={(bookId, note) => updateNote(bookId, note)}
