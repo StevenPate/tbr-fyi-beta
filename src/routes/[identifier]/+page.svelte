@@ -1017,7 +1017,7 @@
 		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header - slides up/down based on scroll direction (mobile only) -->
 		<div
-			class="sticky top-0 z-30 -mx-4 px-4 bg-gray-50 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
+			class="sticky top-0 z-40 -mx-4 px-4 bg-gray-50 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
 			style="will-change: transform;"
 		>
 			<div class="py-2 md:py-0">
@@ -1088,7 +1088,7 @@
 		<!-- Shelf Navigation - separate sticky element, always visible -->
 		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
 		<div
-			class="sticky z-20 -mx-4 px-4 bg-gray-50/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
+			class="sticky z-10 -mx-4 px-4 bg-gray-50 transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
 			style="top: {headerVisible ? '60px' : '0px'};"
 		>
 			<div class="relative py-2 md:py-0">
