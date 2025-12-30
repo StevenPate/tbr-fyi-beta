@@ -13,6 +13,7 @@
 		ariaLabel?: string;
 		autoFlipOnMount?: boolean;
 		animationIndex?: number;
+		onflip?: (isFlipped: boolean) => void;
 	}
 
 	let {
@@ -25,6 +26,7 @@
 		ariaLabel = 'Flip card to see details',
 		autoFlipOnMount = false,
 		animationIndex = 0,
+		onflip,
 		class: className,
 		...rest
 	}: Props = $props();
@@ -52,10 +54,12 @@
 		// Clear focus hint immediately on click (prevents "Press Enter" hint on mobile/desktop clicks)
 		isFocused = false;
 
-		flipped = !flipped;
+		const newFlipped = !flipped;
+		flipped = newFlipped;
+		onflip?.(newFlipped);
 
 		// Show hint when flipping to back, auto-dismiss after 2 seconds
-		if (flipped) {
+		if (newFlipped) {
 			showBackHint = true;
 			if (backHintTimeout) clearTimeout(backHintTimeout);
 			backHintTimeout = setTimeout(() => {
@@ -80,10 +84,12 @@
 			// Clear focus hint immediately
 			isFocused = false;
 
-			flipped = !flipped;
+			const newFlipped = !flipped;
+			flipped = newFlipped;
+			onflip?.(newFlipped);
 
 			// Show hint when flipping to back, auto-dismiss after 2 seconds
-			if (flipped) {
+			if (newFlipped) {
 				showBackHint = true;
 				if (backHintTimeout) clearTimeout(backHintTimeout);
 				backHintTimeout = setTimeout(() => {

@@ -106,8 +106,8 @@
 	// Delete shelf state
 	let deletingShelfId = $state<string | null>(null);
 
-	// Cover card state (for grid view with FlipCard)
-	let flippedMap = $state<Map<string, boolean>>(new Map());
+	// Cover card state (for grid view with FlipCard) - only one card flipped at a time
+	let flippedBookId = $state<string | null>(null);
 
 	// Grid flip hint (one-time for new users)
 	let showFlipHint = $state(false);
@@ -198,18 +198,25 @@
 		}
 	});
 
-	// Helper to get/set flipped state for a book
+	// Helper to get/set flipped state for a book (only one at a time)
 	function getFlipped(bookId: string) {
-		return flippedMap.get(bookId) || false;
+		return flippedBookId === bookId;
 	}
 
 	function setFlipped(bookId: string, value: boolean) {
-		const newMap = new Map(flippedMap);
-		newMap.set(bookId, value);
-		flippedMap = newMap;
+		flippedBookId = value ? bookId : null;
 		// Dismiss hint on any card interaction
 		if (showFlipHint) {
 			dismissFlipHint();
+		}
+	}
+
+	// Close flipped card when clicking outside
+	function handleGridClick(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+		// Check if click is outside any flip-card
+		if (!target.closest('.flip-card')) {
+			flippedBookId = null;
 		}
 	}
 
@@ -1134,7 +1141,8 @@
 		<!-- Books Grid/List -->
 		{#key data.selectedShelfId}
 			{#if viewMode === 'grid'}
-				<div class="relative">
+				<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+				<div class="relative" onclick={handleGridClick}>
 				<!-- Flip hint tooltip anchored to first card -->
 				{#if showFlipHint && displayedBooks.length > 0}
 					<div
@@ -1155,6 +1163,7 @@
 					<FlipCard
 							id="book-{book.id}"
 							{flipped}
+							onflip={(isFlipped) => setFlipped(book.id, isFlipped)}
 							class="w-full"
 							ariaLabel="Flip card for {book.title}"
 							autoFlipOnMount={index === 0}
@@ -1163,8 +1172,13 @@
 					<!-- Front: Book Cover -->
 					{#snippet front()}
 						<div
-							class="w-full h-full bg-gray-100 flex items-center justify-center relative"
+							class="relative w-full h-full bg-gray-100 flex items-center justify-center"
 						>
+							<!-- Corner fold hint -->
+							<div class="absolute top-0 right-0 w-6 h-6 pointer-events-none z-10">
+								<div class="absolute top-0 right-0 w-0 h-0 border-t-[24px] border-t-white/90 border-l-[24px] border-l-transparent"></div>
+								<div class="absolute top-0 right-0 w-6 h-6 bg-gradient-to-br from-stone-200/50 to-transparent"></div>
+							</div>
 							{#if book.cover_url}
 								<img
 									src={book.cover_url}
@@ -1186,11 +1200,6 @@
 									{/if}
 								</div>
 							{/if}
-							<!-- Corner fold hint -->
-							<div class="absolute top-0 right-0 w-6 h-6 pointer-events-none">
-								<div class="absolute top-0 right-0 w-0 h-0 border-t-[24px] border-t-white/90 border-l-[24px] border-l-transparent"></div>
-								<div class="absolute top-0 right-0 w-6 h-6 bg-gradient-to-br from-stone-200/50 to-transparent"></div>
-							</div>
 						</div>
 					{/snippet}
 
