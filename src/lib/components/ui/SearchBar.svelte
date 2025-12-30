@@ -27,11 +27,8 @@
 	}: Props = $props();
 
 	let inputEl: HTMLInputElement | null = null;
-	let containerEl: HTMLDivElement | null = null;
 	let highlightedIndex = $state(0);
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	let dropdownPosition = $state({ top: 0, left: 0 });
-
 
 	// Search matching logic
 	function matchesQuery(book: Book, q: string): boolean {
@@ -51,21 +48,6 @@
 	$effect(() => {
 		if (matchingBooks.length > 0) {
 			highlightedIndex = 0;
-		}
-	});
-
-	// Update dropdown position when visible
-	$effect(() => {
-		if (expanded && query.trim() && inputEl) {
-			const inputRect = inputEl.getBoundingClientRect();
-			// Get dropdown width (320px on sm screens, 288px on mobile)
-			const dropdownWidth = window.innerWidth >= 640 ? 320 : 288;
-			// Right-align with input since dropdown is wider than input
-			const left = Math.max(8, inputRect.right - dropdownWidth);
-			dropdownPosition = {
-				top: inputRect.bottom + 4,
-				left: left
-			};
 		}
 	});
 
@@ -115,9 +97,9 @@
 
 	function selectBook(book: Book) {
 		onSelect?.(book);
-		// Keep search results visible - just close dropdown
-		// User can clear search manually to see all books
 		expanded = false;
+		query = '';
+		onQueryChange?.('');
 	}
 
 	function toggle() {
@@ -143,7 +125,7 @@
 	});
 </script>
 
-<div bind:this={containerEl} class="search-container relative flex items-center">
+<div class="search-container relative flex items-center">
 	<!-- Search icon button -->
 	<button
 		onclick={toggle}
@@ -183,12 +165,9 @@
 			{/if}
 		</div>
 
-		<!-- Dropdown results (fixed position to escape stacking contexts) -->
+		<!-- Dropdown results -->
 		{#if query.trim()}
-			<div
-				class="fixed w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto"
-				style="top: {dropdownPosition.top}px; left: {dropdownPosition.left}px; z-index: 99999;"
-			>
+			<div class="absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
 				{#if matchingBooks.length === 0}
 					<div class="px-4 py-3 text-sm text-gray-500">
 						No books match "{query}"
