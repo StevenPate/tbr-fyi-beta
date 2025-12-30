@@ -119,6 +119,23 @@
 	let copiedMap = $state<Map<string, boolean>>(new Map());
 	let tempNoteMap = $state<Map<string, string>>(new Map());
 
+	// Soft success feedback (for FlipCard actions)
+	let savedFeedback = $state<string | null>(null);
+	let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	function showSavedFeedback(message: string = 'Saved') {
+		// Subtle haptic
+		if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+			navigator.vibrate(10);
+		}
+		// Show brief message
+		if (feedbackTimeout) clearTimeout(feedbackTimeout);
+		savedFeedback = message;
+		feedbackTimeout = setTimeout(() => {
+			savedFeedback = null;
+		}, 1500);
+	}
+
 	// Shelf modal state
 	let shelfModalBookId = $state<string | null>(null);
 	let shelfModalOpen = $derived(shelfModalBookId !== null);
@@ -1229,7 +1246,10 @@
 									aria-label="Status toggles"
 								>
 									<button
-										onclick={() => toggleRead(book.id, book.is_read)}
+										onclick={() => {
+											toggleRead(book.id, book.is_read);
+											showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
+										}}
 										class="flex-1 text-sm font-medium py-2 rounded-lg border transition-all duration-200 ease-out {book.is_read
 											? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
 											: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}"
@@ -1237,7 +1257,10 @@
 										{book.is_read ? '✓ Read' : 'Unread'}
 									</button>
 									<button
-										onclick={() => toggleOwned(book.id, book.is_owned)}
+										onclick={() => {
+											toggleOwned(book.id, book.is_owned);
+											showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
+										}}
 										class="flex-1 text-sm font-medium py-2 rounded-lg border transition-all duration-200 ease-out {book.is_owned
 											? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
 											: 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'}"
@@ -1310,6 +1333,8 @@
 													const tempMap = new Map(tempNoteMap);
 													tempMap.delete(book.id);
 													tempNoteMap = tempMap;
+
+													showSavedFeedback('Note saved');
 												}}
 												class="flex-1 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
 											>
@@ -1336,24 +1361,28 @@
 								{/if}
 
 								<!-- Description disclosure button -->
-								{#if book.description}
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											const newMap = new Map(descriptionOpenMap);
-											newMap.set(book.id, !isDescOpen);
-											descriptionOpenMap = newMap;
-										}}
-										class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
-									>
-										<span>Description</span>
-										<svg class="w-4 h-4 transition-transform" class:rotate-90={!isDescOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-										</svg>
-									</button>
-									{#if isDescOpen}
+								<button
+									onclick={(e) => {
+										e.stopPropagation();
+										const newMap = new Map(descriptionOpenMap);
+										newMap.set(book.id, !isDescOpen);
+										descriptionOpenMap = newMap;
+									}}
+									class="w-full flex items-center justify-between text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+								>
+									<span>Description</span>
+									<svg class="w-4 h-4 transition-transform" class:rotate-90={!isDescOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+									</svg>
+								</button>
+								{#if isDescOpen}
+									{#if book.description}
 										<p class="text-sm text-stone-600 leading-relaxed px-3 py-2 bg-stone-50 rounded-lg -mt-1">
 											{book.description}
+										</p>
+									{:else}
+										<p class="text-sm text-stone-400 italic px-3 py-2 bg-stone-50 rounded-lg -mt-1">
+											No description available
 										</p>
 									{/if}
 								{/if}
@@ -1894,7 +1923,10 @@
 									{@const isOn = isBookOnShelf(shelfModalBookId ?? '', shelf.id)}
 									{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
 									<button
-										onclick={() => toggleBookOnShelf(shelfModalBookId ?? '', shelf.id, isOn)}
+										onclick={() => {
+											toggleBookOnShelf(shelfModalBookId ?? '', shelf.id, isOn);
+											showSavedFeedback(isOn ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
+										}}
 										class="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg hover:bg-stone-50 transition-colors group"
 									>
 										<div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 {isOn
@@ -1986,6 +2018,17 @@
 		open={shareModalOpen}
 		onClose={() => shareModalBook = null}
 	/>
+{/if}
+
+<!-- Global soft success toast -->
+{#if savedFeedback}
+	<div
+		class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-800 text-white text-sm rounded-full shadow-lg z-50 pointer-events-none"
+		in:fade={{ duration: 150 }}
+		out:fade={{ duration: 200 }}
+	>
+		{savedFeedback}
+	</div>
 {/if}
 
 <style>
