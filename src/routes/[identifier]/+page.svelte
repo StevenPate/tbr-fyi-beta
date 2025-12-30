@@ -1134,16 +1134,6 @@
 		<!-- Books Grid/List -->
 		{#key data.selectedShelfId}
 			{#if viewMode === 'grid'}
-				<!-- Flip hint for first-time grid users -->
-				{#if showFlipHint}
-					<div
-						class="mb-3 px-3 py-2 bg-stone-100 text-stone-600 text-sm rounded-full inline-block"
-						in:fade={{ duration: 150 }}
-						out:fade={{ duration: 100 }}
-					>
-						Tap any book to flip it over for notes, status, and details.
-					</div>
-				{/if}
 				<div
 					class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
 					in:fade={{ duration: 300, delay: 150 }}
@@ -1151,12 +1141,23 @@
 				>
 					{#each displayedBooks as book, index (book.id)}
 					{@const flipped = getFlipped(book.id)}
-					<FlipCard
-						id="book-{book.id}"
-						{flipped}
-						class="w-full"
-						ariaLabel="Flip card for {book.title}"
-						autoFlipOnMount={index === 0}
+					<div class="relative">
+						<!-- Flip hint tooltip on first card -->
+						{#if index === 0 && showFlipHint}
+							<div
+								class="absolute -top-2 left-2 right-2 -translate-y-full z-10 px-3 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg text-center"
+								in:fade={{ duration: 150 }}
+								out:fade={{ duration: 100 }}
+							>
+								Tap any book to flip it over for notes, status, and details.
+							</div>
+						{/if}
+						<FlipCard
+							id="book-{book.id}"
+							{flipped}
+							class="w-full"
+							ariaLabel="Flip card for {book.title}"
+							autoFlipOnMount={index === 0}
 						animationIndex={index}
 					>
 					<!-- Front: Book Cover -->
@@ -1446,6 +1447,7 @@
 						</div>
 					{/snippet}
 				</FlipCard>
+					</div>
 			{/each}
 		</div>
 		{:else}
