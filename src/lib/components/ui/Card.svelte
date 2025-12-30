@@ -376,7 +376,7 @@
 					<p class="text-sm text-stone-500 leading-relaxed pr-8">{noteValue}</p>
 					<button
 						onclick={startEditingNote}
-						class="absolute top-2 right-2 p-1.5 text-stone-400 opacity-0 group-hover:opacity-100 hover:text-stone-600 transition-all"
+						class="absolute top-2 right-2 p-1.5 text-stone-400 md:opacity-0 md:group-hover:opacity-100 hover:text-stone-600 active:text-stone-700 transition-all min-h-[44px] min-w-[44px] flex items-center justify-center -mr-1.5 -mt-1.5"
 						aria-label="Edit note"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

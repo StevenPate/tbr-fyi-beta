@@ -1343,21 +1343,41 @@
 										</div>
 									</div>
 								{:else}
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											const newMap = new Map(noteExpandedMap);
-											newMap.set(book.id, !isNoteExpanded);
-											noteExpandedMap = newMap;
-										}}
-										class="w-full text-left text-sm text-stone-600 py-2 px-3 rounded-lg bg-stone-50 border border-stone-200 hover:bg-stone-100 transition-colors"
-									>
-										{#if isNoteExpanded}
-											<span class="whitespace-pre-wrap">{book.note}</span>
-										{:else}
-											<span class="line-clamp-1">{book.note}</span>
-										{/if}
-									</button>
+									<div class="relative bg-stone-50 border border-stone-200 rounded-lg">
+										<button
+											onclick={(e) => {
+												e.stopPropagation();
+												const newMap = new Map(noteExpandedMap);
+												newMap.set(book.id, !isNoteExpanded);
+												noteExpandedMap = newMap;
+											}}
+											class="w-full text-left text-sm text-stone-600 py-2 px-3 pr-10 hover:bg-stone-100 transition-colors rounded-lg"
+										>
+											{#if isNoteExpanded}
+												<span class="whitespace-pre-wrap">{book.note}</span>
+											{:else}
+												<span class="line-clamp-1">{book.note}</span>
+											{/if}
+										</button>
+										<button
+											onclick={(e) => {
+												e.stopPropagation();
+												const editMap = new Map(noteEditingMap);
+												editMap.set(book.id, true);
+												noteEditingMap = editMap;
+
+												const tempMap = new Map(tempNoteMap);
+												tempMap.set(book.id, book.note || '');
+												tempNoteMap = tempMap;
+											}}
+											class="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 text-stone-400 hover:text-stone-600 active:text-stone-700 transition-colors"
+											aria-label="Edit note"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+											</svg>
+										</button>
+									</div>
 								{/if}
 
 								<!-- Description disclosure button -->
