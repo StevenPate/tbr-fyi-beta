@@ -69,6 +69,14 @@
 	let noteValue = $state(book.note || '');
 	let tempNoteValue = $state('');
 	let menuOpen = $state(false);
+
+	// Sync noteValue with book.note when it changes externally (e.g., after invalidateAll)
+	// Don't overwrite if user is actively editing
+	$effect(() => {
+		if (!noteEditing) {
+			noteValue = book.note || '';
+		}
+	});
 	let copied = $state(false);
 	let barcodeCanvas = $state<HTMLCanvasElement | null>(null);
 
