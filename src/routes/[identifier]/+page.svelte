@@ -1347,22 +1347,10 @@
 										</div>
 									</div>
 								{:else}
-									<div class="relative bg-stone-50 border border-stone-200 rounded-lg">
-										<button
-											onclick={(e) => {
-												e.stopPropagation();
-												const newMap = new Map(noteExpandedMap);
-												newMap.set(book.id, !isNoteExpanded);
-												noteExpandedMap = newMap;
-											}}
-											class="w-full text-left text-sm text-stone-600 py-2 px-3 pr-10 hover:bg-stone-100 transition-colors rounded-lg"
-										>
-											{#if isNoteExpanded}
-												<span class="whitespace-pre-wrap">{book.note}</span>
-											{:else}
-												<span class="line-clamp-1">{book.note}</span>
-											{/if}
-										</button>
+									<div class="flex-1 min-h-0 relative bg-stone-50 border border-stone-200 rounded-lg flex flex-col">
+										<div class="flex-1 min-h-0 overflow-hidden py-2 px-3 pr-10">
+											<p class="text-sm text-stone-600 whitespace-pre-wrap line-clamp-[8]">{book.note}</p>
+										</div>
 										<button
 											onclick={(e) => {
 												e.stopPropagation();
@@ -1374,7 +1362,7 @@
 												tempMap.set(book.id, book.note || '');
 												tempNoteMap = tempMap;
 											}}
-											class="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 text-stone-400 hover:text-stone-600 active:text-stone-700 transition-colors"
+											class="absolute top-2 right-2 p-1.5 text-stone-400 hover:text-stone-600 active:text-stone-700 transition-colors"
 											aria-label="Edit note"
 										>
 											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
