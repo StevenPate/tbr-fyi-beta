@@ -41,6 +41,7 @@
 		onShare?: (book: { isbn13: string; title: string }) => void;
 		expanded?: boolean;
 		onToggleExpand?: (bookId: string, isExpanded: boolean) => void;
+		onClose?: () => void;
 	}
 
 	let {
@@ -56,7 +57,8 @@
 		onEditDetails,
 		onShare,
 		expanded = $bindable(false),
-		onToggleExpand
+		onToggleExpand,
+		onClose
 	}: Props = $props();
 
 	// State for expandable sections (only used when expanded)
@@ -260,10 +262,26 @@
 	{id}
 	class="relative w-full rounded-xl border border-stone-200/60 overflow-hidden transition-all duration-200 {expanded ? 'bg-white shadow-md' : 'bg-white/50 hover:bg-white hover:shadow-sm'}"
 >
-	<!-- Header row (always visible, clickable to expand) -->
+	<!-- Close button for modal mode -->
+	{#if onClose}
+		<button
+			onclick={onClose}
+			class="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-700 transition-colors"
+			aria-label="Close"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+			</svg>
+		</button>
+	{/if}
+
+	<!-- Header row (always visible, clickable to expand unless in modal mode) -->
 	<div
-		class="p-3 md:p-4 flex items-start gap-3 cursor-pointer"
+		class="p-3 md:p-4 flex items-start gap-3 {onClose ? '' : 'cursor-pointer'}"
 		onclick={(e) => {
+			// In modal mode, don't toggle expand/collapse
+			if (onClose) return;
+
 			// Don't toggle if clicking on interactive elements
 			const target = e.target as HTMLElement;
 			if (target.closest('button, a, input, textarea')) return;
@@ -275,15 +293,16 @@
 			toggleExpanded();
 		}}
 		onkeydown={(e) => {
+			if (onClose) return;
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.preventDefault();
 				toggleExpanded();
 			}
 		}}
-		role="button"
-		tabindex="0"
-		aria-expanded={expanded}
-		aria-label={expanded ? `Collapse ${book.title}` : `Expand ${book.title}`}
+		role={onClose ? undefined : 'button'}
+		tabindex={onClose ? undefined : 0}
+		aria-expanded={onClose ? undefined : expanded}
+		aria-label={onClose ? undefined : (expanded ? `Collapse ${book.title}` : `Expand ${book.title}`)}
 	>
 		<!-- Cover -->
 		<div class="flex-shrink-0">

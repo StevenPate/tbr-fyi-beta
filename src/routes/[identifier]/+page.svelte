@@ -2117,13 +2117,8 @@
 				onToggleShelf={(bookId, shelfId, isOn) => toggleBookOnShelf(bookId, shelfId, isOn)}
 				onDelete={(bookId, title) => deleteBook(bookId, title)}
 				onShare={(book) => shareModalBook = book}
+				onClose={() => detailModalBookId = null}
 			/>
-			<button
-				onclick={() => detailModalBookId = null}
-				class="mt-3 w-full py-2.5 text-sm text-stone-600 bg-white rounded-xl border border-stone-200 hover:bg-stone-50 transition-colors"
-			>
-				Close
-			</button>
 		</div>
 	</div>
 {/if}
