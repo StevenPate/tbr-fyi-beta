@@ -16,6 +16,14 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// Umami analytics
+	interface Window {
+		umami?: {
+			track: (event: string, data?: Record<string, string | number | boolean>) => void;
+		};
+	}
+	const umami: Window['umami'];
 }
 
 export {};

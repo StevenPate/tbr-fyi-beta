@@ -1054,7 +1054,10 @@
 
 						<div class="flex gap-1 border border-gray-300 rounded-lg p-1 bg-white md:bg-transparent" role="group" aria-label="View mode toggle">
 							<button
-								onclick={() => viewMode = 'grid'}
+								onclick={() => {
+									viewMode = 'grid';
+									umami?.track('view-mode-change', { mode: 'grid' });
+								}}
 								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'grid'
 									? 'bg-blue-600 text-white'
 									: 'text-gray-700 hover:bg-gray-100'}"
@@ -1066,7 +1069,10 @@
 								</svg>
 							</button>
 							<button
-								onclick={() => viewMode = 'list'}
+								onclick={() => {
+									viewMode = 'list';
+									umami?.track('view-mode-change', { mode: 'list' });
+								}}
 								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'list'
 									? 'bg-blue-600 text-white'
 									: 'text-gray-700 hover:bg-gray-100'}"
