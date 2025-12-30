@@ -9,10 +9,10 @@
 	let { variant = 'primary', size = 'md', class: className, ...rest }: Props = $props();
 
 	const variants = {
-		primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
-		secondary: 'bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400',
+		primary: 'bg-stone-800 text-white hover:bg-stone-900 active:bg-stone-950 shadow-sm',
+		secondary: 'bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-stone-600 active:bg-stone-300',
 		danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-		ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+		ghost: 'bg-transparent text-stone-500 hover:bg-stone-100 hover:text-stone-600 active:bg-stone-200'
 	};
 
 	const sizes = {

@@ -852,19 +852,16 @@
 	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header -->
-		<div class="mb-6 flex items-start justify-between">
-			<div>
-				<h1 class="text-3xl font-bold text-gray-900 mb-2">My Reading List</h1>
-				<p class="text-gray-600">
-					{data.books.length} {data.books.length === 1 ? 'book' : 'books'}
-					{#if data.selectedShelfId}
-						on this shelf
-					{/if}
+		<div class="mb-4 md:mb-8 flex items-start justify-between gap-2">
+			<div class="min-w-0">
+				<h1 class="text-xl md:text-3xl font-bold text-gray-900 truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
+				<p class="text-xs md:text-sm text-gray-400 font-normal">
+					<span class="font-semibold text-gray-600">{data.books.length}</span> {data.books.length === 1 ? 'book' : 'books'}{#if data.selectedShelfId} on this shelf{/if}
 				</p>
 			</div>
 
 			<!-- Search, View Toggle and Manual ISBN Entry -->
-			<div class="flex gap-2 items-start">
+			<div class="flex gap-1 md:gap-2 items-start flex-shrink-0">
 				<!-- Search -->
 				<SearchBar
 					books={data.books}
@@ -917,28 +914,32 @@
 			</div>
 		</div>
 
-		<!-- Shelf Navigation -->
-		<div class="mb-6">
-			<div class="flex gap-2 flex-wrap items-center">
+		<!-- Shelf Navigation - sticky on mobile -->
+		<div class="mb-4 md:mb-6 relative sticky md:static top-0 z-20 -mx-4 px-4 py-2 md:py-0 bg-gray-50/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
+			<!-- Fade gradient on right edge (mobile) -->
+			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50/95 to-transparent pointer-events-none z-10 md:hidden"></div>
+
+			<div class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth">
 				<!-- All Books Tab -->
 				<Button
 					variant={!data.selectedShelfId ? 'primary' : 'secondary'}
 					size="md"
 					onclick={() => selectShelf(null)}
+					class="flex-shrink-0 snap-start"
 				>
-					All Books ({data.allBooks?.length || 0})
+					All ({data.allBooks?.length || 0})
 				</Button>
 
 				<!-- Visible Shelf Tabs -->
 				{#each visibleShelves() as shelf}
 					{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
-					<div class="inline-flex items-center gap-0 rounded-lg overflow-hidden">
+					<div class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start">
 						<Button
 							variant={data.selectedShelfId === shelf.id ? 'primary' : 'secondary'}
 							size="md"
 							onclick={() => selectShelf(shelf.id)}
 							disabled={deletingShelfId === shelf.id}
-							class="rounded-none cursor-pointer {data.selectedShelfId === shelf.id ? '!bg-blue-600 pr-0' : '!bg-gray-200 pl-4 pr-0'}"
+							class="rounded-none cursor-pointer whitespace-nowrap {data.selectedShelfId === shelf.id ? 'pr-0' : 'pl-4 pr-0'}"
 						>
 							{#if deletingShelfId === shelf.id}
 								Deleting...
@@ -952,7 +953,7 @@
 								deleteShelf(shelf.id, shelf.name);
 							}}
 							disabled={deletingShelfId === shelf.id}
-							class="px-2 py-1.5 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {data.selectedShelfId === shelf.id ? 'bg-blue-600 text-blue-100' : 'bg-gray-200 text-gray-700'}"
+							class="px-2 py-1.5 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {data.selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
 							aria-label={`Delete shelf ${shelf.name}`}
 							title="Delete shelf"
 						>
@@ -963,14 +964,14 @@
 
 				<!-- More Shelves Button (if there are hidden shelves) -->
 				{#if hiddenShelves().length > 0}
-					<div class="relative">
+					<div class="relative flex-shrink-0 snap-start">
 						<Button
 							variant="secondary"
 							size="md"
 							onclick={() => showMoreShelves = !showMoreShelves}
-							class="cursor-pointer"
+							class="cursor-pointer whitespace-nowrap"
 						>
-							More shelves ({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
+							<span class="hidden md:inline">More shelves </span>({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
 						</Button>
 
 						<!-- Dropdown for hidden shelves -->
@@ -1012,12 +1013,12 @@
 					</div>
 				{/if}
 
-				<!-- New Shelf Button -->
+				<!-- New Shelf Button - hidden on mobile, use shelf modal instead -->
 				{#if !showNewShelfInput}
 					<Button
 						variant="ghost"
-						size="md"
-						class="border border-dashed border-gray-400"
+						size="sm"
+						class="hidden md:flex border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 flex-shrink-0"
 						onclick={() => showNewShelfInput = true}
 					>
 						+ New Shelf
@@ -1501,7 +1502,7 @@
 		{:else}
 			<!-- List View -->
 			<div
-				class="flex flex-col gap-8"
+				class="flex flex-col gap-6"
 				in:fade={{ duration: 300, delay: 150 }}
 				out:fade={{ duration: 150 }}
 			>
