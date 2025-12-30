@@ -108,6 +108,21 @@
 
 	// Cover card state (for grid view with FlipCard)
 	let flippedMap = $state<Map<string, boolean>>(new Map());
+
+	// Grid flip hint (one-time for new users)
+	let showFlipHint = $state(false);
+	let flipHintTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	function dismissFlipHint() {
+		showFlipHint = false;
+		if (flipHintTimeout) {
+			clearTimeout(flipHintTimeout);
+			flipHintTimeout = null;
+		}
+		if (browser) {
+			localStorage.setItem('tbr-flip-hint-dismissed', 'true');
+		}
+	}
 	let noteEditingMap = $state<Map<string, boolean>>(new Map());
 	let noteExpandedMap = $state<Map<string, boolean>>(new Map());
 	let descriptionOpenMap = $state<Map<string, boolean>>(new Map());
@@ -160,6 +175,29 @@
 		}
 	});
 
+	// Show flip hint when entering grid view (first time only)
+	$effect(() => {
+		if (viewMode === 'grid' && browser) {
+			const dismissed = localStorage.getItem('tbr-flip-hint-dismissed');
+			if (!dismissed && data.books.length > 0) {
+				showFlipHint = true;
+				// Auto-dismiss after 3 seconds
+				flipHintTimeout = setTimeout(() => {
+					dismissFlipHint();
+				}, 3000);
+			}
+		} else {
+			// Hide hint when leaving grid view
+			if (showFlipHint) {
+				showFlipHint = false;
+				if (flipHintTimeout) {
+					clearTimeout(flipHintTimeout);
+					flipHintTimeout = null;
+				}
+			}
+		}
+	});
+
 	// Helper to get/set flipped state for a book
 	function getFlipped(bookId: string) {
 		return flippedMap.get(bookId) || false;
@@ -169,6 +207,10 @@
 		const newMap = new Map(flippedMap);
 		newMap.set(bookId, value);
 		flippedMap = newMap;
+		// Dismiss hint on any card interaction
+		if (showFlipHint) {
+			dismissFlipHint();
+		}
 	}
 
 	// Shelf navigation state
@@ -1092,6 +1134,16 @@
 		<!-- Books Grid/List -->
 		{#key data.selectedShelfId}
 			{#if viewMode === 'grid'}
+				<!-- Flip hint for first-time grid users -->
+				{#if showFlipHint}
+					<div
+						class="mb-3 px-3 py-2 bg-stone-100 text-stone-600 text-sm rounded-full inline-block"
+						in:fade={{ duration: 150 }}
+						out:fade={{ duration: 100 }}
+					>
+						Tap any book to flip it over for notes, status, and details.
+					</div>
+				{/if}
 				<div
 					class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
 					in:fade={{ duration: 300, delay: 150 }}
