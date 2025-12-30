@@ -20,7 +20,7 @@ Personal book tracking via SMS. Text ISBN, Amazon URL, or book photo → auto-ad
 - Supabase (PostgreSQL)
 - Vercel (deployment)
 - Twilio (SMS)
-- Google Books API (metadata)
+- Google Books API + Open Library (metadata with fallback)
 - Google Vision API (barcode detection from photos)
 - Trello API (feedback collection)
 - Tailwind CSS v4
@@ -38,7 +38,7 @@ Personal book tracking via SMS. Text ISBN, Amazon URL, or book photo → auto-ad
 - `src/lib/server/amazon-parser.ts` - Amazon ISBN extraction (ASIN-as-ISBN + scraping fallback)
 - `src/lib/server/metadata/google-books.ts` - Google Books API metadata fetcher
 - `src/lib/server/metadata/open-library.ts` - Open Library fallback metadata source
-- `src/lib/server/metadata/orchestrator.ts` - Multi-source metadata merging
+- `src/lib/server/metadata/index.ts` - Multi-source metadata orchestrator
 - `src/lib/server/metadata/types.ts` - ISBN conversion utilities and branded types
 - `src/lib/server/vision.ts` - Google Vision API client with error recovery
 
@@ -56,15 +56,19 @@ Personal book tracking via SMS. Text ISBN, Amazon URL, or book photo → auto-ad
 ### Frontend
 - `src/routes/+page.svelte` - Homepage with Inter font and improved visual hierarchy
 - `src/routes/+layout.svelte` - Global layout with footer, feedback FAB, and Ko-fi link
-- `src/routes/[username]/+page.svelte` - Main shelf page (grid/list views, transitions, shelf selection in add flow)
-- `src/routes/[username]/settings/+page.svelte` - Settings page with JSON export
+- `src/routes/[identifier]/+page.svelte` - Main shelf page (grid/list views, search/filter, shelf selection)
+- `src/routes/[identifier]/settings/+page.svelte` - Settings page with JSON export
+- `src/routes/[identifier]/book/[isbn13]/+page.svelte` - Shared book page
+- `src/routes/auth/` - Authentication routes (signin, signup, verify-phone, verify-email, username)
 - `src/routes/about/+page.svelte` - About page
 - `src/routes/help/+page.svelte` - Help documentation with interactive FAQ
 - `src/lib/components/ui/FeedbackModal.svelte` - Feedback form modal with focus trap
 - `src/lib/components/ui/Button.svelte` - Reusable button component
 - `src/lib/components/ui/Input.svelte` - Reusable input component
 - `src/lib/components/ui/Badge.svelte` - Status badge component
-- `src/lib/components/ui/Card.svelte` - Card wrapper component
+- `src/lib/components/ui/Card.svelte` - Card wrapper component (list view, modal mode)
+- `src/lib/components/ui/FlipCard.svelte` - Flip card component (grid view)
+- `src/lib/components/ui/SearchBar.svelte` - Client-side search with read/owned filters
 - `src/app.html` - HTML shell with Umami analytics script
 
 ### Database
@@ -123,14 +127,18 @@ Personal book tracking via SMS. Text ISBN, Amazon URL, or book photo → auto-ad
 
 **UI/UX:**
 - Grid view with flip cards and smooth transitions
-- List view (compact)
+- List view (compact) with detail modal
+- Client-side search (title, author, notes) with Cmd+K shortcut
+- Read/Owned status filters (session-only)
+- "Find Elsewhere" links (Amazon, Bookshop, library)
 - Responsive design (mobile-first)
 - Inter font for professional typography
 - Medium drop-shadows on all cards
-- Reusable component library (Button, Input, Badge, Card)
+- Reusable component library (Button, Input, Badge, Card, FlipCard, SearchBar)
 - QR code for Twilio number on getting started page
 - About page and interactive FAQ Help page
 - Settings page with export functionality
+- Umami analytics for view mode tracking
 
 **Feedback System:**
 - Global feedback modal with focus trap
@@ -284,6 +292,13 @@ None currently blocking.
 - ✅ Vision API error recovery with exponential backoff (I4 audit fix)
 
 ## Recent Completions
+- **2025-12-30:** Read/Owned status filters in SearchBar dropdown
+- **2025-12-30:** About page content refresh
+- **2025-12-30:** Technical stack added to README
+- **2025-12-29:** Client-side search for shelf books (Cmd+K)
+- **2025-12-29:** "Find Elsewhere" links on book cards (Amazon, Bookshop, library)
+- **2025-12-29:** View mode analytics tracking (Umami)
+- **2025-12-29:** Card modal close button (replaces collapse in modal context)
 - **2025-11-22:** Architecture audit implementation (I1, I2, I4 - ~260 LOC reduction)
 - **2025-11-22:** Security audit and credential hardening (rotated Trello credentials)
 - **2025-11-22:** Shelf selection in multimodal "Add Book" flow (collapsible picker)
