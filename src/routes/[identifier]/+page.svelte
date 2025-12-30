@@ -45,6 +45,10 @@
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
 
+	// Filter state (session-only, not persisted in URL)
+	let readFilter = $state<'all' | 'read' | 'unread'>('all');
+	let ownedFilter = $state<'all' | 'owned' | 'not-owned'>('all');
+
 	// Shelf pills scroll container ref
 	let shelfScrollContainer: HTMLDivElement | null = null;
 
@@ -120,11 +124,23 @@
 		return data.allBooks.filter(book => bookIdsOnShelf.has(book.id));
 	});
 
+	// Apply status filters to shelf-filtered books
+	const booksFilteredByStatus = $derived(() => {
+		let result = booksForCurrentShelf();
+		if (readFilter !== 'all') {
+			result = result.filter(b => readFilter === 'read' ? b.is_read : !b.is_read);
+		}
+		if (ownedFilter !== 'all') {
+			result = result.filter(b => ownedFilter === 'owned' ? b.is_owned : !b.is_owned);
+		}
+		return result;
+	});
+
 	// Then apply search filter
 	const displayedBooks = $derived(
 		searchQuery.trim()
-			? booksForCurrentShelf().filter(b => matchesSearchQuery(b, searchQuery))
-			: booksForCurrentShelf()
+			? booksFilteredByStatus().filter(b => matchesSearchQuery(b, searchQuery))
+			: booksFilteredByStatus()
 	);
 
 	// Scroll to and highlight a book, expand/flip it based on view mode
@@ -1050,6 +1066,10 @@
 							bind:query={searchQuery}
 							onSelect={scrollToBook}
 							onQueryChange={(q) => searchQuery = q}
+							{readFilter}
+							{ownedFilter}
+							onReadFilterChange={(f) => readFilter = f}
+							onOwnedFilterChange={(f) => ownedFilter = f}
 						/>
 
 						<div class="flex gap-1 border border-gray-300 rounded-lg p-1 bg-white md:bg-transparent" role="group" aria-label="View mode toggle">
