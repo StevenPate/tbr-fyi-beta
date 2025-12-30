@@ -38,6 +38,22 @@
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
 
+	// Shelf pills scroll container ref
+	let shelfScrollContainer: HTMLDivElement | null = null;
+
+	// Scroll to selected shelf pill on load
+	$effect(() => {
+		if (!browser || !shelfScrollContainer || !data.selectedShelfId) return;
+
+		// Small delay to ensure DOM is ready
+		setTimeout(() => {
+			const selectedPill = shelfScrollContainer?.querySelector(`[data-shelf-id="${data.selectedShelfId}"]`);
+			if (selectedPill) {
+				selectedPill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+			}
+		}, 100);
+	});
+
 	// Smart sticky header - show on scroll up, hide on scroll down
 	let lastScrollY = $state(0);
 	let headerVisible = $state(true);
@@ -903,8 +919,8 @@
 		// Click outside handler for "More shelves" dropdown
 		const handleClick = (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
-			// Close dropdown if clicking outside
-			if (showMoreShelves && !target.closest('.relative')) {
+			// Close dropdown if clicking outside the more-shelves container
+			if (showMoreShelves && !target.closest('.more-shelves-container')) {
 				showMoreShelves = false;
 			}
 		};
@@ -1031,7 +1047,10 @@
 			<!-- Fade gradient on right edge (mobile) -->
 			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50/95 to-transparent pointer-events-none z-10 md:hidden"></div>
 
-			<div class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth">
+			<div
+				bind:this={shelfScrollContainer}
+				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth"
+			>
 				<!-- All Books Tab -->
 				<Button
 					variant={!data.selectedShelfId ? 'primary' : 'secondary'}
@@ -1045,7 +1064,10 @@
 				<!-- Visible Shelf Tabs -->
 				{#each visibleShelves() as shelf}
 					{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
-					<div class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start">
+					<div
+						data-shelf-id={shelf.id}
+						class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start"
+					>
 						<Button
 							variant={data.selectedShelfId === shelf.id ? 'primary' : 'secondary'}
 							size="md"
@@ -1076,7 +1098,7 @@
 
 				<!-- More Shelves Button (if there are hidden shelves) -->
 				{#if hiddenShelves().length > 0}
-					<div class="relative flex-shrink-0 snap-start">
+					<div class="more-shelves-container flex-shrink-0 snap-start">
 						<Button
 							variant="secondary"
 							size="md"
@@ -1085,43 +1107,6 @@
 						>
 							<span class="hidden md:inline">More shelves </span>({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
 						</Button>
-
-						<!-- Dropdown for hidden shelves -->
-						{#if showMoreShelves}
-							<div class="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
-								{#each hiddenShelves() as shelf}
-									{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
-									<div class="flex items-center justify-between hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
-										<button
-											onclick={() => {
-												selectShelf(shelf.id);
-												showMoreShelves = false;
-											}}
-											disabled={deletingShelfId === shelf.id}
-											class="flex-grow text-left px-4 py-2.5 text-sm {data.selectedShelfId === shelf.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'} hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-										>
-											{#if deletingShelfId === shelf.id}
-												Deleting...
-											{:else}
-												{shelf.name} ({bookCount})
-											{/if}
-										</button>
-										<button
-											onclick={(e: MouseEvent) => {
-												e.stopPropagation();
-												deleteShelf(shelf.id, shelf.name);
-											}}
-											disabled={deletingShelfId === shelf.id}
-											class="px-3 py-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-											aria-label={`Delete shelf ${shelf.name}`}
-											title="Delete shelf"
-										>
-											×
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
 					</div>
 				{/if}
 
@@ -1158,6 +1143,25 @@
 					</div>
 				{/if}
 			</div>
+
+			<!-- More Shelves Dropdown (positioned outside scroll container to avoid clipping) -->
+			{#if showMoreShelves && hiddenShelves().length > 0}
+				<div class="more-shelves-container absolute right-4 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[180px] z-[100] max-h-64 overflow-y-auto">
+					{#each hiddenShelves() as shelf}
+						{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
+						<button
+							onclick={() => {
+								selectShelf(shelf.id);
+								showMoreShelves = false;
+							}}
+							class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+						>
+							<span class="truncate">{shelf.name}</span>
+							<span class="text-stone-400 text-xs flex-shrink-0">({bookCount})</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 			</div>
 		</div>
 
