@@ -1040,7 +1040,7 @@
 		<!-- Shelf Navigation - separate sticky element, always visible -->
 		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
 		<div
-			class="sticky z-20 -mx-4 px-4 bg-gray-50/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mb-4 md:mb-6"
+			class="sticky z-20 -mx-4 px-4 bg-gray-50/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
 			style="top: {headerVisible ? '60px' : '0px'};"
 		>
 			<div class="relative py-2 md:py-0">
@@ -1049,7 +1049,7 @@
 
 			<div
 				bind:this={shelfScrollContainer}
-				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth"
+				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth pr-8 md:pr-0"
 			>
 				<!-- All Books Tab -->
 				<Button
@@ -1105,20 +1105,21 @@
 							onclick={() => showMoreShelves = !showMoreShelves}
 							class="cursor-pointer whitespace-nowrap"
 						>
-							<span class="hidden md:inline">More shelves </span>({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
+							More ({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
 						</Button>
 					</div>
 				{/if}
 
-				<!-- New Shelf Button - hidden on mobile, use shelf modal instead -->
+				<!-- New Shelf Button -->
 				{#if !showNewShelfInput}
 					<Button
 						variant="ghost"
 						size="sm"
-						class="hidden md:flex border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 flex-shrink-0"
+						class="border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 flex-shrink-0 snap-start"
 						onclick={() => showNewShelfInput = true}
 					>
-						+ New Shelf
+						<span class="md:hidden">+ New</span>
+						<span class="hidden md:inline">+ New Shelf</span>
 					</Button>
 				{:else}
 					<div class="flex gap-2">
@@ -1146,7 +1147,7 @@
 
 			<!-- More Shelves Dropdown (positioned outside scroll container to avoid clipping) -->
 			{#if showMoreShelves && hiddenShelves().length > 0}
-				<div class="more-shelves-container absolute right-4 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[180px] z-[100] max-h-64 overflow-y-auto">
+				<div class="more-shelves-container absolute right-4 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[180px] z-[100]">
 					{#each hiddenShelves() as shelf}
 						{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
 						<button
