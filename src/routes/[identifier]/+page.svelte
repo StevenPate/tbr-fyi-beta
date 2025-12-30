@@ -38,6 +38,36 @@
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
 
+	// Smart sticky header - show on scroll up, hide on scroll down
+	let lastScrollY = $state(0);
+	let headerVisible = $state(true);
+	const SCROLL_THRESHOLD = 80; // Pixels before header starts hiding
+
+	$effect(() => {
+		if (!browser) return;
+
+		function handleScroll() {
+			const currentScrollY = window.scrollY;
+			const isScrollingUp = currentScrollY < lastScrollY;
+
+			// Near top of page - always show header
+			if (currentScrollY <= SCROLL_THRESHOLD) {
+				headerVisible = true;
+			} else if (isScrollingUp) {
+				// Scrolling up - show header
+				headerVisible = true;
+			} else if (currentScrollY > lastScrollY + 5) {
+				// Scrolling down (with small threshold to avoid jitter) - hide header
+				headerVisible = false;
+			}
+
+			lastScrollY = currentScrollY;
+		}
+
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
+
 	// Search state
 	let searchExpanded = $state(false);
 	let searchQuery = $state('');
@@ -921,71 +951,83 @@
 
 	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
-		<!-- Header -->
-		<div class="mb-4 md:mb-8 flex items-start justify-between gap-2">
-			<div class="min-w-0">
-				<h1 class="text-xl md:text-3xl font-bold text-gray-900 truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
-				<p class="text-xs md:text-sm text-gray-400 font-normal">
-					<span class="font-semibold text-gray-600">{data.books.length}</span> {data.books.length === 1 ? 'book' : 'books'}{#if data.selectedShelfId} on this shelf{/if}
-				</p>
-			</div>
+		<!-- Header - slides up/down based on scroll direction (mobile only) -->
+		<div
+			class="sticky top-0 z-30 -mx-4 px-4 bg-gray-50 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
+			style="will-change: transform;"
+		>
+			<div class="py-2 md:py-0">
+				<div class="flex items-start justify-between gap-2">
+					<div class="min-w-0">
+						<h1 class="text-xl md:text-3xl font-bold text-gray-900 truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
+						<p class="text-xs md:text-sm text-gray-400 font-normal">
+							<span class="font-semibold text-gray-600">{data.books.length}</span> {data.books.length === 1 ? 'book' : 'books'}{#if data.selectedShelfId} on this shelf{/if}
+						</p>
+					</div>
 
-			<!-- Search, View Toggle and Manual ISBN Entry -->
-			<div class="flex gap-1 md:gap-2 items-start flex-shrink-0">
-				<!-- Search -->
-				<SearchBar
-					books={data.books}
-					bind:expanded={searchExpanded}
-					bind:query={searchQuery}
-					onSelect={scrollToBook}
-					onQueryChange={(q) => searchQuery = q}
-				/>
+					<!-- Search, View Toggle and Manual ISBN Entry -->
+					<div class="flex gap-1 md:gap-2 items-start flex-shrink-0">
+						<!-- Search -->
+						<SearchBar
+							books={data.books}
+							bind:expanded={searchExpanded}
+							bind:query={searchQuery}
+							onSelect={scrollToBook}
+							onQueryChange={(q) => searchQuery = q}
+						/>
 
-				<div class="flex gap-1 border border-gray-300 rounded-lg p-1" role="group" aria-label="View mode toggle">
-					<button
-						onclick={() => viewMode = 'grid'}
-						class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'grid'
-							? 'bg-blue-600 text-white'
-							: 'text-gray-700 hover:bg-gray-100'}"
-						aria-label="Grid view"
-						aria-pressed={viewMode === 'grid'}
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-						</svg>
-					</button>
-					<button
-						onclick={() => viewMode = 'list'}
-						class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'list'
-							? 'bg-blue-600 text-white'
-							: 'text-gray-700 hover:bg-gray-100'}"
-						aria-label="List view"
-						aria-pressed={viewMode === 'list'}
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-						</svg>
-					</button>
+						<div class="flex gap-1 border border-gray-300 rounded-lg p-1 bg-white md:bg-transparent" role="group" aria-label="View mode toggle">
+							<button
+								onclick={() => viewMode = 'grid'}
+								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'grid'
+									? 'bg-blue-600 text-white'
+									: 'text-gray-700 hover:bg-gray-100'}"
+								aria-label="Grid view"
+								aria-pressed={viewMode === 'grid'}
+							>
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+								</svg>
+							</button>
+							<button
+								onclick={() => viewMode = 'list'}
+								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'list'
+									? 'bg-blue-600 text-white'
+									: 'text-gray-700 hover:bg-gray-100'}"
+								aria-label="List view"
+								aria-pressed={viewMode === 'list'}
+							>
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+								</svg>
+							</button>
+						</div>
+
+						<!-- Manual ISBN Entry Button -->
+						<button
+							onclick={() => {
+								showIsbnInput = true;
+								addBookError = null;
+								addBookSuccess = false;
+							}}
+							class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-400 text-gray-600 hover:border-blue-600 hover:text-blue-600 transition-colors text-xl font-bold bg-white md:bg-transparent"
+							aria-label="Add book manually by ISBN"
+							title="Add book by ISBN or photo of barcode"
+						>
+							+
+						</button>
+					</div>
 				</div>
-
-				<!-- Manual ISBN Entry Button -->
-				<button
-					onclick={() => {
-						showIsbnInput = true;
-						addBookError = null;
-						addBookSuccess = false;
-					}}
-					class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-400 text-gray-600 hover:border-blue-600 hover:text-blue-600 transition-colors text-xl font-bold"
-					aria-label="Add book manually by ISBN"
-					title="Add book by ISBN or photo of barcode"
-				>
-					+
-				</button>
 			</div>
 		</div>
 
-		<!-- Shelf Navigation - sticky on mobile -->
-		<div class="mb-4 md:mb-6 relative sticky md:static top-0 z-20 -mx-4 px-4 py-2 md:py-0 bg-gray-50/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
+		<!-- Shelf Navigation - separate sticky element, always visible -->
+		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
+		<div
+			class="sticky z-20 -mx-4 px-4 bg-gray-50/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mb-4 md:mb-6"
+			style="top: {headerVisible ? '60px' : '0px'};"
+		>
+			<div class="relative py-2 md:py-0">
 			<!-- Fade gradient on right edge (mobile) -->
 			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50/95 to-transparent pointer-events-none z-10 md:hidden"></div>
 
@@ -1115,6 +1157,7 @@
 						</Button>
 					</div>
 				{/if}
+			</div>
 			</div>
 		</div>
 
