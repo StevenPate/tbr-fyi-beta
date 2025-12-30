@@ -62,6 +62,8 @@
 </script>
 
 <svelte:head>
+	<title>TBR.fyi - Never Lose a Book Recommendation</title>
+	<meta name="description" content="A simple way to save book recommendations. Text an ISBN, paste an Amazon link, or add books from the web. Everything lands in one calm, searchable reading list." />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />

@@ -1,5 +1,5 @@
 <svelte:head>
-	<title>About - TBR.fyi</title>
+	<title>About TBR.fyi - Never Lose a Book Recommendation</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -54,8 +54,13 @@
 					<p class="text-sm mb-3">
 						Send a photo of a book cover, an ISBN, a link, or just the title:
 					</p>
-					<p class="font-mono text-blue-600 font-semibold">+1 (360) 504-4327</p>
-					<p class="text-sm mt-2 text-gray-600">
+					<div class="bg-white border-2 border-blue-200 rounded-lg p-3 text-center my-3">
+						<a href="sms:+13605044327" class="font-mono text-xl text-blue-600 font-semibold hover:text-blue-800 transition-colors">
+							+1 (360) 504-4327
+						</a>
+						<p class="text-xs text-gray-500 mt-1">US number · standard messaging rates apply</p>
+					</div>
+					<p class="text-sm text-gray-600">
 						TBR.fyi figures out the book and adds it to your list automatically.
 					</p>
 				</div>
