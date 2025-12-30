@@ -173,10 +173,24 @@ Planned items live in `TODO.md`, grouped by Phase (bulk import hardening, pagina
 
 ---
 
+## Technical Stack
+
+| Component | Technology |
+|-----------|------------|
+| Frontend | SvelteKit 5 |
+| Database | Supabase (PostgreSQL) |
+| SMS | Twilio |
+| Metadata | Google Books API (Open Library fallback) |
+| Barcode Detection | Google Cloud Vision |
+| Email | Resend |
+| Hosting | Vercel |
+
+---
+
 ## License & Attribution
 
 MIT License. Built to scratch a personal itch—feel free to customize, but mind your Supabase/Twilio quotas.
 
 ### Development
 
-This project was developed with assistance from [Claude Code](https://claude.com/claude-code), Anthropic's AI coding agent as well as Chat GPT-5-Codex from [Open AI](https://github.com/OPENAI). 
+This project was developed with assistance from [Claude Code](https://claude.com/claude-code), Anthropic's AI coding agent. 
