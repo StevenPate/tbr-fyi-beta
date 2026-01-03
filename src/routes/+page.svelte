@@ -2,32 +2,45 @@
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
 
-    let phoneNumber = $state('');
+    let identifier = $state('');
 
     onMount(() => {
         // Check if user has visited before
-        const savedPhone = localStorage.getItem('tbr-userId') || '';
-        if (savedPhone) {
-            phoneNumber = savedPhone;
+        const savedId = localStorage.getItem('tbr-userId') || '';
+        if (savedId) {
+            identifier = savedId;
         }
     });
 
     function handleSubmit(e: Event) {
         e.preventDefault();
-        if (!phoneNumber) return;
+        if (!identifier) return;
 
-        // Normalize phone number
-        let normalized = phoneNumber.replace(/\D/g, '');
-        if (normalized.length === 10) {
-            normalized = '+1' + normalized;
-        } else if (normalized.length === 11 && normalized.startsWith('1')) {
-            normalized = '+' + normalized;
-        } else if (!normalized.startsWith('+')) {
-            normalized = '+' + normalized;
+        const trimmed = identifier.trim();
+
+        // Check if it looks like a username (contains letters, no + prefix)
+        const hasLetters = /[a-zA-Z]/.test(trimmed);
+        const isPhoneFormat = trimmed.startsWith('+') || /^\d{10,}$/.test(trimmed.replace(/\D/g, ''));
+
+        if (hasLetters && !isPhoneFormat) {
+            // It's a username - navigate directly
+            goto(`/${encodeURIComponent(trimmed)}`);
+        } else {
+            // It's a phone number - normalize it
+            let normalized = trimmed.replace(/\D/g, '');
+            if (normalized.length === 10) {
+                normalized = '+1' + normalized;
+            } else if (normalized.length === 11 && normalized.startsWith('1')) {
+                normalized = '+' + normalized;
+            } else if (!trimmed.startsWith('+')) {
+                normalized = '+' + normalized;
+            } else {
+                normalized = trimmed; // Already has + prefix
+            }
+
+            localStorage.setItem('tbr-userId', normalized);
+            goto(`/${encodeURIComponent(normalized)}`);
         }
-
-        localStorage.setItem('tbr-userId', normalized);
-        goto(`/${encodeURIComponent(normalized)}`);
     }
 </script>
 
@@ -73,19 +86,19 @@
 
             <form class="space-y-4" onsubmit={handleSubmit}>
                 <div>
-                    <label for="phone" class="sr-only">Phone number</label>
+                    <label for="identifier" class="sr-only">Phone number or username</label>
                     <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        bind:value={phoneNumber}
-                        placeholder="Enter your phone number"
+                        type="text"
+                        id="identifier"
+                        name="identifier"
+                        bind:value={identifier}
+                        placeholder="Enter your phone number or username"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
                     />
                 </div>
                 <button
                     type="submit"
-                    disabled={!phoneNumber}
+                    disabled={!identifier}
                     class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                     View your shelf
