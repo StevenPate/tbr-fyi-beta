@@ -277,7 +277,7 @@
 
 	<!-- Header row (always visible, clickable to expand unless in modal mode) -->
 	<div
-		class="p-3 md:p-4 flex items-start gap-3 {onClose ? '' : 'cursor-pointer'}"
+		class="py-5 px-5 md:p-4 flex items-start gap-3 {onClose ? '' : 'cursor-pointer'}"
 		onclick={(e) => {
 			// In modal mode, don't toggle expand/collapse
 			if (onClose) return;
@@ -310,14 +310,14 @@
 				<img
 					src={book.cover_url}
 					alt={book.title}
-					class="object-cover rounded-md shadow-sm transition-all duration-200 {expanded ? 'w-20 h-30 md:w-28 md:h-42' : 'w-12 h-18 md:w-14 md:h-21'}"
+					class="object-cover rounded-md shadow-sm transition-all duration-200 {expanded ? 'w-20 h-28 md:w-28 md:h-42' : 'w-20 h-28 md:w-14 md:h-21'}"
 					loading="lazy"
 					decoding="async"
 				/>
 			{:else}
 				<!-- Placeholder cover -->
 				<div
-					class="bg-gradient-to-br from-stone-300 to-stone-400 rounded-md shadow-sm flex flex-col justify-center p-1.5 text-white transition-all duration-200 {expanded ? 'w-20 h-30 md:w-28 md:h-42' : 'w-12 h-18 md:w-14 md:h-21'}"
+					class="bg-gradient-to-br from-stone-300 to-stone-400 rounded-md shadow-sm flex flex-col justify-center p-1.5 text-white transition-all duration-200 {expanded ? 'w-20 h-28 md:w-28 md:h-42' : 'w-20 h-28 md:w-14 md:h-21'}"
 				>
 					<div class="text-[8px] md:text-[10px] font-serif italic leading-tight line-clamp-3">{book.title}</div>
 				</div>
@@ -327,9 +327,9 @@
 		<!-- Content area -->
 		<div class="flex-1 min-w-0 flex flex-col">
 			<!-- Title and author -->
-			<h2 class="text-sm md:text-base font-semibold text-stone-800 leading-snug line-clamp-2">{book.title}</h2>
+			<h2 class="text-lg md:text-base font-semibold text-stone-800 leading-snug line-clamp-2">{book.title}</h2>
 			{#if book.author && book.author.length > 0}
-				<p class="text-xs md:text-sm text-stone-400 mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
+				<p class="text-base md:text-sm text-stone-400 mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
 			{/if}
 
 			<!-- Publisher/year and status (only when expanded) -->
@@ -373,7 +373,7 @@
 		<!-- Right side: shelf badge + chevron (compact) or menu + chevron (expanded) -->
 		<div class="flex-shrink-0 flex items-start gap-2">
 			{#if !expanded && shelfBadgeText()}
-				<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200/50">
+				<span class="inline-flex items-center px-4 py-2.5 md:px-3 md:py-1 rounded-full text-sm md:text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200/50">
 					{shelfBadgeText()}
 				</span>
 			{/if}
@@ -416,7 +416,7 @@
 			<!-- Chevron indicator -->
 			<div class="p-1 text-stone-400">
 				<svg
-					class="w-5 h-5 transition-transform duration-200"
+					class="w-6 h-6 md:w-5 md:h-5 transition-transform duration-200"
 					class:rotate-180={expanded}
 					fill="none"
 					stroke="currentColor"
