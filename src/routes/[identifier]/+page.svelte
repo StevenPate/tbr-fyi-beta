@@ -1173,7 +1173,7 @@
 								deleteShelf(shelf.id, shelf.name);
 							}}
 							disabled={deletingShelfId === shelf.id}
-							class="px-2 py-3 md:py-2 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
+							class="px-2 self-stretch flex items-center hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
 							aria-label={`Delete shelf ${shelf.name}`}
 							title="Delete shelf"
 						>
