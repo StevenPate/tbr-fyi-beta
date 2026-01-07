@@ -137,6 +137,56 @@ async function maybeAddAccountPrompt(baseMessage: string, phoneNumber: string): 
 }
 
 /**
+ * Check if we should show the feedback opt-in prompt
+ * Only show on first book add, and only once
+ */
+async function shouldShowFeedbackPrompt(phoneNumber: string): Promise<boolean> {
+	const { data: user } = await supabase
+		.from('users')
+		.select('feedback_opt_in, feedback_prompted_at')
+		.eq('phone_number', phoneNumber)
+		.single();
+
+	if (!user) return false;
+
+	// Don't prompt if already opted in
+	if (user.feedback_opt_in) return false;
+
+	// Don't prompt if we've already shown it
+	if (user.feedback_prompted_at) return false;
+
+	// Check if this is their first book (count should be 1 after adding)
+	const { count } = await supabase
+		.from('books')
+		.select('*', { count: 'exact' })
+		.eq('user_id', phoneNumber);
+
+	// Show prompt only if they just added their first book
+	return count === 1;
+}
+
+/**
+ * Record that we showed the feedback prompt
+ */
+async function recordFeedbackPrompt(phoneNumber: string): Promise<void> {
+	await supabase
+		.from('users')
+		.update({ feedback_prompted_at: new Date().toISOString() })
+		.eq('phone_number', phoneNumber);
+}
+
+/**
+ * Potentially add feedback prompt to first book success message
+ */
+async function maybeAddFeedbackPrompt(baseMessage: string, phoneNumber: string): Promise<string> {
+	if (await shouldShowFeedbackPrompt(phoneNumber)) {
+		await recordFeedbackPrompt(phoneNumber);
+		return baseMessage + SMS_MESSAGES.FEEDBACK_PROMPT;
+	}
+	return baseMessage;
+}
+
+/**
  * Handle incoming SMS from Twilio
  */
 export const POST: RequestHandler = async ({ request }) => {
@@ -172,10 +222,14 @@ export const POST: RequestHandler = async ({ request }) => {
 				return twimlResponse(SMS_MESSAGES.STOP_ALREADY_OPTED_OUT);
 			}
 
-			// Set opted_out flag
+			// Set opted_out flag and clear feedback_opt_in
 			await supabase
 				.from('users')
-				.update({ opted_out: true, opted_out_at: new Date().toISOString() })
+				.update({
+					opted_out: true,
+					opted_out_at: new Date().toISOString(),
+					feedback_opt_in: false
+				})
 				.eq('phone_number', userId);
 
 			logUserEvent({
@@ -249,6 +303,40 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Handle HELP command
 		if (command === 'HELP') {
 			return twimlResponse(SMS_MESSAGES.HELP);
+		}
+
+		// Handle FEEDBACK command (opt-in for feedback messages)
+		if (command === 'FEEDBACK') {
+			logger.debug({ reqId, from }, 'FEEDBACK command received');
+
+			// Check if already opted in
+			const { data: user } = await supabase
+				.from('users')
+				.select('feedback_opt_in')
+				.eq('phone_number', userId)
+				.single();
+
+			if (user?.feedback_opt_in) {
+				return twimlResponse(SMS_MESSAGES.FEEDBACK_ALREADY_OPTED_IN);
+			}
+
+			// Set feedback_opt_in flag
+			await supabase
+				.from('users')
+				.update({
+					feedback_opt_in: true,
+					feedback_opt_in_at: new Date().toISOString()
+				})
+				.eq('phone_number', userId);
+
+			logUserEvent({
+				event: 'user_event',
+				user_id: userId,
+				action: 'feedback_opt_in',
+				source: 'sms'
+			});
+
+			return twimlResponse(SMS_MESSAGES.FEEDBACK_OPT_IN_CONFIRMATION);
 		}
 
 		// Handle ADD command (either "ADD" or "ADD 978...")
@@ -346,11 +434,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 
 			const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-			const messageWithPrompt = await maybeAddAccountPrompt(
-				SMS_MESSAGES.bookAdded(metadata.title, userId, authorText),
-				userId
-			);
-			return twimlResponse(messageWithPrompt);
+			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText);
+			message = await maybeAddFeedbackPrompt(message, userId);
+			message = await maybeAddAccountPrompt(message, userId);
+			return twimlResponse(message);
 		}
 
 		// Check if user is opted out
@@ -506,6 +593,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				console.log('MMS processing complete', { reqId, totalMs, added: addedTitles.length, existed: existedTitles.length });
 				if (addedTitles.length > 0) {
 					responseMessage = SMS_MESSAGES.mmsMultipleAdded(uniqueIsbns.length, addedTitles, existedTitles, userId);
+					// Add feedback prompt for first book
+					responseMessage = await maybeAddFeedbackPrompt(responseMessage, userId);
 				} else if (existedTitles.length > 0) {
 					responseMessage = SMS_MESSAGES.mmsAllExisted(existedTitles.length);
 				} else {
@@ -654,11 +743,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Success!
 		const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-		const messageWithPrompt = await maybeAddAccountPrompt(
-			SMS_MESSAGES.bookAdded(metadata.title, userId, authorText),
-			userId
-		);
-		return twimlResponse(messageWithPrompt);
+		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText);
+		message = await maybeAddFeedbackPrompt(message, userId);
+		message = await maybeAddAccountPrompt(message, userId);
+		return twimlResponse(message);
 	} catch (error) {
 		logError({
 			event: 'error',

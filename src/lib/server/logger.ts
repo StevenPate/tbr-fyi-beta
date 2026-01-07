@@ -39,7 +39,7 @@ export interface BookAdditionLog {
 export interface UserEventLog {
 	event: 'user_event';
 	user_id: string;
-	action: 'signup' | 'opt_out' | 'help' | 'unknown_command';
+	action: 'signup' | 'opt_out' | 'help' | 'unknown_command' | 'feedback_opt_in';
 	source: 'sms' | 'web';
 }
 

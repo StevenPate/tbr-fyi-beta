@@ -36,7 +36,8 @@ export function getBookShareUrl(identifier: string, isbn13: string): string {
 export const SMS_COMMANDS = {
 	START: 'START',
 	STOP: 'STOP',
-	HELP: 'HELP'
+	HELP: 'HELP',
+	FEEDBACK: 'FEEDBACK'
 } as const;
 
 export const SMS_MESSAGES = {
@@ -159,7 +160,17 @@ export const SMS_MESSAGES = {
 		`🔒 Your reading list is growing! Create an account to get a custom username and privacy controls:\n${getClaimUrl(phoneNumber)}`,
 
 	accountPromptWeekly: (phoneNumber: string) =>
-		`💫 Build your reading community. Create an account for a custom username and more features:\n${getClaimUrl(phoneNumber)}`
+		`💫 Build your reading community. Create an account for a custom username and more features:\n${getClaimUrl(phoneNumber)}`,
+
+	// === Feedback Opt-in Flow ===
+	FEEDBACK_PROMPT:
+		'\n\nReply FEEDBACK if you\'d be open to sharing your experience sometime. This is a beta that can use input!',
+
+	FEEDBACK_OPT_IN_CONFIRMATION:
+		'Thanks! We may text occasionally to ask how TBR is working for you. Reply STOP anytime to opt out.',
+
+	FEEDBACK_ALREADY_OPTED_IN:
+		'You\'re already opted in for feedback. Thanks for your willingness to help!'
 } as const;
 
 /**
@@ -175,6 +186,7 @@ export function detectCommand(text: string | null): keyof typeof SMS_COMMANDS | 
 	if (cleaned === 'START') return 'START';
 	if (cleaned === 'STOP') return 'STOP';
 	if (cleaned === 'HELP' || cleaned === '?') return 'HELP';
+	if (cleaned === 'FEEDBACK') return 'FEEDBACK';
 
 	return null;
 }
@@ -191,6 +203,7 @@ export function containsCommand(text: string | null): keyof typeof SMS_COMMANDS 
 	if (cleaned.includes('START')) return 'START';
 	if (cleaned.includes('STOP')) return 'STOP';
 	if (cleaned.includes('HELP')) return 'HELP';
+	if (cleaned.includes('FEEDBACK')) return 'FEEDBACK';
 
 	return null;
 }
