@@ -6,7 +6,7 @@ Someone mentions a book on a podcast, in a group chat, or across the table from 
 
 No feeds. No algorithms. Just a place to put the books you actually want to read.
 
-**Live at [tbr-fyi-beta.vercel.app](https://tbr-fyi-beta.vercel.app)**
+**Live at [TBR.fyi](https://tbr.fyi)**
 
 ---
 
@@ -25,7 +25,7 @@ The book appears on your shelf automatically.
 
 ### Add books on the web
 
-You can also add books directly at [tbr-fyi-beta.vercel.app](https://tbr-fyi-beta.vercel.app)—same result, same list, no SMS required.
+You can also add books directly at [TBR.fyi](https://tbr.fyi)—same result, same list, no SMS required.
 
 ### Organize your shelf
 
