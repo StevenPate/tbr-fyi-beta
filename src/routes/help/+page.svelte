@@ -105,6 +105,42 @@
             </div>
         </div>
 
+        <!-- Exporting Your Data -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-200">
+            <h2 id="exporting" class="text-2xl font-semibold text-gray-900 mb-4">Exporting your data</h2>
+
+            <div class="space-y-6 text-gray-700">
+                <p class="text-sm">
+                    Your data belongs to you. Export your complete library anytime from your Settings page.
+                </p>
+
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Export formats</h3>
+                    <ul class="space-y-2 text-sm ml-4">
+                        <li>• <strong>CSV (Goodreads format)</strong> — Compatible with StoryGraph, Hardcover, BookWyrm, Literal, and most book tracking apps</li>
+                        <li>• <strong>JSON</strong> — For developers or full data backup</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Import to other platforms</h3>
+                    <ul class="space-y-2 text-sm ml-4">
+                        <li>• <strong>StoryGraph</strong> — Manage Account &rarr; Goodreads Import</li>
+                        <li>• <strong>Hardcover</strong> — Settings &rarr; Import</li>
+                        <li>• <strong>BookWyrm</strong> — Settings &rarr; Import</li>
+                        <li>• <strong>Literal</strong> — Settings &rarr; Import from Goodreads</li>
+                    </ul>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="font-semibold text-gray-900 mb-2">What's included</p>
+                    <p class="text-sm text-gray-600">
+                        Titles, authors, ISBNs, read/unread status, owned status, shelf assignments, notes, and publication info.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- FAQs -->
         <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-200">
             <h2 id="faqs" class="text-2xl font-semibold text-gray-900 mb-4">FAQs</h2>

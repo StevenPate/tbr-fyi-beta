@@ -1,22 +1,20 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui';
 
-	const identifier = $page.params.identifier;
 	let isExporting = $state(false);
 	let exportError = $state<string | null>(null);
+	let exportFormat = $state<'csv' | 'json'>('csv');
 
 	async function handleExport() {
 		isExporting = true;
 		exportError = null;
 
+		const endpoint = exportFormat === 'csv' ? '/api/export/csv' : '/api/export';
+		const defaultFilename = exportFormat === 'csv' ? 'tbr-export.csv' : 'tbr-export.json';
+
 		try {
-			const response = await fetch('/api/export', {
-				method: 'GET',
-				headers: {
-					'Referer': window.location.href
-				}
-			});
+			// Browser automatically sets Referer header with current page URL
+			const response = await fetch(endpoint);
 
 			if (!response.ok) {
 				const result = await response.json();
@@ -33,7 +31,7 @@
 			// Extract filename from Content-Disposition header
 			const contentDisposition = response.headers.get('Content-Disposition');
 			const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-			const filename = filenameMatch?.[1] || 'tbr-export.json';
+			const filename = filenameMatch?.[1] || defaultFilename;
 
 			a.download = filename;
 			document.body.appendChild(a);
@@ -67,8 +65,41 @@
 		<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 			<h2 class="text-xl font-semibold text-gray-900 mb-2">Export Library</h2>
 			<p class="text-gray-600 mb-4">
-				Download your complete book collection as a JSON file. Includes ISBNs, notes, read/owned status, shelves, and metadata.
+				Download your books to use with other platforms.
 			</p>
+
+			<!-- Format Selection -->
+			<fieldset class="mb-6">
+				<legend class="sr-only">Export format</legend>
+				<div class="space-y-3">
+					<label class="flex items-start gap-3 cursor-pointer">
+						<input
+							type="radio"
+							name="export-format"
+							value="csv"
+							bind:group={exportFormat}
+							class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+						/>
+						<div>
+							<span class="block font-medium text-gray-900">CSV (Goodreads format)</span>
+							<span class="block text-sm text-gray-500">Works with StoryGraph, Hardcover, BookWyrm, Literal</span>
+						</div>
+					</label>
+					<label class="flex items-start gap-3 cursor-pointer">
+						<input
+							type="radio"
+							name="export-format"
+							value="json"
+							bind:group={exportFormat}
+							class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+						/>
+						<div>
+							<span class="block font-medium text-gray-900">JSON (TBR.fyi format)</span>
+							<span class="block text-sm text-gray-500">For developers or data backup</span>
+						</div>
+					</label>
+				</div>
+			</fieldset>
 
 			<Button
 				variant="primary"
@@ -76,8 +107,17 @@
 				onclick={handleExport}
 				disabled={isExporting}
 			>
-				{isExporting ? 'Exporting...' : 'Export Library'}
+				{isExporting ? 'Exporting...' : 'Download Export'}
 			</Button>
+
+			{#if exportFormat === 'csv'}
+				<p class="mt-4 text-sm text-gray-500">
+					After downloading, import to:
+					<span class="block mt-1">StoryGraph: Manage Account &rarr; Goodreads Import</span>
+					<span class="block">Hardcover: Settings &rarr; Import</span>
+					<span class="block">BookWyrm: Settings &rarr; Import</span>
+				</p>
+			{/if}
 
 			{#if exportError}
 				<div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-3" role="alert">
