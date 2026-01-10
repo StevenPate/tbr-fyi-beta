@@ -235,6 +235,37 @@
         <p class="carousel-hint">Swipe to see your shelf</p>
     </section>
 
+    <!-- Benefits -->
+    <section class="benefits">
+        <h2>What's Next?</h2>
+        <ul class="benefits-list">
+            <li>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Access anywhere—from text thread or at tbr.fyi</span>
+            </li>
+            <li>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Keep track of lists, mark status, add notes, and more</span>
+            </li>
+            <li>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Show a barcode to get help finding EXACTLY what you want</span>
+            </li>
+            <li>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Export to Goodreads, StoryGraph, etc.</span>
+            </li>
+        </ul>
+    </section>
+
     <!-- Login Section (only for new users) -->
     {#if !isReturningUser}
         <section class="login">
@@ -516,6 +547,50 @@
     .message .book-title {
         font-family: var(--font-serif);
         font-style: italic;
+    }
+
+    /* Benefits section */
+    .benefits {
+        padding: 64px 24px;
+        background: var(--background);
+        text-align: center;
+    }
+
+    .benefits h2 {
+        font-family: var(--font-serif);
+        font-weight: 600;
+        font-size: 22px;
+        color: var(--text-primary);
+        margin-bottom: 32px;
+    }
+
+    .benefits-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 auto;
+        max-width: 600px;
+        text-align: left;
+    }
+
+    .benefits-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 24px;
+        font-size: 17px;
+        color: var(--text-primary);
+    }
+
+    .benefits-list li:last-child {
+        margin-bottom: 0;
+    }
+
+    .check-icon {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        color: var(--accent);
+        margin-top: 2px;
     }
 
     /* Login section */
