@@ -33,6 +33,8 @@
 - [ ] Parse Goodreads links for ISBN extraction
 
 ### Done
+- [x] Design system implementation with CSS tokens and Tailwind integration
+- [x] Homepage carousel and returning user experience
 - [x] CSV Export (Goodreads format): `docs/plans/csv-export-specification.md`
 - [x] Amazon short link support (`a.co` redirects)
 
@@ -68,7 +70,7 @@
 - [ ] SMS multi-photo processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
 
 ### Design System
-- [ ] Refactor with semantic CSS and design tokens
+- [x] Refactor with semantic CSS and design tokens (`docs/design-system.md`)
 - [ ] Standardize form element sizes
 - [ ] Bigger note area, improved styling
 - [ ] Add vertical space in grids
@@ -83,6 +85,9 @@
 ## Completed
 
 ### January 2026
+- [x] Design system with CSS custom properties and Tailwind integration (`docs/design-system.md`)
+- [x] Homepage carousel (swipeable SMS/shelf mockup) with returning user experience
+- [x] On-demand sign-in prompt for expired sessions
 - [x] OpenGraph image fallback for social sharing previews
 - [x] CSV Export (Goodreads format) with platform import instructions
 - [x] FEEDBACK opt-in SMS command for TCPA-compliant follow-up messaging

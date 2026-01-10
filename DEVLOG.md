@@ -1,5 +1,48 @@
 # Development Log
 
+## 2026-01-10 - Design System & Homepage Refresh
+
+### Implemented paper-inspired design system with CSS custom properties
+- **Goal**: Create consistent visual language across all pages with warm, book-friendly aesthetic
+- **Core palette**: Paper tones (light/mid/dark), terracotta accent, charcoal text, warm gray secondary
+- **Implementation**:
+  - Defined CSS custom properties in `src/app.css` as source of truth
+  - Extended Tailwind config to reference CSS variables for utility class usage
+  - Created semantic tokens (`--background`, `--surface`, `--accent`, etc.) for consistent theming
+  - Typography: Inter for UI, Lora italic for book titles only
+- **Documentation**: Created `docs/design-system.md` with comprehensive reference (colors, typography, components, spacing, shadows)
+- **Files created**: `docs/design-system.md`
+- **Files modified**: `src/app.css`, `tailwind.config.js`
+
+### Homepage redesign with carousel and returning user experience
+- **Carousel feature**: Swipeable phone mockup showing SMS conversation and shelf screenshot
+  - Touch swipe support with `touchstart`, `touchmove`, `touchend` events
+  - Click/tap to toggle between slides
+  - Dot indicators for navigation
+  - CSS transform-based sliding animation
+- **Returning user detection**: Checks localStorage for `tbr-userId`
+  - Returning users see login form at top (below hero, above "How it works")
+  - Beta notice appears right after login for returning users
+  - New users see login and beta notice at bottom (original flow)
+- **Copy updates**:
+  - Step 2: "Text the title. Snap the barcode. Or send a link."
+  - Added "This is a beta" heading with feedback encouragement
+- **Files modified**: `src/routes/+page.svelte`
+- **Assets added**: `static/barcode.png`, `static/shelf-mockup.png`, `static/tbr-lockup-transparent.png`
+
+### Applied design system across all pages
+- Updated all auth pages (signin, signup, verify-phone, verify-email, confirm, signout, username)
+- Updated static pages (about, help)
+- Updated settings and book detail pages
+- Fixed Input component focus ring from blue to terracotta accent
+- Updated FeedbackModal with design system tokens
+
+### On-demand sign-in prompt for expired sessions
+- Created `SignInPromptModal` component triggered by 401 API responses
+- Added `auth-prompt` store for cross-component state management
+- Created `api.ts` utility with `fetchWithAuth()` wrapper for automatic 401 handling
+- Modal offers sign-in options when session expires mid-use
+
 ## 2025-12-30 - Search, Performance & UI Polish
 
 ### Instant client-side shelf filtering
