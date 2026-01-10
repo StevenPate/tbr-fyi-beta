@@ -47,6 +47,13 @@
 <svelte:head>
     <title>TBR.fyi - Never Lose a Book Recommendation</title>
     <meta name="description" content="A simple way to save book recommendations. Text an ISBN, paste an Amazon link, or add books from the web. Everything lands in one calm, searchable reading list." />
+    <meta property="og:title" content="TBR.fyi - Never Lose a Book Recommendation" />
+    <meta property="og:description" content="A simple way to save book recommendations. Text an ISBN, paste an Amazon link, or add books from the web." />
+    <meta property="og:image" content="https://tbr.fyi/og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tbr.fyi" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://tbr.fyi/og-image.png" />
 </svelte:head>
 
 <div class="min-h-screen bg-gradient-to-b from-blue-50 to-white">

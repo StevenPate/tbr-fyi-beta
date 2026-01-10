@@ -16,27 +16,25 @@
 
 ## Checkpoint 1: Build Now
 
-### Data Portability (Critical for Trust)
-- [ ] CSV Export (Goodreads format): `docs/plans/csv-export-specification.md`
+### Validation (Run in Parallel)
+- [ ] Cover photo OCR prototype: collect 50+ cover photos, test Vision API, go/no-go decision (`docs/plans/cover-photo-recognition.md`)
 
-### Core UX Improvements
-- [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
-- [ ] Amazon short link support (`a.co` redirects)
+### Growth & Sharing
+- [ ] Share shelf publicly (read-only URL)
+- [ ] Add screenshots or demo GIF to README
+
+### Retention
 - [ ] Paginate or infinite scroll for long lists
 
-### Book Discovery & Metadata
-- [ ] Add ISBNdb to metadata pipeline (image enrichment)
-- [ ] Let users replace low quality cover images
-- [ ] Different edition finder (same book, better cover)
+### Polish & Trust
+- [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
 
-### Bulk Operations
-- [ ] Web UI Bulk Operations (Phase 1): `docs/designs/BULK_OPERATIONS_PLAN.md`
-- [ ] Enhanced Goodreads Import (Phase 2): `docs/designs/BULK_IMPORT_PLAN.md`
+### Migration Path
+- [ ] Parse Goodreads links for ISBN extraction
 
-### Polish & Retention
-- [ ] Improve usage tracking/analytics
-- [ ] Add screenshots or demo GIF to README
-- [ ] Share shelf publicly (read-only URL)
+### Done
+- [x] CSV Export (Goodreads format): `docs/plans/csv-export-specification.md`
+- [x] Amazon short link support (`a.co` redirects)
 
 ---
 
@@ -48,15 +46,24 @@
 - [ ] Zapier/IFTTT integration
 - [ ] Siri Shortcuts support
 
+### Bulk Operations (Power User)
+- [ ] Web UI Bulk Operations (Phase 1): `docs/designs/BULK_OPERATIONS_PLAN.md`
+- [ ] Enhanced Goodreads Import (Phase 2): `docs/designs/BULK_IMPORT_PLAN.md`
+
+### Book Discovery & Metadata
+- [ ] Add ISBNdb to metadata pipeline (image enrichment)
+- [ ] Let users replace low quality cover images
+- [ ] Different edition finder (same book, better cover)
+
 ### Advanced Features
 - [ ] OCR for book cover images (text extraction)
-- [ ] Parse Goodreads links for ISBN extraction
 - [ ] SMS: `LAST n` command (show n titles from TBR)
 - [ ] Drag to reorder books/shelves
 
 ### Infrastructure
 - [ ] Store/cache images (CDN)
 - [ ] Handle rate limiting systematically
+- [ ] Improve usage tracking/analytics
 - [ ] Production hardening for bulk import (Phase 3): `docs/designs/BULK_IMPORT_PLAN.md`
 - [ ] SMS multi-photo processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
 
@@ -74,6 +81,12 @@
 ---
 
 ## Completed
+
+### January 2026
+- [x] OpenGraph image fallback for social sharing previews
+- [x] CSV Export (Goodreads format) with platform import instructions
+- [x] FEEDBACK opt-in SMS command for TCPA-compliant follow-up messaging
+- [x] Update domain references to tbr.fyi
 
 ### December 2025
 - [x] Instant client-side shelf filtering (no server round-trip)

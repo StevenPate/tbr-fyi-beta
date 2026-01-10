@@ -136,14 +136,16 @@
 			property="og:description"
 			content={data.book.author?.join(', ') || 'Shared on TBR.fyi'}
 		/>
-		{#if data.book.cover_url}
-			<meta property="og:image" content={data.book.cover_url} />
-		{/if}
+		<meta property="og:image" content={data.book.cover_url || 'https://tbr.fyi/og-image.png'} />
 		<meta property="og:type" content="book" />
 		<meta property="og:url" content="{PUBLIC_BASE_URL}{currentUrl}" />
 		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content={data.book.cover_url || 'https://tbr.fyi/og-image.png'} />
 	{:else}
 		<title>Book Not Found | TBR.fyi</title>
+		<meta property="og:image" content="https://tbr.fyi/og-image.png" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content="https://tbr.fyi/og-image.png" />
 	{/if}
 </svelte:head>
 

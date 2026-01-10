@@ -1034,6 +1034,12 @@
 <svelte:head>
 	<title>{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi</title>
 	<meta name="description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
+	<meta property="og:title" content="{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi" />
+	<meta property="og:description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
+	<meta property="og:image" content="https://tbr.fyi/og-image.png" />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content="https://tbr.fyi/og-image.png" />
 </svelte:head>
 
 <div class="min-h-screen bg-gray-100">
