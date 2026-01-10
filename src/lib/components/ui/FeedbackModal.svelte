@@ -221,7 +221,7 @@
 	<!-- Modal backdrop -->
 	<div
 		bind:this={modalElement}
-		class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+		class="modal-backdrop"
 		onclick={handleBackdropClick}
 		onkeydown={(e) => {
 			handleKeydown(e);
@@ -232,18 +232,16 @@
 		aria-labelledby="feedback-modal-title"
 	>
 		<!-- Modal content -->
-		<div
-			class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-		>
+		<div class="modal-content">
 			<!-- Header -->
-			<div class="border-b border-gray-200 p-6 pb-4">
-				<div class="flex items-center justify-between">
-					<h2 id="feedback-modal-title" class="text-2xl font-semibold text-gray-900">
+			<div class="modal-header">
+				<div class="modal-header-inner">
+					<h2 id="feedback-modal-title" class="modal-title">
 						Give Feedback
 					</h2>
 					<button
 						onclick={handleClose}
-						class="text-gray-400 hover:text-gray-600 transition-colors"
+						class="modal-close"
 						aria-label="Close feedback form"
 						disabled={isSubmitting}
 					>
@@ -255,55 +253,55 @@
 			</div>
 
 			<!-- Form -->
-			<form onsubmit={handleSubmit} class="p-6 space-y-6">
+			<form onsubmit={handleSubmit} class="modal-form">
 				{#if submitSuccess}
 					<!-- Success message -->
-					<div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center" role="alert">
-						<p class="text-green-800 font-medium">✓ Thanks! Your feedback has been sent.</p>
+					<div class="alert alert-success" role="alert">
+						<p>Thanks! Your feedback has been sent.</p>
 					</div>
 
 					<!-- Warning message (if screenshot upload failed) -->
 					{#if submitWarning}
-						<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3" role="alert">
-							<p class="text-sm text-yellow-800">⚠️ {submitWarning}</p>
+						<div class="alert alert-warning" role="alert">
+							<p>{submitWarning}</p>
 						</div>
 					{/if}
 				{:else}
 					<!-- Question 1 -->
-					<div>
-						<label for="question1" class="block text-sm font-medium text-gray-900 mb-2">
-							What were you trying to do? <span class="text-red-500">*</span>
+					<div class="form-group">
+						<label for="question1" class="form-label">
+							What were you trying to do? <span class="required">*</span>
 						</label>
 						<textarea
 							id="question1"
 							bind:value={question1}
 							placeholder="e.g., Add a book by scanning the barcode"
 							rows="3"
-							class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+							class="form-textarea"
 							disabled={isSubmitting}
 							required
 						></textarea>
 					</div>
 
 					<!-- Question 2 -->
-					<div>
-						<label for="question2" class="block text-sm font-medium text-gray-900 mb-2">
-							What happened? Or didn't happen? <span class="text-red-500">*</span>
+					<div class="form-group">
+						<label for="question2" class="form-label">
+							What happened? Or didn't happen? <span class="required">*</span>
 						</label>
 						<textarea
 							id="question2"
 							bind:value={question2}
 							placeholder="e.g., The camera opened but nothing happened when I took the photo"
 							rows="4"
-							class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+							class="form-textarea"
 							disabled={isSubmitting}
 							required
 						></textarea>
 					</div>
 
 					<!-- Screenshot upload -->
-					<div>
-						<label for="screenshot" class="block text-sm font-medium text-gray-900 mb-2">
+					<div class="form-group">
+						<label for="screenshot" class="form-label">
 							Screenshot (optional)
 						</label>
 						<input
@@ -312,38 +310,38 @@
 							bind:this={fileInput}
 							onchange={handleFileChange}
 							accept="image/png,image/jpeg,image/jpg,image/gif"
-							class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+							class="file-input"
 							disabled={isSubmitting}
 						/>
 						{#if screenshot}
-							<div class="mt-2 flex items-center gap-2">
-								<span class="text-sm text-gray-600">📎 {screenshot.name}</span>
+							<div class="file-preview">
+								<span class="file-name">{screenshot.name}</span>
 								<button
 									type="button"
 									onclick={removeFile}
-									class="text-xs text-red-600 hover:text-red-800"
+									class="file-remove"
 									disabled={isSubmitting}
 								>
 									Remove
 								</button>
 							</div>
 						{/if}
-						<p class="mt-1 text-xs text-gray-500">PNG, JPG, or GIF. Max 10MB.</p>
+						<p class="form-hint">PNG, JPG, or GIF. Max 10MB.</p>
 					</div>
 
 					<!-- Error message -->
 					{#if submitError}
-						<div class="bg-red-50 border border-red-200 rounded-lg p-3" role="alert">
-							<p class="text-sm text-red-800">{submitError}</p>
+						<div class="alert alert-error" role="alert">
+							<p>{submitError}</p>
 						</div>
 					{/if}
 
 					<!-- Submit button -->
-					<div class="flex gap-3 pt-4">
+					<div class="button-group">
 						<button
 							type="button"
 							onclick={handleClose}
-							class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+							class="btn btn-secondary"
 							disabled={isSubmitting}
 						>
 							Cancel
@@ -351,7 +349,7 @@
 						<button
 							type="submit"
 							disabled={!canSubmit}
-							class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="btn btn-primary"
 						>
 							{#if isSubmitting}
 								<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -369,3 +367,231 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 50;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+
+	.modal-content {
+		background: var(--surface);
+		border-radius: 16px;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		max-width: 42rem;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+	}
+
+	.modal-header {
+		border-bottom: 1px solid var(--border);
+		padding: 24px;
+		padding-bottom: 16px;
+	}
+
+	.modal-header-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.modal-title {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.modal-close {
+		color: var(--text-secondary);
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 4px;
+		transition: color 0.2s;
+	}
+
+	.modal-close:hover {
+		color: var(--text-primary);
+	}
+
+	.modal-form {
+		padding: 24px;
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.form-label {
+		display: block;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--text-primary);
+		margin-bottom: 8px;
+	}
+
+	.required {
+		color: #dc2626;
+	}
+
+	.form-textarea {
+		width: 100%;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		font-size: 0.875rem;
+		color: var(--text-primary);
+		background: var(--surface);
+		resize: none;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.form-textarea:focus {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.2);
+	}
+
+	.form-textarea:disabled {
+		opacity: 0.5;
+	}
+
+	.form-textarea::placeholder {
+		color: var(--text-secondary);
+	}
+
+	.file-input {
+		width: 100%;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+	}
+
+	.file-input::file-selector-button {
+		margin-right: 16px;
+		padding: 8px 16px;
+		border-radius: 8px;
+		border: none;
+		font-size: 0.875rem;
+		font-weight: 500;
+		background: var(--paper-light);
+		color: var(--accent-hover);
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.file-input::file-selector-button:hover {
+		background: var(--paper-mid);
+	}
+
+	.file-preview {
+		margin-top: 8px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.file-name {
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+	}
+
+	.file-remove {
+		font-size: 0.75rem;
+		color: #dc2626;
+		background: none;
+		border: none;
+		cursor: pointer;
+	}
+
+	.file-remove:hover {
+		color: #991b1b;
+	}
+
+	.form-hint {
+		margin-top: 4px;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
+
+	.alert {
+		padding: 12px 16px;
+		border-radius: 8px;
+		font-size: 0.875rem;
+	}
+
+	.alert-success {
+		background: #f0fdf4;
+		border: 1px solid #bbf7d0;
+		color: #166534;
+		text-align: center;
+		font-weight: 500;
+	}
+
+	.alert-warning {
+		background: #fefce8;
+		border: 1px solid #fef08a;
+		color: #854d0e;
+	}
+
+	.alert-error {
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		color: #991b1b;
+	}
+
+	.button-group {
+		display: flex;
+		gap: 12px;
+		padding-top: 16px;
+	}
+
+	.btn {
+		flex: 1;
+		padding: 10px 16px;
+		border-radius: 8px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+	}
+
+	.btn-secondary {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		color: var(--text-primary);
+	}
+
+	.btn-secondary:hover:not(:disabled) {
+		background: var(--paper-light);
+	}
+
+	.btn-primary {
+		background: var(--accent);
+		border: none;
+		color: white;
+	}
+
+	.btn-primary:hover:not(:disabled) {
+		background: var(--accent-hover);
+	}
+
+	.btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+</style>

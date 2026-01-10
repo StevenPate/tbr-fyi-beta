@@ -1,4 +1,32 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* TBR.fyi Design System Tokens */
+:root {
+	/* Color palette */
+	--paper-light: #f5f0e8;
+	--paper-mid: #ebe4d8;
+	--paper-dark: #e5ddd0;
+	--terracotta: #c4a67c;
+	--terracotta-dark: #a8845c;
+	--charcoal: #3d3d3d;
+	--warm-gray: #635e58;
+	--white: #ffffff;
+
+	/* Semantic colors */
+	--background: var(--paper-mid);
+	--background-alt: var(--paper-light);
+	--surface: var(--white);
+	--border: var(--paper-dark);
+	--text-primary: var(--charcoal);
+	--text-secondary: var(--warm-gray);
+	--accent: var(--terracotta);
+	--accent-hover: var(--terracotta-dark);
+
+	/* Typography */
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-serif: 'Lora', Georgia, serif;
+}
 
 /* Hide scrollbar for horizontal scroll areas */
 @layer utilities {

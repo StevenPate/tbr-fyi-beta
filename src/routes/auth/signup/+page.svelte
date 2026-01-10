@@ -27,19 +27,19 @@
 	<title>Sign Up - TBR.FYI</title>
 </svelte:head>
 
-<div class="min-h-[80vh] flex items-center justify-center px-4">
-	<div class="max-w-md w-full space-y-8">
+<div class="auth-page">
+	<div class="auth-container">
 		<div>
-			<h2 class="text-center text-3xl font-bold text-gray-900">
+			<h2 class="auth-title">
 				Create your account
 			</h2>
-			<p class="mt-2 text-center text-sm text-gray-600">
+			<p class="auth-subtitle">
 				Join TBR.FYI to secure your reading list and unlock new features
 			</p>
 		</div>
 
 		{#if success}
-			<div class="rounded-md bg-green-50 border border-green-200 p-4">
+			<div class="rounded-md bg-green-50 border border-green-200 p-4 mt-6">
 				<div class="flex">
 					<div class="flex-shrink-0">
 						<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -65,29 +65,29 @@
 					</div>
 				{/if}
 
-				<div class="bg-blue-50 border border-blue-200 rounded-md p-4">
-					<h3 class="text-sm font-medium text-blue-900 mb-2">Account benefits:</h3>
-					<ul class="text-sm text-blue-700 space-y-1">
+				<div class="benefits-box">
+					<h3 class="text-sm font-medium text-[var(--text-primary)] mb-2">Account benefits:</h3>
+					<ul class="text-sm text-[var(--text-secondary)] space-y-1">
 						<li class="flex items-start">
-							<svg class="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-4 w-4 text-[var(--accent)] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
 							<span>Get a custom username (@yourusername)</span>
 						</li>
 						<li class="flex items-start">
-							<svg class="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-4 w-4 text-[var(--accent)] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
 							<span>Make your shelves private or public</span>
 						</li>
 						<li class="flex items-start">
-							<svg class="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-4 w-4 text-[var(--accent)] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
 							<span>Access from any device</span>
 						</li>
 						<li class="flex items-start">
-							<svg class="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-4 w-4 text-[var(--accent)] mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
 							<span>Keep using SMS to add books</span>
@@ -96,7 +96,7 @@
 				</div>
 
 				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700">
+					<label for="email" class="block text-sm font-medium text-[var(--text-primary)]">
 						Email address
 					</label>
 					<div class="mt-1">
@@ -108,7 +108,7 @@
 							required
 							bind:value={email}
 							disabled={loading}
-							class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+							class="auth-input"
 							placeholder="you@example.com"
 						/>
 					</div>
@@ -118,7 +118,7 @@
 					<button
 						type="submit"
 						disabled={loading}
-						class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="auth-button"
 					>
 						{#if loading}
 							<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -133,8 +133,8 @@
 				</div>
 
 				<div class="text-sm text-center">
-					<span class="text-gray-600">Already have an account? </span>
-					<a href="/auth/signin" class="font-medium text-blue-600 hover:text-blue-500">
+					<span class="text-[var(--text-secondary)]">Already have an account? </span>
+					<a href="/auth/signin" class="auth-link">
 						Sign in
 					</a>
 				</div>
@@ -142,3 +142,110 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.auth-page {
+		font-family: var(--font-sans);
+		background: var(--background);
+		min-height: 80vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+
+	.auth-container {
+		max-width: 28rem;
+		width: 100%;
+	}
+
+	.auth-title {
+		text-align: center;
+		font-size: 1.875rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.auth-subtitle {
+		margin-top: 8px;
+		text-align: center;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+	}
+
+	.auth-link {
+		font-weight: 500;
+		color: var(--accent);
+		transition: color 0.2s;
+	}
+
+	.auth-link:hover {
+		color: var(--accent-hover);
+	}
+
+	.benefits-box {
+		background: var(--paper-light);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 16px;
+	}
+
+	.auth-input {
+		appearance: none;
+		display: block;
+		width: 100%;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		font-size: 0.875rem;
+		color: var(--text-primary);
+		background: var(--surface);
+		transition: border-color 0.2s;
+	}
+
+	.auth-input::placeholder {
+		color: #a8a39e;
+	}
+
+	.auth-input:focus {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.2);
+	}
+
+	.auth-input:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.auth-button {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 10px 16px;
+		border: none;
+		border-radius: 8px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: white;
+		background: var(--accent);
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.auth-button:hover:not(:disabled) {
+		background: var(--accent-hover);
+	}
+
+	.auth-button:focus {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.3);
+	}
+
+	.auth-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+</style>

@@ -149,13 +149,13 @@
 	{/if}
 </svelte:head>
 
-<div class="min-h-screen bg-stone-50">
+<div class="min-h-screen book-page">
 	<div class="max-w-2xl mx-auto px-4 py-8 sm:py-12">
 		{#if data.error || !data.book}
 			<!-- Error state -->
 			<div class="text-center py-12">
 				<svg
-					class="w-16 h-16 mx-auto text-stone-300 mb-4"
+					class="w-16 h-16 mx-auto text-[var(--text-secondary)] mb-4"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -167,13 +167,13 @@
 						d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
 					/>
 				</svg>
-				<h1 class="text-xl font-semibold text-stone-800 mb-2">Book Not Found</h1>
-				<p class="text-stone-600 mb-6">
+				<h1 class="text-xl font-semibold text-[var(--text-primary)] mb-2">Book Not Found</h1>
+				<p class="text-[var(--text-secondary)] mb-6">
 					This book may no longer be available or the link may be incorrect.
 				</p>
 				<a
 					href={sharerLink}
-					class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+					class="inline-flex items-center gap-2 text-[var(--accent-hover)] hover:text-[var(--accent)] transition-colors"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -188,7 +188,7 @@
 			</div>
 		{:else}
 			<!-- Book display -->
-			<div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+			<div class="bg-[var(--surface)] rounded-xl shadow-sm border border-[var(--border)] overflow-hidden">
 				<!-- Book cover and details -->
 				<div class="p-6 sm:p-8">
 					<div class="flex flex-col sm:flex-row gap-6">
@@ -202,7 +202,7 @@
 								/>
 							{:else}
 								<div
-									class="w-40 h-56 bg-gradient-to-br from-stone-200 to-stone-300 rounded-lg flex items-center justify-center"
+									class="w-40 h-56 bg-gradient-to-br from-[var(--paper-dark)] to-[var(--terracotta)] rounded-lg flex items-center justify-center"
 								>
 									<svg
 										class="w-12 h-12 text-stone-400"
@@ -223,22 +223,22 @@
 
 						<!-- Book info -->
 						<div class="flex-grow text-center sm:text-left">
-							<h1 class="text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+							<h1 class="text-2xl sm:text-3xl text-[var(--text-primary)] mb-2 book-title">
 								{data.book.title}
 							</h1>
 
 							{#if data.book.author && data.book.author.length > 0}
-								<p class="text-lg text-stone-600 mb-3">
+								<p class="text-lg text-[var(--text-secondary)] mb-3">
 									by {data.book.author.join(', ')}
 								</p>
 							{/if}
 
-							<div class="flex flex-wrap gap-2 justify-center sm:justify-start text-sm text-stone-500 mb-4">
+							<div class="flex flex-wrap gap-2 justify-center sm:justify-start text-sm text-[var(--text-secondary)] mb-4">
 								{#if data.book.publisher}
 									<span>{data.book.publisher}</span>
 								{/if}
 								{#if data.book.publisher && data.book.publication_date}
-									<span class="text-stone-300">•</span>
+									<span class="text-[var(--border)]">•</span>
 								{/if}
 								{#if data.book.publication_date}
 									<span>{data.book.publication_date}</span>
@@ -246,11 +246,11 @@
 							</div>
 
 							<!-- Shared by attribution -->
-							<div class="flex items-center gap-2 justify-center sm:justify-start text-sm text-stone-500 mb-4">
+							<div class="flex items-center gap-2 justify-center sm:justify-start text-sm text-[var(--text-secondary)] mb-4">
 								<span>Shared by</span>
 								<a
 									href={sharerLink}
-									class="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+									class="text-[var(--accent-hover)] hover:text-[var(--accent)] transition-colors font-medium"
 								>
 									{sharerName}
 								</a>
@@ -267,9 +267,9 @@
 
 					<!-- Description -->
 					{#if data.book.description}
-						<div class="mt-6 pt-6 border-t border-stone-100">
-							<h2 class="text-sm font-semibold text-stone-700 mb-2">Description</h2>
-							<p class="text-stone-600 leading-relaxed whitespace-pre-line">
+						<div class="mt-6 pt-6 border-t border-[var(--border)]">
+							<h2 class="text-sm font-semibold text-[var(--text-primary)] mb-2">Description</h2>
+							<p class="text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
 								{data.book.description}
 							</p>
 						</div>
@@ -277,7 +277,7 @@
 				</div>
 
 				<!-- CTA section -->
-				<div class="bg-stone-50 px-6 sm:px-8 py-5 border-t border-stone-100">
+				<div class="bg-[var(--paper-light)] px-6 sm:px-8 py-5 border-t border-[var(--border)]">
 					{#if data.currentUser}
 						<!-- Logged in: Add to shelf button -->
 						{#if addResult}
@@ -311,7 +311,7 @@
 							<button
 								onclick={addToShelf}
 								disabled={adding}
-								class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+								class="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								{#if adding}
 									<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -347,7 +347,7 @@
 						<!-- Not logged in: Sign in prompt -->
 						<a
 							href={authUrl}
-							class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+							class="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-white font-semibold py-3 px-6 rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
 						>
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -359,21 +359,21 @@
 							</svg>
 							<span>Sign in to add to your shelf</span>
 						</a>
-						<p class="text-center text-sm text-stone-500 mt-3">
+						<p class="text-center text-sm text-[var(--text-secondary)] mt-3">
 							New to TBR.fyi?
-							<a href={authUrl} class="text-blue-600 hover:text-blue-700">Create a free account</a>
+							<a href={authUrl} class="text-[var(--accent-hover)] hover:text-[var(--accent)]">Create a free account</a>
 						</p>
 					{/if}
 				</div>
 			</div>
 
 			<!-- Action buttons: Copy ISBN, Barcode, Share -->
-			<div class="mt-6 bg-white rounded-xl shadow-sm border border-stone-200 p-4">
+			<div class="mt-6 bg-[var(--surface)] rounded-xl shadow-sm border border-[var(--border)] p-4">
 				<div class="flex flex-wrap gap-2 justify-center">
 					<!-- Copy ISBN -->
 					<button
 						onclick={copyISBN}
-						class="flex items-center gap-1.5 px-3 py-2 text-sm text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
+						class="flex items-center gap-1.5 px-3 py-2 text-sm text-[var(--text-secondary)] border border-[var(--border)] rounded-lg hover:bg-[var(--paper-light)] transition-colors"
 					>
 						{#if isbnCopied}
 							<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +391,7 @@
 					<!-- Barcode toggle -->
 					<button
 						onclick={() => showBarcode = !showBarcode}
-						class="flex items-center gap-1.5 px-3 py-2 text-sm text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors {showBarcode ? 'bg-stone-100' : ''}"
+						class="flex items-center gap-1.5 px-3 py-2 text-sm text-[var(--text-secondary)] border border-[var(--border)] rounded-lg hover:bg-[var(--paper-light)] transition-colors {showBarcode ? 'bg-[var(--paper-light)]' : ''}"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -402,7 +402,7 @@
 					<!-- Share link -->
 					<button
 						onclick={copyShareLink}
-						class="flex items-center gap-1.5 px-3 py-2 text-sm text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
+						class="flex items-center gap-1.5 px-3 py-2 text-sm text-[var(--text-secondary)] border border-[var(--border)] rounded-lg hover:bg-[var(--paper-light)] transition-colors"
 					>
 						{#if linkCopied}
 							<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -420,20 +420,34 @@
 
 				<!-- Barcode display (collapsible) -->
 				{#if showBarcode}
-					<div class="mt-4 pt-4 border-t border-stone-100 text-center">
-						<p class="text-xs text-stone-500 mb-2">Scan at bookstore or library</p>
+					<div class="mt-4 pt-4 border-t border-[var(--border)] text-center">
+						<p class="text-xs text-[var(--text-secondary)] mb-2">Scan at bookstore or library</p>
 						<div class="flex justify-center">
 							<canvas use:generateBarcode={data.book.isbn13} class="max-w-full h-auto"></canvas>
 						</div>
-						<p class="text-xs font-mono text-stone-600 mt-2">{data.book.isbn13}</p>
+						<p class="text-xs font-mono text-[var(--text-secondary)] mt-2">{data.book.isbn13}</p>
 					</div>
 				{/if}
 
 				<!-- ISBN display when barcode hidden -->
 				{#if !showBarcode}
-					<p class="text-center text-xs text-stone-500 mt-3">ISBN: {data.book.isbn13}</p>
+					<p class="text-center text-xs text-[var(--text-secondary)] mt-3">ISBN: {data.book.isbn13}</p>
 				{/if}
 			</div>
 		{/if}
 	</div>
 </div>
+
+<style>
+	.book-page {
+		font-family: var(--font-sans);
+		background: var(--background);
+		color: var(--text-primary);
+	}
+
+	.book-title {
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-weight: 400;
+	}
+</style>

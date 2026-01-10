@@ -7,10 +7,22 @@
 	<title>Verifying Email - TBR.FYI</title>
 </svelte:head>
 
-<div class="min-h-[80vh] flex items-center justify-center px-4">
+<div class="auth-page">
 	<div class="text-center">
-		<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-		<h1 class="text-2xl font-bold text-gray-900">Verifying your email...</h1>
-		<p class="mt-2 text-gray-600">Please wait while we log you in.</p>
+		<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mb-4"></div>
+		<h1 class="text-2xl font-bold text-[var(--text-primary)]">Verifying your email...</h1>
+		<p class="mt-2 text-[var(--text-secondary)]">Please wait while we log you in.</p>
 	</div>
 </div>
+
+<style>
+	.auth-page {
+		font-family: var(--font-sans);
+		background: var(--background);
+		min-height: 80vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+</style>

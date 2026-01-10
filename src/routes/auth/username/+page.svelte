@@ -71,16 +71,16 @@
 	<title>Choose Username - TBR.FYI</title>
 </svelte:head>
 
-<div class="min-h-[80vh] flex items-center justify-center px-4">
-	<div class="max-w-md w-full space-y-8">
+<div class="auth-page">
+	<div class="auth-container">
 		<div class="text-center">
-			<h1 class="text-3xl font-bold text-gray-900">Choose Your Username</h1>
-			<p class="mt-2 text-sm text-gray-600">
+			<h1 class="auth-title">Choose Your Username</h1>
+			<p class="auth-subtitle">
 				This will be your custom URL: tbr.fyi/{username || 'username'}
 			</p>
 		</div>
 
-		<div class="bg-green-50 border border-green-200 rounded-md p-4">
+		<div class="bg-green-50 border border-green-200 rounded-md p-4 mt-8">
 			<h3 class="text-sm font-medium text-green-800 mb-2">Account verified!</h3>
 			<p class="text-sm text-green-700">
 				{#if data.userEmail}
@@ -93,9 +93,9 @@
 			</p>
 		</div>
 
-		<form onsubmit={handleSubmit} class="space-y-6">
+		<form onsubmit={handleSubmit} class="space-y-6 mt-6">
 			<div>
-				<label for="username" class="block text-sm font-medium text-gray-700">
+				<label for="username" class="block text-sm font-medium text-[var(--text-primary)]">
 					Username
 				</label>
 				<div class="mt-1 relative">
@@ -104,7 +104,7 @@
 						type="text"
 						bind:value={username}
 						disabled={status === 'submitting'}
-						class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50"
+						class="auth-input"
 						placeholder="bookworm123"
 						pattern="[a-zA-Z0-9_-]+"
 						minlength="3"
@@ -113,7 +113,7 @@
 					/>
 					{#if status === 'checking'}
 						<div class="absolute inset-y-0 right-0 flex items-center pr-3">
-							<svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+							<svg class="animate-spin h-4 w-4 text-[var(--text-secondary)]" fill="none" viewBox="0 0 24 24">
 								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 							</svg>
@@ -132,7 +132,7 @@
 						</div>
 					{/if}
 				</div>
-				<p class="mt-1 text-xs text-gray-500">
+				<p class="mt-1 text-xs text-[var(--text-secondary)]">
 					3-20 characters, letters, numbers, underscores, and hyphens only
 				</p>
 				{#if usernameAvailable === false}
@@ -150,7 +150,7 @@
 			<button
 				type="submit"
 				disabled={status === 'submitting' || status === 'checking' || !username || usernameAvailable === false}
-				class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+				class="auth-button"
 			>
 				{#if status === 'submitting'}
 					<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -164,10 +164,97 @@
 			</button>
 		</form>
 
-		<div class="text-center">
-			<p class="text-xs text-gray-500">
+		<div class="text-center mt-4">
+			<p class="text-xs text-[var(--text-secondary)]">
 				You can always change your username later in settings.
 			</p>
 		</div>
 	</div>
 </div>
+
+<style>
+	.auth-page {
+		font-family: var(--font-sans);
+		background: var(--background);
+		min-height: 80vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+
+	.auth-container {
+		max-width: 28rem;
+		width: 100%;
+	}
+
+	.auth-title {
+		font-size: 1.875rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.auth-subtitle {
+		margin-top: 8px;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+	}
+
+	.auth-input {
+		appearance: none;
+		display: block;
+		width: 100%;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		font-size: 0.875rem;
+		color: var(--text-primary);
+		background: var(--surface);
+		transition: border-color 0.2s;
+	}
+
+	.auth-input::placeholder {
+		color: #a8a39e;
+	}
+
+	.auth-input:focus {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.2);
+	}
+
+	.auth-input:disabled {
+		opacity: 0.5;
+	}
+
+	.auth-button {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 10px 16px;
+		border: none;
+		border-radius: 8px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: white;
+		background: var(--accent);
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.auth-button:hover:not(:disabled) {
+		background: var(--accent-hover);
+	}
+
+	.auth-button:focus {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.3);
+	}
+
+	.auth-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+</style>

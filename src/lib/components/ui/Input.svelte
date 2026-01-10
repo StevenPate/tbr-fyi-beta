@@ -14,7 +14,7 @@
 		lg: 'px-4 py-3 text-base'
 	};
 
-	const classes = `${sizes[size]} w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`;
+	const classes = `${sizes[size]} w-full border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`;
 </script>
 
 <input bind:value class={classes} {...rest} />
