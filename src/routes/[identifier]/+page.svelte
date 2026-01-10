@@ -9,6 +9,7 @@
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
+	import { apiFetch } from '$lib/utils/api';
 
 	let { data }: { data: PageData } = $props();
 
@@ -563,7 +564,7 @@
 
 		creatingShelf = true;
 		try {
-			const response = await fetch('/api/shelves', {
+			const response = await apiFetch('/api/shelves', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -575,7 +576,8 @@
 				newShelfName = '';
 				showNewShelfInput = false;
 				await invalidateAll();
-			} else {
+			} else if (response.status !== 401) {
+				// Only show alert for non-auth errors (401 handled by apiFetch)
 				const result = await response.json();
 				alert(result.error || 'Failed to create shelf');
 			}
@@ -588,7 +590,7 @@
 
 	async function toggleBookOnShelf(bookId: string, shelfId: string, isOn: boolean) {
 		try {
-			const response = await fetch('/api/books/shelves', {
+			const response = await apiFetch('/api/books/shelves', {
 				method: isOn ? 'DELETE' : 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -611,7 +613,7 @@
 		}
 
 		try {
-			const response = await fetch('/api/books/delete', {
+			const response = await apiFetch('/api/books/delete', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ bookId })
@@ -619,7 +621,8 @@
 
 			if (response.ok) {
 				await invalidateAll();
-			} else {
+			} else if (response.status !== 401) {
+				// Only show alert for non-auth errors (401 handled by apiFetch)
 				alert('Failed to delete book. Please try again.');
 			}
 		} catch (error) {
@@ -671,11 +674,16 @@
 		deletingShelfId = shelfId;
 
 		try {
-			const response = await fetch('/api/shelves', {
+			const response = await apiFetch('/api/shelves', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ id: shelfId })
 			});
+
+			// 401 is handled by apiFetch, just return early
+			if (response.status === 401) {
+				return;
+			}
 
 			const result = await response.json();
 
@@ -1042,7 +1050,7 @@
 	<meta name="twitter:image" content="https://tbr.fyi/og-image.png" />
 </svelte:head>
 
-<div class="min-h-screen bg-gray-100">
+<div class="min-h-screen shelf-page">
 	{#if data.isPhoneBased}
 		<ClaimShelfBanner phoneNumber={data.userId} {isOwner} />
 	{/if}
@@ -1051,15 +1059,15 @@
 		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header - slides up/down based on scroll direction (mobile only) -->
 		<div
-			class="sticky top-0 z-30 -mx-4 px-4 bg-gray-100 border-b border-gray-200/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
+			class="sticky top-0 z-30 -mx-4 px-4 header-sticky border-b border-[var(--border)]/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
 			style="will-change: transform;"
 		>
 			<div class="py-2 md:py-0">
 				<div class="flex items-start justify-between gap-2">
 					<div class="min-w-0">
-						<h1 class="text-xl md:text-3xl font-bold text-gray-900 truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
-						<p class="text-xs md:text-sm text-gray-400 font-normal">
-							<span class="font-semibold text-gray-600">{booksForCurrentShelf().length}</span> {booksForCurrentShelf().length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
+						<h1 class="text-xl md:text-3xl font-bold text-[var(--text-primary)] truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
+						<p class="text-xs md:text-sm text-[var(--text-secondary)] font-normal">
+							<span class="font-semibold text-[var(--text-primary)]">{booksForCurrentShelf().length}</span> {booksForCurrentShelf().length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
 						</p>
 					</div>
 
@@ -1078,15 +1086,15 @@
 							onOwnedFilterChange={(f) => ownedFilter = f}
 						/>
 
-						<div class="flex gap-1 border border-gray-300 rounded-lg p-1 bg-white md:bg-transparent" role="group" aria-label="View mode toggle">
+						<div class="flex gap-1 border border-[var(--border)] rounded-lg p-1 bg-[var(--surface)] md:bg-transparent" role="group" aria-label="View mode toggle">
 							<button
 								onclick={() => {
 									viewMode = 'grid';
 									umami?.track('view-mode-change', { mode: 'grid' });
 								}}
 								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'grid'
-									? 'bg-blue-600 text-white'
-									: 'text-gray-700 hover:bg-gray-100'}"
+									? 'bg-[var(--accent)] text-white'
+									: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
 								aria-label="Grid view"
 								aria-pressed={viewMode === 'grid'}
 							>
@@ -1100,8 +1108,8 @@
 									umami?.track('view-mode-change', { mode: 'list' });
 								}}
 								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'list'
-									? 'bg-blue-600 text-white'
-									: 'text-gray-700 hover:bg-gray-100'}"
+									? 'bg-[var(--accent)] text-white'
+									: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
 								aria-label="List view"
 								aria-pressed={viewMode === 'list'}
 							>
@@ -1118,7 +1126,7 @@
 								addBookError = null;
 								addBookSuccess = false;
 							}}
-							class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-400 text-gray-600 hover:border-blue-600 hover:text-blue-600 transition-colors text-xl font-bold bg-white md:bg-transparent"
+							class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors text-xl font-bold bg-[var(--surface)] md:bg-transparent"
 							aria-label="Add book manually by ISBN"
 							title="Add book by ISBN or photo of barcode"
 						>
@@ -1132,12 +1140,12 @@
 		<!-- Shelf Navigation - separate sticky element, always visible -->
 		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
 		<div
-			class="sticky z-20 -mx-4 px-4 bg-gray-100/95 backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
+			class="sticky z-20 -mx-4 px-4 shelf-nav-sticky backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
 			style="top: {headerVisible ? '60px' : '0px'};"
 		>
 			<div class="relative py-2 md:py-0">
 			<!-- Fade gradient on right edge (mobile) -->
-			<div class="absolute right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100/95 to-transparent pointer-events-none z-10 md:hidden"></div>
+			<div class="absolute right-4 top-0 bottom-0 w-8 shelf-nav-fade pointer-events-none z-10 md:hidden"></div>
 
 			<div
 				bind:this={shelfScrollContainer}
@@ -1268,21 +1276,21 @@
 		<!-- Empty State -->
 		{#if data.allBooks.length === 0}
 			<!-- No books at all -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-				<div class="text-gray-400 text-5xl mb-4">📚</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">No books yet!</h2>
-				<p class="text-gray-600 mb-4">Text an ISBN or send a photo of a barcode to (360) 504-4327 to get started.</p>
-				<div class="text-sm text-gray-500 space-y-2">
-					<p>Try texting an ISBN: <code class="bg-gray-100 px-2 py-1 rounded">9780140449136</code></p>
+			<div class="bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-8 text-center">
+				<div class="text-[var(--text-secondary)] text-5xl mb-4">📚</div>
+				<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No books yet!</h2>
+				<p class="text-[var(--text-secondary)] mb-4">Text an ISBN or send a photo of a barcode to (360) 504-4327 to get started.</p>
+				<div class="text-sm text-[var(--text-secondary)] space-y-2">
+					<p>Try texting an ISBN: <code class="bg-[var(--paper-light)] px-2 py-1 rounded">9780140449136</code></p>
 					<p>Or send a photo of a book barcode!</p>
 				</div>
 			</div>
 		{:else if displayedBooks.length === 0}
 			<!-- Shelf is empty but user has books -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-				<div class="text-gray-400 text-5xl mb-4">📖</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">No books on this shelf</h2>
-				<p class="text-gray-600">Add books to this shelf from your library, or switch to "All" to see all your books.</p>
+			<div class="bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-8 text-center">
+				<div class="text-[var(--text-secondary)] text-5xl mb-4">📖</div>
+				<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No books on this shelf</h2>
+				<p class="text-[var(--text-secondary)]">Add books to this shelf from your library, or switch to "All" to see all your books.</p>
 			</div>
 		{/if}
 
@@ -1336,12 +1344,12 @@
 									decoding="async"
 								/>
 							{:else}
-								<div class="w-full h-full bg-gradient-to-br from-stone-300 to-stone-400 flex flex-col justify-between p-4 text-white">
+								<div class="w-full h-full bg-gradient-to-br from-[var(--paper-dark)] to-[var(--terracotta)] flex flex-col justify-between p-4 text-white">
 									<div>
 										{#if book.author && book.author.length > 0}
 											<div class="text-xs font-medium opacity-90">{book.author.join(', ')}</div>
 										{/if}
-										<div class="text-sm font-serif italic leading-tight mt-1">{book.title}</div>
+										<div class="text-sm leading-tight mt-1 book-title">{book.title}</div>
 									</div>
 									{#if book.publisher}
 										<div class="text-[10px] opacity-70">{book.publisher}</div>
@@ -1369,11 +1377,11 @@
 							class="w-full h-full bg-white flex flex-col overflow-hidden"
 						>
 							<!-- Header with title/author and close button -->
-							<div class="flex items-start justify-between p-3 border-b border-stone-100">
+							<div class="flex items-start justify-between p-3 border-b border-[var(--border)]">
 								<div class="flex-1 min-w-0 pr-2">
-									<h2 class="text-base font-serif text-stone-900 leading-tight line-clamp-2">{book.title}</h2>
+									<h2 class="text-base text-[var(--text-primary)] leading-tight line-clamp-2 book-title">{book.title}</h2>
 									{#if book.author && book.author.length > 0}
-										<p class="text-sm text-stone-500 mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
+										<p class="text-sm text-[var(--text-secondary)] mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
 									{/if}
 								</div>
 								<!-- Overflow menu -->
@@ -1644,7 +1652,7 @@
 		<!-- Multimodal Add Book Modal -->
 		{#if showIsbnInput}
 			<div
-				class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+				class="fixed inset-0 bg-[var(--charcoal)]/50 flex items-center justify-center z-50 p-4"
 				role="button"
 				tabindex="0"
 				aria-label="Close add book dialog"
@@ -1677,7 +1685,7 @@
 				}}
 			>
 				<div
-					class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
+					class="bg-[var(--surface)] rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="addBookDialogTitle"
@@ -1694,11 +1702,11 @@
 					}}
 				>
 					<!-- Header - Fixed at top -->
-					<div class="flex items-center justify-between gap-4 p-4 border-b border-gray-200">
+					<div class="flex items-center justify-between gap-4 p-4 border-b border-[var(--border)]">
 						{#if detectedBooks.length > 0}
 							<button
 								type="button"
-								class="text-gray-600 hover:text-gray-800 flex items-center gap-1"
+								class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
 								aria-label="Back to search"
 								onclick={() => {
 									detectedBooks = [];
@@ -1715,15 +1723,15 @@
 								</svg>
 								<span>Back</span>
 							</button>
-							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-gray-900">
+							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-[var(--text-primary)]">
 								Select Books ({selectedBookIds.size}/{detectedBooks.length})
 							</h2>
 						{:else}
-							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-gray-900">Add Book</h2>
+							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-[var(--text-primary)]">Add Book</h2>
 						{/if}
 						<button
 							type="button"
-							class="ml-auto text-gray-500 hover:text-gray-700 p-1"
+							class="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1"
 							aria-label="Close"
 							onclick={() => {
 								showIsbnInput = false;
@@ -1754,7 +1762,7 @@
 									placeholder="ISBN, Amazon URL, Title by Author, or paste CSV/TXT for bulk import..."
 									rows="3"
 									aria-label="Book search input. Enter ISBN, Amazon URL, book title and author, paste CSV or TXT content for bulk import, or drag and drop an image"
-									class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+									class="w-full p-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] disabled:bg-[var(--paper-light)] disabled:cursor-not-allowed disabled:opacity-60"
 									disabled={isDetecting || isAddingBook}
 									ondragover={handleDragOver}
 									ondrop={handleDrop}
@@ -1783,7 +1791,7 @@
 								<button
 									onclick={triggerFileInput}
 									disabled={isDetecting || isAddingBook}
-									class="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+									class="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-[var(--border)] rounded-lg hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									📷 Take/Upload Photo or CSV
 								</button>
@@ -1803,7 +1811,7 @@
 							</div>
 
 							{#if isDetecting}
-								<div class="flex items-center gap-2 text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
+								<div class="flex items-center gap-2 text-sm text-[var(--text-secondary)] p-3 bg-[var(--paper-light)] rounded-lg">
 									<span class="animate-spin">⏳</span>
 									<span>Detecting books...</span>
 								</div>
@@ -1924,7 +1932,7 @@
 					</div>
 
 					<!-- Fixed Footer with Actions - Away from bottom edge -->
-					<div class="border-t border-gray-200 bg-gray-50 p-4 pb-6 flex gap-2 justify-end">
+					<div class="border-t border-[var(--border)] bg-[var(--paper-light)] p-4 pb-6 flex gap-2 justify-end">
 						{#if detectedBooks.length === 0}
 							<Button
 								variant="primary"
@@ -1937,7 +1945,7 @@
 						{:else}
 							<button
 								type="button"
-								class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+								class="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium"
 								onclick={() => {
 									selectedBookIds = new Set();
 									selectedShelfIds = new Set();
@@ -1965,7 +1973,7 @@
 			{@const currentBook = data.allBooks.find(b => b.id === shelfModalBookId)}
 			{#if currentBook}
 				<div
-					class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+					class="fixed inset-0 bg-[var(--charcoal)]/50 z-50 flex items-center justify-center p-4"
 					onclick={() => shelfModalBookId = null}
 					onkeydown={(e) => {
 						if (e.key === 'Escape') {
@@ -2107,7 +2115,7 @@
 <!-- Global soft success toast -->
 {#if savedFeedback}
 	<div
-		class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-800 text-white text-sm rounded-full shadow-lg z-50 pointer-events-none"
+		class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-[var(--charcoal)] text-white text-sm rounded-full shadow-lg z-50 pointer-events-none"
 		in:fade={{ duration: 150 }}
 		out:fade={{ duration: 200 }}
 	>
@@ -2118,7 +2126,7 @@
 <!-- Book Detail Modal (from FlipCard "View Details") -->
 {#if detailModalBook}
 	<div
-		class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+		class="fixed inset-0 bg-[var(--charcoal)]/50 z-50 flex items-center justify-center p-4"
 		onclick={() => detailModalBookId = null}
 		onkeydown={(e) => e.key === 'Escape' && (detailModalBookId = null)}
 		role="dialog"
@@ -2150,6 +2158,32 @@
 {/if}
 
 <style>
+	/* Shelf page design system overrides */
+	.shelf-page {
+		font-family: var(--font-sans);
+		background: var(--background);
+		color: var(--text-primary);
+	}
+
+	.header-sticky {
+		background: var(--background);
+	}
+
+	.shelf-nav-sticky {
+		background: color-mix(in srgb, var(--background) 95%, transparent);
+	}
+
+	.shelf-nav-fade {
+		background: linear-gradient(to left, var(--background) 0%, transparent 100%);
+	}
+
+	/* Book title styling - Lora italic */
+	.shelf-page :global(.book-title),
+	.shelf-page :global(.font-serif) {
+		font-family: var(--font-serif);
+		font-style: italic;
+	}
+
 	/* Highlight pulse animation for search jump-to */
 	:global(.highlight-pulse) {
 		animation: pulse 0.6s ease-out;
@@ -2157,13 +2191,13 @@
 
 	@keyframes pulse {
 		0% {
-			box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+			box-shadow: 0 0 0 0 rgba(196, 166, 124, 0.5);
 		}
 		70% {
-			box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+			box-shadow: 0 0 0 12px rgba(196, 166, 124, 0);
 		}
 		100% {
-			box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+			box-shadow: 0 0 0 0 rgba(196, 166, 124, 0);
 		}
 	}
 
