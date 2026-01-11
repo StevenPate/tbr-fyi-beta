@@ -12,6 +12,13 @@ import { supabase } from '$lib/server/supabase';
 import { fetchBookMetadata, toISBN13, InvalidISBNError, searchBooks } from '$lib/server/metadata';
 import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '$env/static/private';
 import { extractISBNFromAmazon } from '$lib/server/amazon-parser';
+import {
+	extractISBNFromRetailer,
+	containsRetailerUrl,
+	extractISBNFromIndiecommerce,
+	isIndiecommerceUrl,
+	isUnsupportedBookstoreUrl
+} from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
 import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl } from '$lib/server/sms-messages';
 import { logger, logBookAddition, logUserEvent, logError, startTimer } from '$lib/server/logger';
@@ -632,7 +639,42 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 		}
 
-		// 3. Check if it's a plain ISBN (10 or 13 digits)
+		// 3. Check if it's a retailer link (Bookshop.org, Barnes & Noble)
+		if (!isbn && body && containsRetailerUrl(body)) {
+			console.log('Processing retailer URL:', body);
+			const result = await extractISBNFromRetailer(body, 'sms');
+
+			if (!result) {
+				// Detect which retailer for better error message
+				const retailer = body.includes('barnesandnoble.com')
+					? 'Barnes & Noble'
+					: 'Bookshop.org';
+				return twimlResponse(SMS_MESSAGES.retailerNoIsbn(retailer));
+			}
+
+			isbn = result.isbn;
+			console.log(`Successfully extracted ISBN from ${result.retailer}:`, isbn);
+		}
+
+		// 4. Check if it's an Indiecommerce link (/book/{ISBN} pattern)
+		if (!isbn && body && isIndiecommerceUrl(body)) {
+			console.log('Processing Indiecommerce URL:', body);
+			const result = await extractISBNFromIndiecommerce(body, 'sms');
+
+			if (result) {
+				isbn = result.isbn;
+				console.log(`Successfully extracted ISBN from ${result.retailer}:`, isbn);
+			}
+			// If no ISBN extracted, fall through to other checks
+		}
+
+		// 5. Check if it's an unsupported bookstore link (can't extract ISBN)
+		if (!isbn && body && isUnsupportedBookstoreUrl(body)) {
+			console.log('Unsupported bookstore URL detected:', body);
+			return twimlResponse(SMS_MESSAGES.UNSUPPORTED_BOOKSTORE);
+		}
+
+		// 6. Check if it's a plain ISBN (10 or 13 digits)
 		if (!isbn && body) {
 			const cleaned = body.replace(/[^0-9Xx]/g, '');
 			if (cleaned.length === 10 || cleaned.length === 13) {

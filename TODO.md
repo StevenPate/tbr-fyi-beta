@@ -33,6 +33,7 @@
 - [ ] Parse Goodreads links for ISBN extraction
 
 ### Done
+- [x] Retailer link parsing (Bookshop.org, Barnes & Noble, Indiecommerce `/book/{ISBN}`)
 - [x] Design system implementation with CSS tokens and Tailwind integration
 - [x] Homepage carousel and returning user experience
 - [x] CSV Export (Goodreads format): `docs/plans/csv-export-specification.md`
@@ -66,6 +67,7 @@
 - [ ] Store/cache images (CDN)
 - [ ] Handle rate limiting systematically
 - [ ] Improve usage tracking/analytics
+- [ ] Add structured logging for URL parsing (retailer links, Indiecommerce, unsupported bookstores) with success/failure metrics
 - [ ] Production hardening for bulk import (Phase 3): `docs/designs/BULK_IMPORT_PLAN.md`
 - [ ] SMS multi-photo processing (Phase 2): `docs/designs/BULK_OPERATIONS_PLAN.md`
 

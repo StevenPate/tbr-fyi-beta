@@ -1,6 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { toISBN13, InvalidISBNError, fetchBookMetadata, searchBooks } from '$lib/server/metadata';
 import { extractISBNFromAmazon } from '$lib/server/amazon-parser';
+import {
+	extractISBNFromRetailer,
+	containsRetailerUrl,
+	extractISBNFromIndiecommerce,
+	isIndiecommerceUrl,
+	isUnsupportedBookstoreUrl
+} from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
 import { logger, startTimer } from '$lib/server/logger';
 
@@ -95,6 +102,40 @@ export const POST = async ({ request }: any) => {
 					return json({ error: 'Could not extract ISBN from Amazon URL' }, { status: 400 });
 				}
 				isbns = [isbn];
+			}
+			// Try retailer URL parser (Bookshop.org, Barnes & Noble)
+			else if (containsRetailerUrl(content as string)) {
+				const result = await extractISBNFromRetailer(content as string, 'web');
+				if (!result) {
+					const retailer = (content as string).includes('barnesandnoble.com')
+						? 'Barnes & Noble'
+						: 'Bookshop.org';
+					return json(
+						{
+							error: `That ${retailer} link doesn't include the ISBN. Try a link with ?ean= in the URL, or enter the ISBN directly.`
+						},
+						{ status: 400 }
+					);
+				}
+				isbns = [result.isbn];
+			}
+			// Check for Indiecommerce links (/book/{ISBN} pattern)
+			else if (isIndiecommerceUrl(content as string)) {
+				const result = await extractISBNFromIndiecommerce(content as string, 'web');
+				if (result) {
+					isbns = [result.isbn];
+				}
+				// If no ISBN extracted, fall through to other checks
+			}
+			// Check for unsupported bookstore links
+			else if (!isbns.length && isUnsupportedBookstoreUrl(content as string)) {
+				return json(
+					{
+						error:
+							"I can't read ISBNs from that bookstore's links. Try entering the title and author, or copy the ISBN/EAN from the page."
+					},
+					{ status: 400 }
+				);
 			}
 			else {
 				// Treat as free-text search: try to split "title by author" heuristically

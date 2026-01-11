@@ -1,5 +1,41 @@
 # Development Log
 
+## 2026-01-10 - Retailer Link Parsing (Bookshop.org, Barnes & Noble, Indiecommerce)
+
+### Added ISBN extraction from retailer URLs for SMS and web
+- **Goal**: Allow users to add books via links from popular book retailers, not just Amazon
+- **Implementation**:
+  - Created `src/lib/server/bookshop-parser.ts` with multiple extraction functions
+  - `extractISBNFromRetailer()` - Extracts ISBN from `?ean=` query parameter (Bookshop.org, Barnes & Noble)
+  - `extractISBNFromIndiecommerce()` - Extracts ISBN from `/book/{ISBN}` URL path pattern
+  - `isUnsupportedBookstoreUrl()` - Detects bookstores that can't be parsed (e.g., `/item/` pattern)
+  - Helper functions: `containsRetailerUrl()`, `isIndiecommerceUrl()`
+- **Supported URL patterns**:
+  - `https://bookshop.org/p/books/{slug}?ean={ISBN13}` → extracts from query param
+  - `https://www.barnesandnoble.com/w/{slug}?ean={ISBN13}` → extracts from query param
+  - `https://{indie-store}/book/{ISBN13}` → extracts from URL path (Indiecommerce pattern)
+- **Error handling**:
+  - Missing `?ean=` parameter → friendly message suggesting alternative input methods
+  - Unsupported bookstores (JS-rendered sites) → helpful message without mentioning technical details
+  - Invalid ISBN in URL → returns null, falls through to title search
+- **SMS messages** (`src/lib/server/sms-messages.ts`):
+  - `retailerNoIsbn(retailer)` - Dynamic message for missing EAN
+  - `UNSUPPORTED_BOOKSTORE` - Guidance for unsupported bookstore links
+- **Integration**:
+  - SMS endpoint: Added detection steps after Amazon, before plain ISBN check
+  - Web endpoint: Added else-if blocks for retailer and Indiecommerce URLs
+- **Detection order in SMS flow**:
+  1. MMS photos (barcode scanning)
+  2. Amazon links
+  3. Retailer links (Bookshop.org, Barnes & Noble)
+  4. Indiecommerce links (`/book/{ISBN}` pattern)
+  5. Unsupported bookstore detection
+  6. Plain ISBN
+  7. Title/author search
+- **Files created**: `src/lib/server/bookshop-parser.ts`
+- **Files modified**: `src/lib/server/sms-messages.ts`, `src/routes/api/sms/+server.ts`, `src/routes/api/books/detect/+server.ts`
+- **Future**: Added TODO item for structured logging of URL parsing with success/failure metrics
+
 ## 2026-01-10 - Design System & Homepage Refresh
 
 ### Implemented paper-inspired design system with CSS custom properties

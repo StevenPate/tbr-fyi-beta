@@ -136,6 +136,14 @@ export const SMS_MESSAGES = {
 	AMAZON_PARSE_ERROR:
 		'Had trouble reading that Amazon link. Try the ISBN directly?',
 
+	// === Retailer Link Processing (Bookshop.org, Barnes & Noble) ===
+	retailerNoIsbn: (retailer: string) =>
+		`That ${retailer} link doesn't include the ISBN. Try sharing a link with ?ean= in the URL, or text the ISBN directly.`,
+
+	// === Unsupported Bookstore Links ===
+	UNSUPPORTED_BOOKSTORE:
+		"I can't read ISBNs from that bookstore's links. Try texting the title and author (e.g., \"The Queen of Swords by Jazmina Barrera\") or copy the ISBN/EAN from the page.",
+
 	// === ISBN Validation Errors ===
 	invalidIsbn: (reason: string) =>
 		`Invalid ISBN: ${reason}`,
