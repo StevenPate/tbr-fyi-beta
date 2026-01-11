@@ -107,7 +107,8 @@ export const POST = async ({ request }: any) => {
 			else if (containsRetailerUrl(content as string)) {
 				const result = await extractISBNFromRetailer(content as string, 'web');
 				if (!result) {
-					const retailer = (content as string).includes('barnesandnoble.com')
+					// Case-insensitive retailer detection for accurate error message
+					const retailer = (content as string).toLowerCase().includes('barnesandnoble.com')
 						? 'Barnes & Noble'
 						: 'Bookshop.org';
 					return json(

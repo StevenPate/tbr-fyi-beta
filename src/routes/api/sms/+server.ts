@@ -645,8 +645,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			const result = await extractISBNFromRetailer(body, 'sms');
 
 			if (!result) {
-				// Detect which retailer for better error message
-				const retailer = body.includes('barnesandnoble.com')
+				// Detect which retailer for better error message (case-insensitive)
+				const lowerBody = body.toLowerCase();
+				const retailer = lowerBody.includes('barnesandnoble.com')
 					? 'Barnes & Noble'
 					: 'Bookshop.org';
 				return twimlResponse(SMS_MESSAGES.retailerNoIsbn(retailer));

@@ -84,7 +84,8 @@ export async function extractISBNFromBookshop(
  */
 export function containsRetailerUrl(text: string): boolean {
 	const domains = Object.keys(RETAILER_DOMAINS);
-	return domains.some((domain) => text.includes(domain));
+	const lowerText = text.toLowerCase();
+	return domains.some((domain) => lowerText.includes(domain));
 }
 
 /**
