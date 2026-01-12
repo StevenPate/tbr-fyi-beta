@@ -19,7 +19,7 @@ interface BookShelfJoin {
 	} | null;
 }
 
-export const GET: RequestHandler = async ({ request }) => {
+export const GET: RequestHandler = async ({ request, url }) => {
 	try {
 		// Extract identifier from referer (could be username, phone, or email_user_*)
 		const identifier = requireUserId(request);
@@ -28,6 +28,36 @@ export const GET: RequestHandler = async ({ request }) => {
 		const userId = await resolveIdentifierToUserId(identifier);
 		if (!userId) {
 			return json({ error: 'User not found' }, { status: 404 });
+		}
+
+		// Parse optional shelf filter from query params
+		const shelfId = url.searchParams.get('shelf');
+		let shelfName: string | null = null;
+		let bookIdsOnShelf: Set<string> | null = null;
+
+		// Resolve shelf ID to book IDs (avoids brittle nested Supabase filter syntax)
+		if (shelfId) {
+			// Verify shelf exists and belongs to this user
+			const { data: shelf, error: shelfError } = await supabase
+				.from('shelves')
+				.select('id, name')
+				.eq('id', shelfId)
+				.eq('user_id', userId)
+				.single();
+
+			if (shelfError || !shelf) {
+				return json({ error: 'Shelf not found' }, { status: 400 });
+			}
+
+			shelfName = shelf.name;
+
+			// Get book IDs on this shelf
+			const { data: bookShelves } = await supabase
+				.from('book_shelves')
+				.select('book_id')
+				.eq('shelf_id', shelfId);
+
+			bookIdsOnShelf = new Set((bookShelves || []).map((bs) => bs.book_id));
 		}
 
 		// Query books with joined shelf data
@@ -42,12 +72,19 @@ export const GET: RequestHandler = async ({ request }) => {
 			return json({ error: 'Failed to fetch books' }, { status: 500 });
 		}
 
+		// Filter books by shelf if filtering
+		let filteredBooks = books || [];
+		if (bookIdsOnShelf) {
+			filteredBooks = filteredBooks.filter((book) => bookIdsOnShelf!.has(book.id));
+		}
+
 		// Transform database rows to clean JSON structure
 		const exportData = {
 			exportedAt: new Date().toISOString(),
 			userId: userId,
-			totalBooks: books?.length || 0,
-			books: (books || []).map((book) => ({
+			...(shelfName && { shelfFilter: shelfName }),
+			totalBooks: filteredBooks.length,
+			books: filteredBooks.map((book) => ({
 				isbn13: book.isbn13,
 				title: book.title,
 				author: book.author,
@@ -60,14 +97,22 @@ export const GET: RequestHandler = async ({ request }) => {
 				isOwned: book.is_owned,
 				shelves: (book.book_shelves || [])
 					.map((bs: BookShelfJoin) => bs.shelves?.name)
-					.filter((name: string | null | undefined): name is string => name !== null),
+					.filter((name: string | null | undefined): name is string => typeof name === 'string'),
 				addedAt: book.added_at
 			}))
 		};
 
-		// Generate filename with current date
+		// Generate filename with current date and optional shelf name
 		const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-		const filename = `tbr-export-${date}.json`;
+		const sanitizedShelfName = shelfName
+			? shelfName
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, '-')
+					.replace(/^-|-$/g, '')
+			: null;
+		const filename = sanitizedShelfName
+			? `tbr-export-${sanitizedShelfName}-${date}.json`
+			: `tbr-export-${date}.json`;
 
 		// Return JSON with download headers
 		return new Response(JSON.stringify(exportData, null, 2), {

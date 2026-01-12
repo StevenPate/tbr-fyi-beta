@@ -26,6 +26,10 @@
 	let creatingShelf = $state(false);
 	let selectedBookForShelfMenu = $state<string | null>(null);
 
+	// Export state
+	let exportingShelfId = $state<string | null>(null);
+	let exportError = $state<string | null>(null);
+
 	// Detect if current visitor is likely the shelf owner
 	let isOwner = $state(false);
 
@@ -706,6 +710,53 @@
 		}
 	}
 
+	async function exportShelf(shelfId: string, shelfName: string, format: 'csv' | 'json' = 'csv') {
+		exportingShelfId = shelfId;
+		exportError = null;
+
+		const endpoint =
+			format === 'csv' ? `/api/export/csv?shelf=${shelfId}` : `/api/export?shelf=${shelfId}`;
+		const sanitizedName = shelfName
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '');
+		const defaultFilename =
+			format === 'csv' ? `tbr-export-${sanitizedName}.csv` : `tbr-export-${sanitizedName}.json`;
+
+		try {
+			const response = await fetch(endpoint);
+
+			if (!response.ok) {
+				const result = await response.json();
+				exportError = result.error || 'Export failed';
+				return;
+			}
+
+			// Trigger download
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+
+			const contentDisposition = response.headers.get('Content-Disposition');
+			const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+			const filename = filenameMatch?.[1] || defaultFilename;
+
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+
+			showSavedFeedback(`Exported ${shelfName}`);
+		} catch (error) {
+			console.error('Export error:', error);
+			exportError = 'Export failed. Please try again.';
+		} finally {
+			exportingShelfId = null;
+		}
+	}
+
 	function detectInputType(text: string, file: File | null): 'text' | 'image' | 'file' | 'invalid' {
 		if (file) {
 			const fileName = file.name.toLowerCase();
@@ -1193,6 +1244,29 @@
 						>
 							×
 						</button>
+						{#if selectedShelfId === shelf.id}
+							<button
+								onclick={(e: MouseEvent) => {
+									e.stopPropagation();
+									exportShelf(shelf.id, shelf.name, 'csv');
+								}}
+								disabled={exportingShelfId === shelf.id || deletingShelfId === shelf.id}
+								class="px-2 self-stretch flex items-center hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-stone-800 text-stone-300 group-hover:bg-stone-700"
+								aria-label={`Export shelf ${shelf.name}`}
+								title="Export as CSV"
+							>
+								{#if exportingShelfId === shelf.id}
+									<svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+									</svg>
+								{:else}
+									<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+									</svg>
+								{/if}
+							</button>
+						{/if}
 					</div>
 				{/each}
 
@@ -1270,6 +1344,21 @@
 		{#if data.error}
 			<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
 				<p class="text-red-800">Error: {data.error}</p>
+			</div>
+		{/if}
+
+		<!-- Export Error Message -->
+		{#if exportError}
+			<div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4" role="alert" transition:fade={{ duration: 200 }}>
+				<div class="flex items-center justify-between gap-2">
+					<p class="text-sm text-red-800">{exportError}</p>
+					<button
+						onclick={() => exportError = null}
+						class="text-xs text-red-600 hover:text-red-800 underline"
+					>
+						Dismiss
+					</button>
+				</div>
 			</div>
 		{/if}
 

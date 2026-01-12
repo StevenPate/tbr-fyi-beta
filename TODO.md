@@ -31,8 +31,10 @@
 
 ### Migration Path
 - [ ] Parse Goodreads links for ISBN extraction
+- [ ] Scrape curated book list pages (e.g., `ptreyesbooks.com/list/...`) to extract individual book URLs
 
 ### Done
+- [x] Per-shelf export (CSV/JSON): `docs/plans/2026-01-11-json-per-shelf-export-spec.md`
 - [x] Retailer link parsing (Bookshop.org, Barnes & Noble, Indiecommerce `/book/{ISBN}`)
 - [x] Design system implementation with CSS tokens and Tailwind integration
 - [x] Homepage carousel and returning user experience
@@ -87,6 +89,7 @@
 ## Completed
 
 ### January 2026
+- [x] Per-shelf export with download button on active shelf pill
 - [x] Design system with CSS custom properties and Tailwind integration (`docs/design-system.md`)
 - [x] Homepage carousel (swipeable SMS/shelf mockup) with returning user experience
 - [x] On-demand sign-in prompt for expired sessions

@@ -20,6 +20,7 @@ interface BookShelfJoin {
 }
 
 interface BookRow {
+	id: string;
 	isbn13: string;
 	title: string;
 	author: string[] | null;
@@ -69,7 +70,7 @@ const GOODREADS_HEADERS = [
 	'BCID'
 ];
 
-export const GET: RequestHandler = async ({ request }) => {
+export const GET: RequestHandler = async ({ request, url }) => {
 	try {
 		// Extract identifier from referer (could be username, phone, or email_user_*)
 		const identifier = requireUserId(request);
@@ -81,6 +82,39 @@ export const GET: RequestHandler = async ({ request }) => {
 				status: 404,
 				headers: { 'Content-Type': 'application/json' }
 			});
+		}
+
+		// Parse optional shelf filter from query params
+		const shelfId = url.searchParams.get('shelf');
+		let shelfName: string | null = null;
+		let bookIdsOnShelf: Set<string> | null = null;
+
+		// Resolve shelf ID to book IDs (avoids brittle nested Supabase filter syntax)
+		if (shelfId) {
+			// Verify shelf exists and belongs to this user
+			const { data: shelf, error: shelfError } = await supabase
+				.from('shelves')
+				.select('id, name')
+				.eq('id', shelfId)
+				.eq('user_id', userId)
+				.single();
+
+			if (shelfError || !shelf) {
+				return new Response(JSON.stringify({ error: 'Shelf not found' }), {
+					status: 400,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			}
+
+			shelfName = shelf.name;
+
+			// Get book IDs on this shelf
+			const { data: bookShelves } = await supabase
+				.from('book_shelves')
+				.select('book_id')
+				.eq('shelf_id', shelfId);
+
+			bookIdsOnShelf = new Set((bookShelves || []).map((bs) => bs.book_id));
 		}
 
 		// Query books with joined shelf data
@@ -98,10 +132,25 @@ export const GET: RequestHandler = async ({ request }) => {
 			});
 		}
 
-		const csv = generateGoodreadsCSV((books as BookRow[]) || []);
+		// Filter books by shelf if filtering
+		let filteredBooks = (books as BookRow[]) || [];
+		if (bookIdsOnShelf) {
+			filteredBooks = filteredBooks.filter((book) => bookIdsOnShelf!.has(book.id));
+		}
 
+		const csv = generateGoodreadsCSV(filteredBooks);
+
+		// Generate filename with current date and optional shelf name
 		const date = new Date().toISOString().split('T')[0];
-		const filename = `tbr-export-${date}.csv`;
+		const sanitizedShelfName = shelfName
+			? shelfName
+					.toLowerCase()
+					.replace(/[^a-z0-9]+/g, '-')
+					.replace(/^-|-$/g, '')
+			: null;
+		const filename = sanitizedShelfName
+			? `tbr-export-${sanitizedShelfName}-${date}.csv`
+			: `tbr-export-${date}.csv`;
 
 		return new Response(csv, {
 			headers: {

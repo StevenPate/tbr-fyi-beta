@@ -1,5 +1,29 @@
 # Development Log
 
+## 2026-01-11 - Per-Shelf Export
+
+### Added ability to export individual shelves as CSV or JSON
+- **Goal**: Allow users to export subsets of their library filtered by shelf for workflows like FBA listings, wholesale pricing lookups, or consignment packing lists
+- **Implementation**:
+  - Added `?shelf={shelfId}` query parameter to both `/api/export` (JSON) and `/api/export/csv` endpoints
+  - Two-step filtering approach: resolve shelf ID → book IDs via `book_shelves` table → filter books array (avoids brittle nested Supabase filter syntax)
+  - Shelf validation ensures shelf exists and belongs to requesting user
+  - JSON output includes `shelfFilter` field with shelf name when filtered
+  - Filename includes shelf name: `tbr-export-{shelf-name}-{date}.{csv|json}`
+- **UI changes**:
+  - Download button (arrow + tray icon) appears only on the active/selected shelf pill
+  - Clicking triggers CSV export of that shelf
+  - Loading spinner shows during export
+  - Error banner with dismiss button (not alert())
+  - Success feedback via existing toast system
+- **Bug fixes**:
+  - Fixed shelf name filter to exclude both `null` and `undefined` (was only checking `!== null`)
+- **Files modified**:
+  - `src/routes/api/export/+server.ts` - Added shelf filtering, shelfFilter field, filename generation
+  - `src/routes/api/export/csv/+server.ts` - Added shelf filtering, added `id` to BookRow interface
+  - `src/routes/[identifier]/+page.svelte` - Added export button, handler, error display
+- **Spec**: `docs/plans/2026-01-11-json-per-shelf-export-spec.md`
+
 ## 2026-01-10 - Retailer Link Parsing (Bookshop.org, Barnes & Noble, Indiecommerce)
 
 ### Added ISBN extraction from retailer URLs for SMS and web
