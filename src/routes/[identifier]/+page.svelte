@@ -1209,7 +1209,7 @@
 		>
 			<div class="relative py-2 md:py-0">
 			<!-- Fade gradient on right edge (mobile) -->
-			<div class="absolute right-4 top-0 bottom-0 w-8 shelf-nav-fade pointer-events-none z-10 md:hidden"></div>
+			<div class="absolute right-0 top-0 bottom-0 w-8 shelf-nav-fade pointer-events-none z-10 md:hidden"></div>
 
 			<div
 				bind:this={shelfScrollContainer}
@@ -1309,14 +1309,14 @@
 						<span class="hidden md:inline">+ New Shelf</span>
 					</Button>
 				{:else}
-					<div class="flex gap-2">
+					<div class="flex gap-2 flex-shrink-0">
 						<Input
 							size="md"
 							type="text"
 							bind:value={newShelfName}
 							placeholder="Shelf name"
 							onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && createShelf()}
-							class="w-48"
+							class="w-32 md:w-48 flex-shrink-0"
 						/>
 						<Button variant="primary" size="md" onclick={createShelf}>
 							Create
