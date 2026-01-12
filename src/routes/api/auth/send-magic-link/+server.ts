@@ -16,13 +16,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'Email is required' }, { status: 400 });
 		}
 
+		// Normalize email to lowercase for consistent storage/lookup
+		const normalizedEmail = email.toLowerCase().trim();
+
 		// Comprehensive email validation
 		// - Must have local part, @, domain, and TLD
 		// - Local part allows typical characters
 		// - Domain allows subdomains
 		// - TLD must be 2+ characters
 		const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-		if (!emailRegex.test(email) || email.length > 254) {
+		if (!emailRegex.test(normalizedEmail) || normalizedEmail.length > 254) {
 			return json({ error: 'Invalid email address' }, { status: 400 });
 		}
 
@@ -32,7 +35,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		}
 
 		// Check identifier rate limit (5 per day)
-		const rateLimitError = await checkIdentifierRateLimit(email);
+		const rateLimitError = await checkIdentifierRateLimit(normalizedEmail);
 		if (rateLimitError) {
 			return json({ error: rateLimitError }, { status: 429 });
 		}
@@ -41,7 +44,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		await supabase
 			.from('verification_codes')
 			.delete()
-			.eq('identifier', email)
+			.eq('identifier', normalizedEmail)
 			.eq('code_type', 'email_token')
 			.is('used_at', null);
 
@@ -50,7 +53,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		// Store token with proper code_type
 		const { error: insertError } = await supabase.from('verification_codes').insert({
-			identifier: email,
+			identifier: normalizedEmail,
 			code: token,
 			code_type: 'email_token', // REQUIRED: Must specify email_token type
 			ip_address: ip
@@ -62,12 +65,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		}
 
 		// Generate magic link
-		const link = `${PUBLIC_BASE_URL}/auth/confirm?token=${token}&email=${encodeURIComponent(email)}`;
+		const link = `${PUBLIC_BASE_URL}/auth/confirm?token=${token}&email=${encodeURIComponent(normalizedEmail)}`;
 
 		// Send email (placeholder logs to console in dev)
 		try {
 			const emailBody = generateMagicLinkEmail(link);
-			await sendEmail(email, 'Verify your email - TBR.fyi', emailBody);
+			await sendEmail(normalizedEmail, 'Verify your email - TBR.fyi', emailBody);
 
 			return json({ success: true });
 		} catch (emailError) {

@@ -13,12 +13,15 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 		throw redirect(303, '/auth/verify-email?error=invalid_link');
 	}
 
+	// Normalize email to lowercase for consistent lookup
+	const normalizedEmail = email.toLowerCase().trim();
+
 	try {
 		// Verify token (check it exists and is valid)
 		const { data: verificationCode } = await supabase
 			.from('verification_codes')
 			.select('*')
-			.eq('identifier', email)
+			.eq('identifier', normalizedEmail)
 			.eq('code', token)
 			.eq('code_type', 'email_token') // Must check email_token type
 			.is('used_at', null)
@@ -36,7 +39,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 			.eq('id', verificationCode.id);
 
 		// Get or create user - handles existing email users correctly!
-		const user = await getOrCreateUser({ email });
+		const user = await getOrCreateUser({ email: normalizedEmail });
 
 		// Create session with phone_number as user_id
 		const { token: sessionToken, hash } = generateSessionToken();
@@ -77,8 +80,8 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 			throw redirect(303, `/${user.username}`);
 		}
 	} catch (error) {
-		// If it's already a redirect, re-throw it
-		if (error instanceof Response && error.status >= 300 && error.status < 400) {
+		// If it's already a redirect (SvelteKit Redirect object), re-throw it
+		if (error && typeof error === 'object' && 'status' in error && 'location' in error) {
 			throw error;
 		}
 
