@@ -24,6 +24,16 @@
   - `src/routes/[identifier]/+page.svelte` - Added export button, handler, error display
 - **Spec**: `docs/plans/2026-01-11-json-per-shelf-export-spec.md`
 
+### Settings gear icon with progressive disclosure
+- **Goal**: Make settings more discoverable without cluttering the header
+- **Implementation**:
+  - Gear icon appears next to the "User's Reading List" title
+  - Mobile: Always visible at 40% opacity, 100% on tap
+  - Desktop: Hidden by default → 40% on title hover → 100% on gear hover
+  - Links to `/{identifier}/settings`
+- **Pattern**: Progressive disclosure keeps UI clean while ensuring discoverability
+- **Files modified**: `src/routes/[identifier]/+page.svelte`
+
 ## 2026-01-10 - Retailer Link Parsing (Bookshop.org, Barnes & Noble, Indiecommerce)
 
 ### Added ISBN extraction from retailer URLs for SMS and web
