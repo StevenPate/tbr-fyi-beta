@@ -20,6 +20,7 @@
 - [ ] Cover photo OCR prototype: collect 50+ cover photos, test Vision API, go/no-go decision (`docs/plans/cover-photo-recognition.md`)
 
 ### Growth & Sharing
+- [ ] StoryGraph portability messaging & import guide (`docs/plans/2026-01-23-storygraph-portability-design.md`)
 - [ ] Share shelf publicly (read-only URL)
 - [ ] Add screenshots or demo GIF to README
 
@@ -27,6 +28,8 @@
 - [ ] Paginate or infinite scroll for long lists
 
 ### Polish & Trust
+- [ ] Put read and owned pills on card
+- [ ] Mitigate delay after click for "add/remove from shelf" checkboxes
 - [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
 
 ### Migration Path
