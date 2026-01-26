@@ -332,6 +332,13 @@
 				<p class="text-base md:text-sm text-stone-400 mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
 			{/if}
 
+			<!-- Note preview (collapsed only) -->
+			{#if !expanded && book.note}
+				<p class="text-sm text-stone-500 mt-1.5 line-clamp-1 italic">
+					"{book.note}"
+				</p>
+			{/if}
+
 			<!-- Publisher/year and status (only when expanded) -->
 			{#if expanded}
 				{#if book.publisher || publicationYear}
