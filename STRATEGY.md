@@ -12,11 +12,13 @@
 ### The Core Insight
 
 ```
-Podcast mention → 5 seconds to capture → or it's forgotten
+Podcast mention → 5 seconds to capture → or the context is forgotten
 ```
 
+Goodreads captures *what* book you want. TBR.fyi captures *what + why*.
+
 Goodreads requires: Open app → Search → Find edition → Add to shelf (30+ seconds, high friction)
-TBR.fyi requires: Text ISBN or title → Done (5 seconds, zero friction)
+TBR.fyi requires: Text ISBN or title → Add note → Done (10 seconds, context preserved)
 
 ---
 
@@ -63,6 +65,7 @@ Features that help validate personal utility:
 - ✅ Web dashboard for management
 - ✅ Custom shelves
 - ✅ Bulk import (Goodreads CSV)
+- ✅ Intent capture (note prompts after save, source tracking)
 - 🔄 Edition finder (reduces capture friction)
 - 🔄 Better error messages (helps users recover)
 
@@ -135,6 +138,7 @@ Why: Measures utility, drives bookstore value, attracts developers.
 | Books per user per month | How engaged are users? |
 | SMS vs. Web capture ratio | Is SMS the right primary interface? |
 | Capture success rate | Is the UX working? |
+| Note attachment rate | Are users capturing context (the "why")? |
 
 ---
 

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fade, slide } from 'svelte/transition';
 	import JsBarcode from 'jsbarcode';
+	import ReactionChips from './ReactionChips.svelte';
+	import { composeNote } from './reaction-chips';
 
 	interface Book {
 		id: string;
@@ -69,7 +71,9 @@
 	let noteEditing = $state(false);
 	let noteValue = $state(book.note || '');
 	let tempNoteValue = $state('');
+	let selectedChips = $state<Set<string>>(new Set());
 	let menuOpen = $state(false);
+	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
 	// Sync noteValue with book.note when it changes externally (e.g., after invalidateAll)
 	// Don't overwrite if user is actively editing
@@ -190,12 +194,16 @@
 	// Handle note editing
 	function startEditingNote() {
 		tempNoteValue = noteValue;
+		selectedChips = new Set();
 		noteEditing = true;
 	}
 
 	function saveNote() {
-		noteValue = tempNoteValue;
+		// Compose final note from chips + custom text
+		const finalNote = composeNote(selectedChips, tempNoteValue);
+		noteValue = finalNote;
 		noteEditing = false;
+		selectedChips = new Set();
 		if (onUpdateNote) {
 			onUpdateNote(book.id, noteValue);
 			showSavedFeedback('Note saved');
@@ -204,7 +212,22 @@
 
 	function cancelNoteEdit() {
 		tempNoteValue = '';
+		selectedChips = new Set();
 		noteEditing = false;
+	}
+
+	function toggleChip(chipId: string) {
+		const newSet = new Set(selectedChips);
+		if (newSet.has(chipId)) {
+			newSet.delete(chipId);
+		} else {
+			newSet.add(chipId);
+		}
+		selectedChips = newSet;
+	}
+
+	function focusTextarea() {
+		textareaRef?.focus();
 	}
 
 	// Copy ISBN
@@ -455,14 +478,20 @@
 							+ Add a note for future you
 						</button>
 					{:else if noteEditing}
-						<div class="relative">
+						<div class="relative space-y-3">
+							<ReactionChips
+								selected={selectedChips}
+								onToggle={toggleChip}
+								onOtherClick={focusTextarea}
+							/>
 							<textarea
+								bind:this={textareaRef}
 								bind:value={tempNoteValue}
 								placeholder="What caught your attention about this one?"
 								class="w-full text-sm text-stone-600 placeholder-stone-400 border border-stone-200 rounded-lg p-3 focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
 								rows={2}
 							></textarea>
-							<div class="flex justify-end gap-2 mt-2">
+							<div class="flex justify-end gap-2">
 								<button
 									onclick={cancelNoteEdit}
 									class="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-700 transition-colors"

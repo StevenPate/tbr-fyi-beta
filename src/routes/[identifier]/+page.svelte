@@ -6,6 +6,8 @@
 	import { fade, scale } from 'svelte/transition';
 	import { Card, FlipCard, Button, Input, Badge, SearchBar } from '$lib/components/ui';
 	import ShareModal from '$lib/components/ui/ShareModal.svelte';
+	import ReactionChips from '$lib/components/ui/ReactionChips.svelte';
+	import { composeNote } from '$lib/components/ui/reaction-chips';
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
@@ -198,6 +200,14 @@
 	let showShelfSelection = $state(false);
 	let isDetecting = $state(false);
 	let detectError = $state<string | null>(null);
+
+	// Note step state (for single book adds)
+	let showNoteStep = $state(false);
+	let addedBookForNote = $state<DetectedBook | null>(null);
+	let addedBookId = $state<string | null>(null);
+	let noteChips = $state<Set<string>>(new Set());
+	let noteText = $state('');
+	let noteTextarea: HTMLTextAreaElement | null = null;
 	let fileInput: HTMLInputElement | null = null;
 	let queryInput: HTMLTextAreaElement | null = null;
 
@@ -930,18 +940,46 @@
 				await invalidateAll();
 			}
 
-			addBookSuccess = true;
-			setTimeout(() => {
-				showIsbnInput = false;
-				inputText = '';
-				selectedFile = null;
-				detectedBooks = [];
-				selectedBookIds = new Set();
-				selectedShelfIds = new Set();
-				showShelfSelection = false;
-				addBookSuccess = false;
-				detectError = null;
-			}, 2000);
+			// For single book adds, show note step
+			// For multi-book adds, skip note step entirely (avoid friction)
+			if (booksToAdd.length === 1) {
+				const addedBook = data.allBooks.find(b => b.isbn13 === booksToAdd[0].isbn13);
+				if (addedBook) {
+					addedBookForNote = booksToAdd[0];
+					addedBookId = addedBook.id;
+					noteChips = new Set();
+					noteText = '';
+					showNoteStep = true;
+				} else {
+					// Couldn't find added book, just close
+					addBookSuccess = true;
+					setTimeout(() => {
+						showIsbnInput = false;
+						inputText = '';
+						selectedFile = null;
+						detectedBooks = [];
+						selectedBookIds = new Set();
+						selectedShelfIds = new Set();
+						showShelfSelection = false;
+						addBookSuccess = false;
+						detectError = null;
+					}, 2000);
+				}
+			} else {
+				// Multi-book add: show success and close
+				addBookSuccess = true;
+				setTimeout(() => {
+					showIsbnInput = false;
+					inputText = '';
+					selectedFile = null;
+					detectedBooks = [];
+					selectedBookIds = new Set();
+					selectedShelfIds = new Set();
+					showShelfSelection = false;
+					addBookSuccess = false;
+					detectError = null;
+				}, 2000);
+			}
 		} catch (error) {
 			console.error('Error adding books:', error);
 			detectError = 'Failed to add books. Please try again.';
@@ -999,6 +1037,64 @@
 		} finally {
 			isAddingBook = false;
 		}
+	}
+
+	// Note step helpers
+	function toggleNoteChip(chipId: string) {
+		const newSet = new Set(noteChips);
+		if (newSet.has(chipId)) {
+			newSet.delete(chipId);
+		} else {
+			newSet.add(chipId);
+		}
+		noteChips = newSet;
+	}
+
+	function focusNoteTextarea() {
+		noteTextarea?.focus();
+	}
+
+	async function saveAddedBookNote() {
+		if (!addedBookId) return;
+
+		const finalNote = composeNote(noteChips, noteText);
+		if (finalNote) {
+			try {
+				await fetch('/api/books/update', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						bookId: addedBookId,
+						note: finalNote
+					})
+				});
+				await invalidateAll();
+			} catch (err) {
+				console.error('Failed to save note:', err);
+			}
+		}
+		closeAddModal();
+	}
+
+	function skipAddedBookNote() {
+		closeAddModal();
+	}
+
+	function closeAddModal() {
+		showIsbnInput = false;
+		showNoteStep = false;
+		inputText = '';
+		selectedFile = null;
+		detectedBooks = [];
+		selectedBookIds = new Set();
+		selectedShelfIds = new Set();
+		showShelfSelection = false;
+		addBookSuccess = false;
+		detectError = null;
+		addedBookForNote = null;
+		addedBookId = null;
+		noteChips = new Set();
+		noteText = '';
 	}
 
 	// Global keyboard shortcut: press "+" to open ISBN entry
@@ -1761,28 +1857,12 @@
 				onclick={(e: MouseEvent) => {
 					// Close only when clicking the overlay, not the dialog content
 					if (e.target !== e.currentTarget) return;
-					showIsbnInput = false;
-					inputText = '';
-					selectedFile = null;
-					detectedBooks = [];
-					selectedBookIds = new Set();
-					selectedShelfIds = new Set();
-					showShelfSelection = false;
-					detectError = null;
-					addBookSuccess = false;
+					closeAddModal();
 				}}
 				onkeydown={(e: KeyboardEvent) => {
 					// Only close on Escape to avoid intercepting Space in textarea
 					if (e.key === 'Escape') {
-						showIsbnInput = false;
-						inputText = '';
-						selectedFile = null;
-						detectedBooks = [];
-						selectedBookIds = new Set();
-						selectedShelfIds = new Set();
-						showShelfSelection = false;
-						detectError = null;
-						addBookSuccess = false;
+						closeAddModal();
 					}
 				}}
 			>
@@ -1793,19 +1873,15 @@
 					aria-labelledby="addBookDialogTitle"
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Escape') {
-							showIsbnInput = false;
-							inputText = '';
-							selectedFile = null;
-							detectedBooks = [];
-							selectedBookIds = new Set();
-							detectError = null;
-							addBookSuccess = false;
+							closeAddModal();
 						}
 					}}
 				>
 					<!-- Header - Fixed at top -->
 					<div class="flex items-center justify-between gap-4 p-4 border-b border-[var(--border)]">
-						{#if detectedBooks.length > 0}
+						{#if showNoteStep}
+							<h2 id="addBookDialogTitle" class="text-lg font-semibold text-[var(--text-primary)]">Add Note</h2>
+						{:else if detectedBooks.length > 0}
 							<button
 								type="button"
 								class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
@@ -1835,17 +1911,7 @@
 							type="button"
 							class="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1"
 							aria-label="Close"
-							onclick={() => {
-								showIsbnInput = false;
-								inputText = '';
-								selectedFile = null;
-								detectedBooks = [];
-								selectedBookIds = new Set();
-								selectedShelfIds = new Set();
-								showShelfSelection = false;
-								detectError = null;
-								addBookSuccess = false;
-							}}
+							onclick={closeAddModal}
 						>
 							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1855,7 +1921,51 @@
 
 					<!-- Scrollable Content -->
 					<div class="flex-1 overflow-y-auto p-4">
-						{#if detectedBooks.length === 0}
+						{#if showNoteStep && addedBookForNote}
+							<!-- Note Step -->
+							<div class="space-y-4">
+								<!-- Book context -->
+								<div class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+									{#if addedBookForNote.coverUrl}
+										<img
+											src={addedBookForNote.coverUrl}
+											alt={addedBookForNote.title}
+											class="w-12 h-18 object-cover rounded shadow-sm flex-shrink-0"
+										/>
+									{:else}
+										<div class="w-12 h-18 bg-stone-200 rounded flex items-center justify-center flex-shrink-0">
+											<span class="text-stone-400 text-xs">📖</span>
+										</div>
+									{/if}
+									<div class="min-w-0">
+										<p class="text-sm text-green-700 font-medium">Added to your shelf!</p>
+										<p class="text-sm font-semibold text-stone-800 line-clamp-1">{addedBookForNote.title}</p>
+										{#if addedBookForNote.author && addedBookForNote.author.length > 0}
+											<p class="text-xs text-stone-500">{addedBookForNote.author.join(', ')}</p>
+										{/if}
+									</div>
+								</div>
+
+								<!-- Note prompt -->
+								<div class="space-y-3">
+									<p class="text-sm text-stone-600">Quick note for future you?</p>
+
+									<ReactionChips
+										selected={noteChips}
+										onToggle={toggleNoteChip}
+										onOtherClick={focusNoteTextarea}
+									/>
+
+									<textarea
+										bind:this={noteTextarea}
+										bind:value={noteText}
+										placeholder="What caught your attention about this one?"
+										class="w-full p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
+										rows={2}
+									></textarea>
+								</div>
+							</div>
+						{:else if detectedBooks.length === 0}
 							<!-- Search Input Section -->
 							<div class="space-y-4">
 								<textarea
@@ -2035,7 +2145,22 @@
 
 					<!-- Fixed Footer with Actions - Away from bottom edge -->
 					<div class="border-t border-[var(--border)] bg-[var(--paper-light)] p-4 pb-6 flex gap-2 justify-end">
-						{#if detectedBooks.length === 0}
+						{#if showNoteStep}
+							<button
+								type="button"
+								class="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium"
+								onclick={skipAddedBookNote}
+							>
+								Skip
+							</button>
+							<Button
+								variant="primary"
+								size="md"
+								onclick={saveAddedBookNote}
+							>
+								Save
+							</Button>
+						{:else if detectedBooks.length === 0}
 							<Button
 								variant="primary"
 								size="md"
