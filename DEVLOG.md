@@ -1,5 +1,106 @@
 # Development Log
 
+## 2026-01-27 - Reaction Chips (Intent Capture Phase 2)
+
+### Implemented tappable reaction chips for quick intent capture
+- **Goal**: Reduce friction for capturing "why I saved this book" with single-tap chips
+- **Spec**: `docs/plans/2026-01-26-reaction-chips-design.md`
+
+### New components
+- **`reaction-chips.ts`**: Chip constants with emoji, label, and noteText for each chip
+  - Source chips: Friend, Podcast, Newsletter, Social, Bookstore
+  - Mood chips: Cozy, Learn
+  - Urgency chips: Must read, Gift
+  - `composeNote()` helper joins selected chips with " · " separator
+  - `matchChipShortcut()` for SMS emoji/keyword matching
+- **`ReactionChips.svelte`**: Horizontal scrollable chip row
+  - Multi-select toggle (filled/outlined states)
+  - "Other..." escape hatch focuses textarea
+  - Scrollbar hidden for clean mobile UX
+
+### Web UI integration
+- **Card.svelte**: Chips appear above textarea when editing notes
+  - Selected chips + custom text composed on save
+  - State reset on cancel
+- **Add book modal**: Note step after single book add
+  - Shows book cover + title for context
+  - Same chip row + textarea layout
+  - Save/Skip buttons
+  - Multi-book adds skip note step (avoid friction)
+
+### SMS flow updates
+- **New prompt format**: `👥 friend | 🎙️ pod | 📚 in store | ✏️ something else`
+- **Emoji shortcuts**: Reply with 👥, 🎙️, or 📚 → saves corresponding note text
+- **Keyword shortcuts**: Reply with "friend", "pod", "store" → same result
+- **WHY command**: Explains value of capturing intent (doesn't clear context)
+- **Files modified**:
+  - `src/lib/server/sms-messages.ts` - Added `CHIP_NOTE_PROMPT`, `WHY_NOTES_RESPONSE`
+  - `src/routes/api/sms/+server.ts` - Handle emoji/keyword replies, WHY command
+
+### Note composition behavior
+- Selected chips joined with " · " and prepended to typed text
+- Example: [Friend] + [Must read] + "Sarah said it changed her life" → "Friend rec · Must read · Sarah said it changed her life"
+- Empty selection + empty text = no note saved
+
+---
+
+## 2026-01-26 - Intent Capture Phase 1
+
+### Implemented SMS note prompts and source tracking for book additions
+- **Goal**: Capture user intent at the moment of save so they can recover *why* they wanted a book later
+- **Spec**: `docs/plans/2026-01-26-intent-phase1-plan.md`
+
+### Database changes
+- **Migration**: `supabase/migrations/016_add_source_type.sql`
+  - Added `source_type` column to `books` table (tracks: sms_isbn, sms_photo, sms_link, sms_title)
+  - Extended `sms_context` table with `awaiting_note`, `last_book_id`, `last_book_title` for note flow
+  - Relaxed `last_isbn13` NOT NULL constraint (note flow uses book_id instead)
+
+### SMS note prompt flow
+- **After successful book save**: User receives confirmation with random note prompt
+  - "Reply with a note for future you, or just ignore"
+  - "What caught your attention? (or ignore)"
+  - "Who recommended this? (or ignore)"
+  - "What mood is this for? (or ignore)"
+- **User replies with note**: Note saved to book (500 char limit), confirmation sent
+- **User skips** (👍, "skip", "no"): Context cleared, "Got it!" response
+- **User sends new ISBN/URL**: Context cleared, normal flow continues
+- **Files modified**:
+  - `src/lib/server/sms-messages.ts` - Added `NOTE_PROMPTS`, `getRandomNotePrompt()`, `noteSaved()`, `noteSkipped()`, updated `bookAdded()` signature
+  - `src/routes/api/sms/+server.ts` - Added `looksLikeNote()`, `clearNoteContext()`, `setNoteContext()` helpers; note reply handling; source tracking on all save paths
+
+### Source type tracking
+- **Purpose**: Analytics on how users add books
+- **Implementation**: Added optional `sourceType` parameter to `upsertBookForUser()`
+- **Tracked sources**: sms_isbn (plain ISBN), sms_photo (MMS barcode), sms_link (Amazon/retailer URL), sms_title (title/author search)
+- **Files modified**: `src/lib/server/book-operations.ts`
+
+### Web UI copy updates
+- **Button text**: "Add a note" → "Add a note for future you"
+- **Placeholder**: "Why did you add this? Where did you hear about it?" → "What caught your attention about this one?"
+- **Files modified**: `src/lib/components/ui/Card.svelte`
+
+### Note: MMS multi-book saves skip note prompts (complex UX deferred to Phase 2)
+
+---
+
+## 2026-01-26 - Note Preview on Collapsed Cards
+
+### Added note preview to collapsed book cards in list view
+- **Goal**: Let users see their notes at a glance without expanding cards
+- **Implementation**:
+  - Added `{#if !expanded && book.note}` block below author line
+  - Displays 1-line truncated preview with `line-clamp-1`
+  - Styled as italic quoted text: `"Note preview text..."`
+  - Uses `text-sm text-stone-500` for subtle appearance
+- **Behavior**:
+  - Only shows when card is collapsed AND book has a note
+  - Hidden when expanded (full note section visible instead)
+  - No extra space for books without notes
+- **Files modified**: `src/lib/components/ui/Card.svelte` (lines 335-340)
+
+---
+
 ## 2026-01-11 - Per-Shelf Export
 
 ### Added ability to export individual shelves as CSV or JSON

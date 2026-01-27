@@ -101,6 +101,13 @@ Personal book tracking via SMS. Text ISBN, Amazon URL, or book photo → auto-ad
 - ADD command with SMS context tracking for multi-book flows
 - Returning user detection via localStorage
 
+**Intent Capture (Phase 1):**
+- SMS note prompts after save (4 rotating variants)
+- Note reply handling (save ≤500 chars, skip with 👍/skip/no)
+- Source type tracking (sms_isbn, sms_photo, sms_link, sms_title)
+- Note preview on collapsed cards
+- Intent-focused web UI copy
+
 **Shelves:**
 - Custom user-created shelves
 - Default TBR shelf auto-created on START
@@ -196,6 +203,7 @@ npm run check
 4. `004_add_default_shelf.sql` - Default shelf column on users
 5. `005_add_description_and_date.sql` - Book metadata columns
 6. `006_backfill_default_shelf.sql` - Backfill for existing users
+7. `016_add_source_type.sql` - Source tracking + note flow context columns
 
 ### `users` Table
 ```sql
@@ -222,6 +230,8 @@ CREATE TABLE books (
   publication_date TEXT,
   description TEXT,
   cover_url TEXT,
+  note TEXT,
+  source_type TEXT,  -- sms_isbn, sms_photo, sms_link, sms_title, web_manual, web_link
   is_read BOOLEAN DEFAULT false,
   is_owned BOOLEAN DEFAULT false,
   added_at TIMESTAMPTZ DEFAULT NOW(),
@@ -254,10 +264,12 @@ CREATE TABLE book_shelves (
 ### `sms_context` Table
 ```sql
 CREATE TABLE sms_context (
-  user_id TEXT PRIMARY KEY,
-  last_command TEXT,
-  detected_books JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  phone_number TEXT PRIMARY KEY,
+  last_isbn13 TEXT,  -- For ADD command flow
+  last_title TEXT,
+  awaiting_note BOOLEAN DEFAULT false,  -- For note capture flow
+  last_book_id UUID,
+  last_book_title TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
@@ -292,6 +304,7 @@ None currently blocking.
 - ✅ Vision API error recovery with exponential backoff (I4 audit fix)
 
 ## Recent Completions
+- **2026-01-26:** Intent Capture Phase 1 (SMS note prompts, source tracking, note preview)
 - **2025-12-30:** Read/Owned status filters in SearchBar dropdown
 - **2025-12-30:** About page content refresh
 - **2025-12-30:** Technical stack added to README

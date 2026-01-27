@@ -24,10 +24,12 @@
 - [ ] Share shelf publicly (read-only URL)
 - [ ] Add screenshots or demo GIF to README
 
+
 ### Retention
 - [ ] Paginate or infinite scroll for long lists
 
 ### Polish & Trust
+- [ ] FIX: Checkboxes don't show changed state when clicked (Web UI)
 - [ ] Put read and owned pills on card
 - [ ] Mitigate delay after click for "add/remove from shelf" checkboxes
 - [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
@@ -37,6 +39,9 @@
 - [ ] Scrape curated book list pages (e.g., `ptreyesbooks.com/list/...`) to extract individual book URLs
 
 ### Done
+- [x] Reaction chips for quick note capture (`docs/plans/2026-01-26-reaction-chips-design.md`)
+- [x] Intent capture Phase 1: SMS note prompts + source tracking (`docs/plans/2026-01-26-intent-phase1-plan.md`)
+- [x] Note preview on collapsed book cards
 - [x] Per-shelf export (CSV/JSON): `docs/plans/2026-01-11-json-per-shelf-export-spec.md`
 - [x] Retailer link parsing (Bookshop.org, Barnes & Noble, Indiecommerce `/book/{ISBN}`)
 - [x] Design system implementation with CSS tokens and Tailwind integration
@@ -92,6 +97,9 @@
 ## Completed
 
 ### January 2026
+- [x] Reaction chips for quick intent capture (Phase 2): tappable chips in web UI, emoji/keyword shortcuts in SMS
+- [x] Intent capture Phase 1: SMS note prompts after book save, note reply handling, source_type tracking
+- [x] Note preview on collapsed book cards (shows truncated note without expanding)
 - [x] Per-shelf export with download button on active shelf pill
 - [x] Design system with CSS custom properties and Tailwind integration (`docs/design-system.md`)
 - [x] Homepage carousel (swipeable SMS/shelf mockup) with returning user experience
