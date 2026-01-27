@@ -25,11 +25,13 @@ export interface UpsertBookResult {
  *
  * @param userId - Phone number or user identifier
  * @param metadata - Book metadata from fetchBookMetadata()
+ * @param sourceType - How the book was added (sms_isbn, sms_photo, sms_link, sms_title, web)
  * @returns Result object with success status and book ID or error
  */
 export async function upsertBookForUser(
 	userId: string,
-	metadata: BookMetadata
+	metadata: BookMetadata,
+	sourceType?: string
 ): Promise<UpsertBookResult> {
 	try {
 		// Upsert book to books table
@@ -46,7 +48,8 @@ export async function upsertBookForUser(
 					description: metadata.description,
 					cover_url: metadata.coverUrl,
 					is_read: false,
-					is_owned: false
+					is_owned: false,
+					source_type: sourceType
 				},
 				{ onConflict: 'user_id,isbn13' }
 			)

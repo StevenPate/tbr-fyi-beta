@@ -494,8 +494,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				return twimlResponse(SMS_MESSAGES.bookNotFound(isbn13ToAdd));
 			}
 
-			// Use shared book upsert logic
-			const result = await upsertBookForUser(userId, metadata);
+			// Use shared book upsert logic (ADD command from search context = sms_title)
+			const result = await upsertBookForUser(userId, metadata, 'sms_title');
 
 			if (!result.success) {
 				logBookAddition({
@@ -552,6 +552,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		let responseMessage = '';
 		const bookTimer = startTimer();
 		let detectionMethod: 'isbn' | 'amazon_link' | 'search' | 'image' = 'isbn';
+		let sourceType: 'sms_isbn' | 'sms_link' = 'sms_isbn'; // Track how book was added
 
 		// 1. Check if it's a photo (MMS)
 		if (numMedia > 0) {
@@ -648,8 +649,8 @@ export const POST: RequestHandler = async ({ request }) => {
 						continue;
 					}
 
-					// Use shared book upsert logic
-					const result = await upsertBookForUser(userId, metadata);
+					// Use shared book upsert logic (MMS photo = sms_photo)
+					const result = await upsertBookForUser(userId, metadata, 'sms_photo');
 
 					if (!result.success) {
 						logger.error({ error: result.error, reqId }, 'Book upsert failed (MMS)');
@@ -722,6 +723,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 
 				console.log('Successfully extracted ISBN from Amazon:', isbn);
+				sourceType = 'sms_link';
 			} catch (error) {
 				console.error('Amazon parser error:', error);
 				return twimlResponse(SMS_MESSAGES.AMAZON_PARSE_ERROR);
@@ -743,6 +745,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 
 			isbn = result.isbn;
+			sourceType = 'sms_link';
 			console.log(`Successfully extracted ISBN from ${result.retailer}:`, isbn);
 		}
 
@@ -753,6 +756,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			if (result) {
 				isbn = result.isbn;
+				sourceType = 'sms_link';
 				console.log(`Successfully extracted ISBN from ${result.retailer}:`, isbn);
 			}
 			// If no ISBN extracted, fall through to other checks
@@ -842,7 +846,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Use shared book upsert logic
-		const result = await upsertBookForUser(userId, metadata);
+		const result = await upsertBookForUser(userId, metadata, sourceType);
 
 		if (!result.success) {
 			logger.error({ error: result.error }, 'Book upsert failed');
