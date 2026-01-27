@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ error: 'Invalid request origin' }, { status: 400 });
 		}
 
-		// Extract identifier from referer URL (e.g., /stevenpate or /+13123756327)
+		// Extract identifier from referer URL (e.g., /stevenpate or /+15551234567)
 		const refererUrl = new URL(referer);
 		const pathSegments = refererUrl.pathname.split('/').filter(Boolean);
 		const identifier = pathSegments[0];

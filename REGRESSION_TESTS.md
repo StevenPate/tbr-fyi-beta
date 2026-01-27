@@ -76,7 +76,7 @@ npm run build
 
 **Route**: `http://localhost:5173/[your-identifier]`
 
-Use your phone number (e.g., `+13123756327`) or username as identifier.
+Use your phone number (e.g., `+15551234567`) or username as identifier.
 
 #### Navigation & View Modes
 
@@ -355,7 +355,7 @@ curl -X POST http://localhost:5173/api/books/detect \
 # Test: Add book (need valid referer)
 curl -X POST http://localhost:5173/api/books/add \
   -H "Content-Type: application/json" \
-  -H "Referer: http://localhost:5173/+13123756327" \
+  -H "Referer: http://localhost:5173/+15551234567" \
   -d '{"isbn":"9780547928227"}' | jq
 
 # Expected: 200 OK, book added
@@ -363,7 +363,7 @@ curl -X POST http://localhost:5173/api/books/add \
 # Test: Update book status
 curl -X POST http://localhost:5173/api/books/update \
   -H "Content-Type: application/json" \
-  -H "Referer: http://localhost:5173/+13123756327" \
+  -H "Referer: http://localhost:5173/+15551234567" \
   -d '{"id":"BOOK_UUID_HERE","is_read":true}' | jq
 
 # Expected: 200 OK
@@ -371,7 +371,7 @@ curl -X POST http://localhost:5173/api/books/update \
 # Test: Delete book
 curl -X POST http://localhost:5173/api/books/delete \
   -H "Content-Type: application/json" \
-  -H "Referer: http://localhost:5173/+13123756327" \
+  -H "Referer: http://localhost:5173/+15551234567" \
   -d '{"id":"BOOK_UUID_HERE"}' | jq
 
 # Expected: 200 OK
@@ -383,7 +383,7 @@ curl -X POST http://localhost:5173/api/books/delete \
 # Test: Create shelf
 curl -X POST http://localhost:5173/api/shelves \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"+13123756327","name":"API Test Shelf"}' | jq
+  -d '{"user_id":"+15551234567","name":"API Test Shelf"}' | jq
 
 # Expected: 200 OK, shelf created
 
@@ -399,12 +399,12 @@ curl -X DELETE http://localhost:5173/api/shelves \
 
 ```bash
 # Test: JSON export
-curl "http://localhost:5173/api/export?identifier=+13123756327" | jq
+curl "http://localhost:5173/api/export?identifier=+15551234567" | jq
 
 # Expected: JSON array of books
 
 # Test: CSV export
-curl "http://localhost:5173/api/export/csv?identifier=+13123756327"
+curl "http://localhost:5173/api/export/csv?identifier=+15551234567"
 
 # Expected: CSV formatted text
 ```
@@ -420,7 +420,7 @@ After running tests, verify database state in Supabase:
 -- Check recent books
 SELECT id, isbn13, title, is_read, is_owned, note, source_type, added_at
 FROM books
-WHERE user_id = '+13123756327'
+WHERE user_id = '+15551234567'
 ORDER BY added_at DESC
 LIMIT 10;
 ```
@@ -430,7 +430,7 @@ LIMIT 10;
 -- Check user's shelves
 SELECT id, name, created_at
 FROM shelves
-WHERE user_id = '+13123756327';
+WHERE user_id = '+15551234567';
 ```
 
 ### Book-Shelf Relationships
@@ -440,13 +440,13 @@ SELECT b.title, s.name as shelf_name
 FROM book_shelves bs
 JOIN books b ON bs.book_id = b.id
 JOIN shelves s ON bs.shelf_id = s.id
-WHERE b.user_id = '+13123756327';
+WHERE b.user_id = '+15551234567';
 ```
 
 ### SMS Context
 ```sql
 -- Check SMS context state
-SELECT * FROM sms_context WHERE user_id = '+13123756327';
+SELECT * FROM sms_context WHERE user_id = '+15551234567';
 ```
 
 ---
@@ -521,17 +521,17 @@ After testing, clean up test data:
 ```sql
 -- Remove test books (be careful!)
 DELETE FROM books
-WHERE user_id = '+13123756327'
+WHERE user_id = '+15551234567'
 AND title LIKE '%Test%';
 
 -- Remove test shelves
 DELETE FROM shelves
-WHERE user_id = '+13123756327'
+WHERE user_id = '+15551234567'
 AND name LIKE '%Test%';
 
 -- Clear SMS context
 DELETE FROM sms_context
-WHERE user_id = '+13123756327';
+WHERE user_id = '+15551234567';
 ```
 
 ---

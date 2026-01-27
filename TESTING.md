@@ -33,7 +33,7 @@ Follow this sequence when verifying UI changes:
    - Confirm instructions render and the localStorage hint persists the most recent user ID.
    - Scan the QR code with a phone; it should resolve to the Twilio number.
 2. **User Shelf (`/[username]`)**
-   - Load an existing phone-number route (e.g., `http://localhost:5173/+13123756327`).
+   - Load an existing phone-number route (e.g., `http://localhost:5173/+15551234567`).
    - Toggle between *Grid* and *List* views; state should persist during the session.
    - Add a shelf, rename collision guard should display when creating a duplicate name.
    - Delete a shelf, confirm redirect to "All Books" when deleting the active shelf.
@@ -97,7 +97,7 @@ curl -X POST http://localhost:5173/api/books/update \
 # Create shelf
 curl -X POST http://localhost:5173/api/shelves \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"+13123756327","name":"Sci-Fi"}'
+  -d '{"user_id":"+15551234567","name":"Sci-Fi"}'
 ```
 
 Confirm 200 responses and inspect Supabase for matching changes.

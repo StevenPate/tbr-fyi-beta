@@ -26,7 +26,7 @@ export interface AuthUser {
 
 /**
  * Extracts user ID from the referer header.
- * The user ID is expected to be the first path segment (e.g., /+13123756327)
+ * The user ID is expected to be the first path segment (e.g., /+15551234567)
  *
  * @param request - The incoming request object
  * @returns The extracted user ID or null if not found/invalid
