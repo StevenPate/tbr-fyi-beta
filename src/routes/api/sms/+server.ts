@@ -20,9 +20,64 @@ import {
 	isUnsupportedBookstoreUrl
 } from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
-import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl } from '$lib/server/sms-messages';
+import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, getRandomNotePrompt } from '$lib/server/sms-messages';
 import { logger, logBookAddition, logUserEvent, logError, startTimer } from '$lib/server/logger';
 import { upsertBookForUser } from '$lib/server/book-operations';
+
+// Check if message looks like a note (not ISBN, URL, or command)
+function looksLikeNote(text: string): boolean {
+	const cleaned = text.trim();
+
+	// Skip indicators
+	if (cleaned === '👍' || cleaned.toLowerCase() === 'skip' || cleaned.toLowerCase() === 'no') {
+		return false;
+	}
+
+	// Commands
+	if (detectCommand(cleaned)) return false;
+
+	// ISBN (10 or 13 digits)
+	const digits = cleaned.replace(/[^0-9Xx]/g, '');
+	if (digits.length === 10 || digits.length === 13) return false;
+
+	// URLs
+	if (cleaned.includes('amazon.com') || cleaned.includes('a.co') ||
+		cleaned.includes('bookshop.org') || cleaned.includes('barnesandnoble.com')) {
+		return false;
+	}
+
+	// ADD command
+	if (/^ADD(\b|\s|!|\.)/i.test(cleaned)) return false;
+
+	return true;
+}
+
+async function clearNoteContext(phoneNumber: string): Promise<void> {
+	await supabase
+		.from('sms_context')
+		.update({
+			awaiting_note: false,
+			last_book_id: null,
+			last_book_title: null
+		})
+		.eq('phone_number', phoneNumber);
+}
+
+async function setNoteContext(
+	phoneNumber: string,
+	bookId: string,
+	bookTitle: string
+): Promise<void> {
+	await supabase
+		.from('sms_context')
+		.upsert({
+			phone_number: phoneNumber,
+			awaiting_note: true,
+			last_book_id: bookId,
+			last_book_title: bookTitle,
+			updated_at: new Date().toISOString()
+		});
+}
 
 /**
  * User status from users table
@@ -346,6 +401,37 @@ export const POST: RequestHandler = async ({ request }) => {
 			return twimlResponse(SMS_MESSAGES.FEEDBACK_OPT_IN_CONFIRMATION);
 		}
 
+		// Check if awaiting note reply
+		const { data: noteContext } = await supabase
+			.from('sms_context')
+			.select('awaiting_note, last_book_id, last_book_title')
+			.eq('phone_number', userId)
+			.maybeSingle();
+
+		if (noteContext?.awaiting_note && noteContext.last_book_id) {
+			const message = (body || '').trim();
+
+			// Skip indicators - clear context and acknowledge
+			if (message === '👍' || message.toLowerCase() === 'skip' || message.toLowerCase() === 'no') {
+				await clearNoteContext(userId);
+				return twimlResponse(SMS_MESSAGES.noteSkipped());
+			}
+
+			// If it looks like a note (not ISBN/URL/command), save it
+			if (looksLikeNote(message)) {
+				await supabase
+					.from('books')
+					.update({ note: message.slice(0, 500) }) // 500 char limit
+					.eq('id', noteContext.last_book_id);
+
+				await clearNoteContext(userId);
+				return twimlResponse(SMS_MESSAGES.noteSaved(noteContext.last_book_title));
+			}
+
+			// Otherwise, clear context and continue with normal flow
+			await clearNoteContext(userId);
+		}
+
 		// Handle ADD command (either "ADD" or "ADD 978...")
 		if (/^ADD(\b|\s|!|\.)/i.test(rawBody)) {
 			const addTimer = startTimer();
@@ -440,8 +526,11 @@ export const POST: RequestHandler = async ({ request }) => {
 				duration_ms: addTimer()
 			});
 
+			const notePrompt = getRandomNotePrompt();
+			await setNoteContext(userId, result.bookId!, metadata.title);
+
 			const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText);
+			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
 			message = await maybeAddFeedbackPrompt(message, userId);
 			message = await maybeAddAccountPrompt(message, userId);
 			return twimlResponse(message);
@@ -785,8 +874,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		// Success!
+		const notePrompt = getRandomNotePrompt();
+		await setNoteContext(userId, result.bookId!, metadata.title);
+
 		const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText);
+		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
 		message = await maybeAddFeedbackPrompt(message, userId);
 		message = await maybeAddAccountPrompt(message, userId);
 		return twimlResponse(message);
