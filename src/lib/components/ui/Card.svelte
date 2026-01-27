@@ -452,13 +452,13 @@
 							onclick={startEditingNote}
 							class="text-sm text-stone-400 hover:text-stone-500 transition-colors"
 						>
-							+ Add a note
+							+ Add a note for future you
 						</button>
 					{:else if noteEditing}
 						<div class="relative">
 							<textarea
 								bind:value={tempNoteValue}
-								placeholder="Why did you add this? Where did you hear about it?"
+								placeholder="What caught your attention about this one?"
 								class="w-full text-sm text-stone-600 placeholder-stone-400 border border-stone-200 rounded-lg p-3 focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
 								rows={2}
 							></textarea>
