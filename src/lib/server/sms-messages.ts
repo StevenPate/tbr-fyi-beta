@@ -85,11 +85,22 @@ export const SMS_MESSAGES = {
 		'ADD usage: reply ADD 978... or just ADD after a search result message.',
 
 	// === Success States ===
-	bookAdded: (title: string, phoneNumber: string, author?: string) =>
-		`✓ Added "${title}"${author ? ` by ${author}` : ''} to your shelf!\n\nView: ${getShelfUrl(phoneNumber)}`,
+	bookAdded: (title: string, phoneNumber: string, author?: string, notePrompt?: string) => {
+		let msg = `✓ Added "${title}"${author ? ` by ${author}` : ''} to your shelf!\n\nView: ${getShelfUrl(phoneNumber)}`;
+		if (notePrompt) {
+			msg += `\n\n${notePrompt}`;
+		}
+		return msg;
+	},
 
 	bookAlreadyExists: (title: string) =>
 		`"${title}" is already on your shelf!`,
+
+	noteSaved: (title: string) =>
+		`Note saved for "${title}"`,
+
+	noteSkipped: () =>
+		`Got it!`,
 
 	mmsMultipleAdded: (count: number, addedTitles: string[], existedTitles: string[], phoneNumber: string) => {
 		let msg = `Found ${count} ISBN${count > 1 ? 's' : ''}, added ${addedTitles.length} to your shelf:\n` +
@@ -180,6 +191,18 @@ export const SMS_MESSAGES = {
 	FEEDBACK_ALREADY_OPTED_IN:
 		'You\'re already opted in for feedback. Thanks for your willingness to help!'
 } as const;
+
+// Intent capture prompts - rotated randomly
+export const NOTE_PROMPTS = [
+	"Reply with a note for future you, or just ignore",
+	"What caught your attention? (or ignore)",
+	"Who recommended this? (or ignore)",
+	"What mood is this for? (or ignore)",
+] as const;
+
+export function getRandomNotePrompt(): string {
+	return NOTE_PROMPTS[Math.floor(Math.random() * NOTE_PROMPTS.length)];
+}
 
 /**
  * Detect command from message text
