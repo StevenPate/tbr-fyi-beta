@@ -204,6 +204,17 @@ export function getRandomNotePrompt(): string {
 	return NOTE_PROMPTS[Math.floor(Math.random() * NOTE_PROMPTS.length)];
 }
 
+// Reaction chip prompt for SMS (after book added)
+export const CHIP_NOTE_PROMPT = `Quick note for future you? Reply:
+👥 friend | 🎙️ pod | 📚 in store | ✏️ something else
+
+Or reply WHY to learn more`;
+
+// WHY command response - explains the value of notes
+export const WHY_NOTES_RESPONSE = `Books slip away fast. A quick note now — who told you, what mood it's for — helps future you remember why this one mattered.
+
+Just reply with a note, or ignore this and move on!`;
+
 /**
  * Detect command from message text
  * Commands are case-insensitive and trimmed

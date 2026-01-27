@@ -20,7 +20,8 @@ import {
 	isUnsupportedBookstoreUrl
 } from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
-import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, getRandomNotePrompt } from '$lib/server/sms-messages';
+import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, getRandomNotePrompt, CHIP_NOTE_PROMPT, WHY_NOTES_RESPONSE } from '$lib/server/sms-messages';
+import { matchChipShortcut } from '$lib/components/ui/reaction-chips';
 import { logger, logBookAddition, logUserEvent, logError, startTimer } from '$lib/server/logger';
 import { upsertBookForUser } from '$lib/server/book-operations';
 
@@ -410,11 +411,29 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (noteContext?.awaiting_note && noteContext.last_book_id) {
 			const message = (body || '').trim();
+			const messageLower = message.toLowerCase();
 
 			// Skip indicators - clear context and acknowledge
-			if (message === '👍' || message.toLowerCase() === 'skip' || message.toLowerCase() === 'no') {
+			if (message === '👍' || messageLower === 'skip' || messageLower === 'no') {
 				await clearNoteContext(userId);
 				return twimlResponse(SMS_MESSAGES.noteSkipped());
+			}
+
+			// WHY command - explain the value of notes (don't clear context)
+			if (messageLower === 'why') {
+				return twimlResponse(WHY_NOTES_RESPONSE);
+			}
+
+			// Check for chip shortcuts (emoji or keyword like "friend", "pod", "store")
+			const chipNote = matchChipShortcut(message);
+			if (chipNote) {
+				await supabase
+					.from('books')
+					.update({ note: chipNote })
+					.eq('id', noteContext.last_book_id);
+
+				await clearNoteContext(userId);
+				return twimlResponse(SMS_MESSAGES.noteSaved(noteContext.last_book_title));
 			}
 
 			// If it looks like a note (not ISBN/URL/command), save it
@@ -526,11 +545,10 @@ export const POST: RequestHandler = async ({ request }) => {
 				duration_ms: addTimer()
 			});
 
-			const notePrompt = getRandomNotePrompt();
 			await setNoteContext(userId, result.bookId!, metadata.title);
 
 			const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
+			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, CHIP_NOTE_PROMPT);
 			message = await maybeAddFeedbackPrompt(message, userId);
 			message = await maybeAddAccountPrompt(message, userId);
 			return twimlResponse(message);
@@ -878,11 +896,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		// Success!
-		const notePrompt = getRandomNotePrompt();
 		await setNoteContext(userId, result.bookId!, metadata.title);
 
 		const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
+		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, CHIP_NOTE_PROMPT);
 		message = await maybeAddFeedbackPrompt(message, userId);
 		message = await maybeAddAccountPrompt(message, userId);
 		return twimlResponse(message);
