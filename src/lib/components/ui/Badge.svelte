@@ -28,7 +28,7 @@
 		md: 'px-2.5 py-1 text-xs'
 	};
 
-	const classes = `${variants[variant]} ${sizes[size]} rounded-full font-medium transition-colors inline-flex items-center ${interactive ? 'cursor-pointer' : ''} ${className || ''}`;
+	const classes = `${variants[variant]} ${sizes[size]} rounded-lg font-medium transition-colors inline-flex items-center ${interactive ? 'cursor-pointer' : ''} ${className || ''}`;
 </script>
 
 <span class={classes} {...rest}>

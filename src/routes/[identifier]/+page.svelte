@@ -18,9 +18,14 @@
 	// Local shelf selection state for instant filtering (no server round-trip)
 	let selectedShelfId = $state<string | null>(data.selectedShelfId);
 
+	// Local bookShelves state for optimistic updates (instant checkbox feedback)
+	type BookShelf = { book_id: string; shelf_id: string };
+	let localBookShelves = $state<BookShelf[]>([...data.bookShelves]);
+
 	// Sync with server data on navigation (e.g., browser back/forward)
 	$effect(() => {
 		selectedShelfId = data.selectedShelfId;
+		localBookShelves = [...data.bookShelves];
 	});
 
 	let newShelfName = $state('');
@@ -58,6 +63,8 @@
 
 	// Shelf pills scroll container ref
 	let shelfScrollContainer: HTMLDivElement | null = null;
+	let moreButtonRef: HTMLDivElement | null = null;
+	let dropdownLeft = $state(0);
 
 	// Scroll to selected shelf pill when selection changes
 	$effect(() => {
@@ -124,7 +131,7 @@
 		}
 		// Filter to books on the selected shelf
 		const bookIdsOnShelf = new Set(
-			data.bookShelves
+			localBookShelves
 				.filter(bs => bs.shelf_id === selectedShelfId)
 				.map(bs => bs.book_id)
 		);
@@ -333,43 +340,18 @@
 
 	// Shelf navigation state
 	let showMoreShelves = $state(false);
-	const MAX_VISIBLE_SHELVES = 3; // Show first 3 shelves, hide the rest
 
-	// Compute which shelves should be visible (always include selected shelf)
-	const visibleShelves = $derived(() => {
-		const shelves = data.shelves;
-		const selectedId = selectedShelfId;
-
-		// If we have fewer shelves than max, show all
-		if (shelves.length <= MAX_VISIBLE_SHELVES) {
-			return shelves;
-		}
-
-		// Get first N shelves
-		const topShelves = shelves.slice(0, MAX_VISIBLE_SHELVES);
-
-		// Check if selected shelf is already in top N
-		const selectedInTop = !selectedId || topShelves.some(s => s.id === selectedId);
-
-		if (selectedInTop) {
-			// Selected is already visible, just return top N
-			return topShelves;
-		}
-
-		// Selected shelf is hidden - show top (N-1) + selected shelf
-		const selectedShelf = shelves.find(s => s.id === selectedId);
-		if (selectedShelf) {
-			return [...shelves.slice(0, MAX_VISIBLE_SHELVES - 1), selectedShelf];
-		}
-
-		return topShelves;
+	// Streamlined shelf pills: only show the currently selected shelf (if any)
+	// All other shelves go in the "More" dropdown
+	const currentShelf = $derived(() => {
+		if (!selectedShelfId) return null;
+		return data.shelves.find(s => s.id === selectedShelfId) || null;
 	});
 
-	// Compute which shelves should be in the "More" dropdown
-	const hiddenShelves = $derived(() => {
-		const visible = visibleShelves();
-		const visibleIds = new Set(visible.map(s => s.id));
-		return data.shelves.filter(s => !visibleIds.has(s.id));
+	// All shelves except the currently selected one go in "More"
+	const otherShelves = $derived(() => {
+		if (!selectedShelfId) return data.shelves;
+		return data.shelves.filter(s => s.id !== selectedShelfId);
 	});
 
 	// Description collapse state
@@ -502,7 +484,7 @@
 
 	// Helper to get shelves for a book
 	function getBookShelves(bookId: string) {
-		return data.bookShelves
+		return localBookShelves
 			.filter(bs => bs.book_id === bookId)
 			.map(bs => data.shelves.find(s => s.id === bs.shelf_id))
 			.filter(s => s !== undefined);
@@ -510,7 +492,7 @@
 
 	// Check if book is on a shelf
 	function isBookOnShelf(bookId: string, shelfId: string) {
-		return data.bookShelves.some(bs => bs.book_id === bookId && bs.shelf_id === shelfId);
+		return localBookShelves.some(bs => bs.book_id === bookId && bs.shelf_id === shelfId);
 	}
 
 	async function toggleRead(bookId: string, currentValue: boolean) {
@@ -603,6 +585,17 @@
 	}
 
 	async function toggleBookOnShelf(bookId: string, shelfId: string, isOn: boolean) {
+		// Optimistic update - modify local state immediately
+		if (isOn) {
+			// Remove from shelf
+			localBookShelves = localBookShelves.filter(
+				bs => !(bs.book_id === bookId && bs.shelf_id === shelfId)
+			);
+		} else {
+			// Add to shelf
+			localBookShelves = [...localBookShelves, { book_id: bookId, shelf_id: shelfId }];
+		}
+
 		try {
 			const response = await apiFetch('/api/books/shelves', {
 				method: isOn ? 'DELETE' : 'POST',
@@ -613,11 +606,14 @@
 				})
 			});
 
-			if (response.ok) {
+			if (!response.ok) {
+				// Revert on failure - re-sync from server
 				await invalidateAll();
 			}
 		} catch (error) {
 			console.error('Error toggling book on shelf:', error);
+			// Revert on error - re-sync from server
+			await invalidateAll();
 		}
 	}
 
@@ -1321,74 +1317,61 @@
 					All ({data.allBooks?.length || 0})
 				</Button>
 
-				<!-- Visible Shelf Tabs -->
-				{#each visibleShelves() as shelf}
-					{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
+				<!-- Current Shelf Tab (only shown when a shelf is selected) -->
+				{#if currentShelf()}
+					{@const shelf = currentShelf()}
+					{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf?.id).length}
 					<div
-						data-shelf-id={shelf.id}
+						data-shelf-id={shelf?.id}
 						class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start"
 					>
 						<Button
-							variant={selectedShelfId === shelf.id ? 'primary' : 'secondary'}
+							variant="primary"
 							size="md"
-							onclick={() => selectShelf(shelf.id)}
-							disabled={deletingShelfId === shelf.id}
-							class="rounded-none cursor-pointer whitespace-nowrap {selectedShelfId === shelf.id ? 'pr-0' : 'pl-4 pr-0'}"
+							disabled={deletingShelfId === shelf?.id}
+							class="rounded-none cursor-default whitespace-nowrap pr-0"
 						>
-							{#if deletingShelfId === shelf.id}
+							{#if deletingShelfId === shelf?.id}
 								Deleting...
 							{:else}
-								{shelf.name} ({bookCount})
+								{shelf?.name} ({bookCount})
 							{/if}
 						</Button>
+						<!-- Deselect button (return to All) -->
 						<button
-							onclick={(e: MouseEvent) => {
-								e.stopPropagation();
-								deleteShelf(shelf.id, shelf.name);
-							}}
-							disabled={deletingShelfId === shelf.id}
-							class="px-2 self-stretch flex items-center hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer {selectedShelfId === shelf.id ? 'bg-stone-800 text-stone-300 group-hover:bg-stone-700' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}"
-							aria-label={`Delete shelf ${shelf.name}`}
-							title="Delete shelf"
+							onclick={() => selectShelf(null)}
+							class="px-2 self-stretch flex items-center hover:bg-stone-700 transition-colors cursor-pointer bg-stone-800 text-stone-300"
+							aria-label="Show all books"
+							title="Show all books"
 						>
 							×
 						</button>
-						{#if selectedShelfId === shelf.id}
-							<button
-								onclick={(e: MouseEvent) => {
-									e.stopPropagation();
-									exportShelf(shelf.id, shelf.name, 'csv');
-								}}
-								disabled={exportingShelfId === shelf.id || deletingShelfId === shelf.id}
-								class="px-2 self-stretch flex items-center hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-stone-800 text-stone-300 group-hover:bg-stone-700"
-								aria-label={`Export shelf ${shelf.name}`}
-								title="Export as CSV"
-							>
-								{#if exportingShelfId === shelf.id}
-									<svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-									</svg>
-								{:else}
-									<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-									</svg>
-								{/if}
-							</button>
-						{/if}
 					</div>
-				{/each}
+				{/if}
 
-				<!-- More Shelves Button (if there are hidden shelves) -->
-				{#if hiddenShelves().length > 0}
-					<div class="more-shelves-container flex-shrink-0 snap-start">
+				<!-- More Shelves Button (always shown if there are other shelves) -->
+				{#if otherShelves().length > 0}
+					<div
+						bind:this={moreButtonRef}
+						class="more-shelves-container flex-shrink-0 snap-start"
+					>
 						<Button
 							variant="secondary"
 							size="md"
-							onclick={() => showMoreShelves = !showMoreShelves}
+							onclick={() => {
+								// Calculate dropdown position based on button location
+								if (moreButtonRef && shelfScrollContainer) {
+									const containerRect = shelfScrollContainer.parentElement?.getBoundingClientRect();
+									const buttonRect = moreButtonRef.getBoundingClientRect();
+									if (containerRect) {
+										dropdownLeft = buttonRect.left - containerRect.left;
+									}
+								}
+								showMoreShelves = !showMoreShelves;
+							}}
 							class="cursor-pointer whitespace-nowrap"
 						>
-							More ({hiddenShelves().length}) {showMoreShelves ? '▲' : '▼'}
+							More ({otherShelves().length}) {showMoreShelves ? '▲' : '▼'}
 						</Button>
 					</div>
 				{/if}
@@ -1428,11 +1411,14 @@
 				{/if}
 			</div>
 
-			<!-- More Shelves Dropdown (positioned outside scroll container to avoid clipping) -->
-			{#if showMoreShelves && hiddenShelves().length > 0}
-				<div class="more-shelves-container absolute right-4 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[180px] z-[100]">
-					{#each hiddenShelves() as shelf}
-						{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
+			<!-- More Shelves Dropdown (outside scroll container to avoid clipping) -->
+			{#if showMoreShelves && otherShelves().length > 0}
+				<div
+					class="more-shelves-container absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[200px] max-h-[60vh] overflow-y-auto z-[100]"
+					style="left: {dropdownLeft}px;"
+				>
+					{#each otherShelves() as shelf}
+						{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf.id).length}
 						<button
 							onclick={() => {
 								selectShelf(shelf.id);
@@ -1444,6 +1430,38 @@
 							<span class="text-stone-400 text-xs flex-shrink-0">({bookCount})</span>
 						</button>
 					{/each}
+
+					{#if currentShelf()}
+						{@const shelf = currentShelf()}
+						<div class="border-t border-stone-200 mt-1 pt-1">
+							<button
+								onclick={() => {
+									if (shelf) exportShelf(shelf.id, shelf.name, 'csv');
+									showMoreShelves = false;
+								}}
+								disabled={exportingShelfId === shelf?.id}
+								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
+							>
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
+								</svg>
+								Export "{shelf?.name}"
+							</button>
+							<button
+								onclick={() => {
+									if (shelf) deleteShelf(shelf.id, shelf.name);
+									showMoreShelves = false;
+								}}
+								disabled={deletingShelfId === shelf?.id}
+								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+							>
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
+								Delete "{shelf?.name}"
+							</button>
+						</div>
+					{/if}
 				</div>
 			{/if}
 			</div>
@@ -1569,7 +1587,7 @@
 						{@const isMenuOpen = menuOpenMap.get(book.id) || false}
 						{@const showRemoveConfirm = removeConfirmMap.get(book.id) || false}
 						{@const isCopied = copiedMap.get(book.id) || false}
-						{@const activeShelfCount = data.bookShelves.filter(bs => bs.book_id === book.id).length}
+						{@const activeShelfCount = localBookShelves.filter(bs => bs.book_id === book.id).length}
 
 						<div
 							class="w-full h-full bg-white flex flex-col overflow-hidden"
@@ -1826,7 +1844,7 @@
 						id="book-{book.id}"
 						{book}
 						shelves={data.shelves}
-						bookShelves={data.bookShelves}
+						bookShelves={localBookShelves}
 						expanded={isExpanded}
 						onToggleRead={toggleRead}
 						onToggleOwned={toggleOwned}
@@ -1922,38 +1940,23 @@
 					<!-- Scrollable Content -->
 					<div class="flex-1 overflow-y-auto p-4">
 						{#if showNoteStep && addedBookForNote}
-							<!-- Note Step -->
+							<!-- Note Step - streamlined -->
 							<div class="space-y-4">
-								<!-- Book context -->
-								<div class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-									{#if addedBookForNote.coverUrl}
-										<img
-											src={addedBookForNote.coverUrl}
-											alt={addedBookForNote.title}
-											class="w-12 h-18 object-cover rounded shadow-sm flex-shrink-0"
-										/>
-									{:else}
-										<div class="w-12 h-18 bg-stone-200 rounded flex items-center justify-center flex-shrink-0">
-											<span class="text-stone-400 text-xs">📖</span>
-										</div>
-									{/if}
-									<div class="min-w-0">
-										<p class="text-sm text-green-700 font-medium">Added to your shelf!</p>
-										<p class="text-sm font-semibold text-stone-800 line-clamp-1">{addedBookForNote.title}</p>
-										{#if addedBookForNote.author && addedBookForNote.author.length > 0}
-											<p class="text-xs text-stone-500">{addedBookForNote.author.join(', ')}</p>
-										{/if}
-									</div>
+								<!-- Success message -->
+								<div class="text-center py-2">
+									<p class="text-green-600 font-medium">✓ Added to your shelf</p>
+									<p class="text-sm text-stone-500 mt-1 line-clamp-1">{addedBookForNote.title}</p>
 								</div>
 
-								<!-- Note prompt -->
-								<div class="space-y-3">
-									<p class="text-sm text-stone-600">Quick note for future you?</p>
+								<!-- Note prompt with wrapped chips -->
+								<div class="space-y-4">
+									<p class="text-sm text-stone-600 text-center">Quick note for future you?</p>
 
 									<ReactionChips
 										selected={noteChips}
 										onToggle={toggleNoteChip}
 										onOtherClick={focusNoteTextarea}
+										wrap={true}
 									/>
 
 									<textarea
@@ -2240,7 +2243,7 @@
 							<div class="space-y-1">
 								{#each data.shelves as shelf}
 									{@const isOn = isBookOnShelf(shelfModalBookId ?? '', shelf.id)}
-									{@const bookCount = data.bookShelves.filter(bs => bs.shelf_id === shelf.id).length}
+									{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf.id).length}
 									<button
 										onclick={() => {
 											toggleBookOnShelf(shelfModalBookId ?? '', shelf.id, isOn);
@@ -2370,7 +2373,7 @@
 			<Card
 				book={detailModalBook}
 				shelves={data.shelves}
-				bookShelves={data.bookShelves}
+				bookShelves={localBookShelves}
 				expanded={true}
 				onToggleRead={(bookId, current) => toggleRead(bookId, current)}
 				onToggleOwned={(bookId, current) => toggleOwned(bookId, current)}

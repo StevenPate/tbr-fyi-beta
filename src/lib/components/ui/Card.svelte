@@ -75,11 +75,25 @@
 	let menuOpen = $state(false);
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
+	// Track what the server's note value is, so we know when it changes
+	let lastServerNote = $state(book.note);
+	let lastBookId = $state(book.id);
+
 	// Sync noteValue with book.note when it changes externally (e.g., after invalidateAll)
-	// Don't overwrite if user is actively editing
+	// Only sync if: not editing AND (server note changed OR different book)
 	$effect(() => {
-		if (!noteEditing) {
-			noteValue = book.note || '';
+		const serverNote = book.note;
+		const bookChanged = book.id !== lastBookId;
+
+		if (bookChanged) {
+			// Different book - always sync
+			noteValue = serverNote || '';
+			lastServerNote = serverNote;
+			lastBookId = book.id;
+		} else if (!noteEditing && serverNote !== lastServerNote) {
+			// Same book, server note updated - sync if not editing
+			noteValue = serverNote || '';
+			lastServerNote = serverNote;
 		}
 	});
 	let copied = $state(false);
@@ -378,7 +392,7 @@
 							onToggleRead?.(book.id, book.is_read);
 							showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
 						}}
-						class="text-[11px] md:text-xs font-medium px-2 md:px-2.5 py-1.5 md:py-1 rounded-full border transition-all duration-200 ease-out min-h-[32px] {book.is_read
+						class="text-[11px] md:text-xs font-medium px-2 md:px-2.5 py-1.5 md:py-1 rounded-lg border transition-all duration-150 ease-out active:scale-[0.97] min-h-[32px] {book.is_read
 							? 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
 							: 'bg-amber-50/70 text-amber-600 border-amber-200/70 hover:bg-amber-100/70'}"
 					>
@@ -390,7 +404,7 @@
 							onToggleOwned?.(book.id, book.is_owned);
 							showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
 						}}
-						class="text-[11px] md:text-xs font-medium px-2 md:px-2.5 py-1.5 md:py-1 rounded-full border transition-all duration-200 ease-out min-h-[32px] {book.is_owned
+						class="text-[11px] md:text-xs font-medium px-2 md:px-2.5 py-1.5 md:py-1 rounded-lg border transition-all duration-150 ease-out active:scale-[0.97] min-h-[32px] {book.is_owned
 							? 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
 							: 'bg-stone-50 text-stone-400 border-stone-200/70 hover:bg-stone-100'}"
 					>
@@ -403,7 +417,7 @@
 		<!-- Right side: shelf badge + chevron (compact) or menu + chevron (expanded) -->
 		<div class="flex-shrink-0 flex items-start gap-2">
 			{#if !expanded && shelfBadgeText()}
-				<span class="inline-flex items-center px-4 py-2.5 md:px-3 md:py-1 rounded-full text-sm md:text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200/50">
+				<span class="inline-flex items-center px-4 py-2.5 md:px-3 md:py-1 rounded-lg text-sm md:text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200/50">
 					{shelfBadgeText()}
 				</span>
 			{/if}
@@ -478,7 +492,7 @@
 							+ Add a note for future you
 						</button>
 					{:else if noteEditing}
-						<div class="relative space-y-3">
+						<div class="relative space-y-4">
 							<ReactionChips
 								selected={selectedChips}
 								onToggle={toggleChip}
@@ -625,16 +639,22 @@
 											onToggleShelf?.(book.id, shelf.id, isChecked);
 											showSavedFeedback(isChecked ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
 										}}
-										class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-white/60 cursor-pointer group transition-colors duration-150 text-left"
+										class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-white/60 active:scale-[0.98] cursor-pointer group transition-all duration-150 text-left"
 										role="checkbox"
 										aria-checked={isChecked}
 										aria-label={`${shelf.name} shelf`}
 									>
-										<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ease-out {isChecked
-											? 'bg-stone-700 border-stone-700'
-											: 'border-stone-300 group-hover:border-stone-400'}">
+										<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-150 ease-out {isChecked
+											? 'bg-stone-700 border-stone-700 scale-100'
+											: 'border-stone-300 group-hover:border-stone-400 group-active:scale-95'}">
 											{#if isChecked}
-												<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+												<svg
+													class="w-3 h-3 text-white animate-check-pop"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="3"
+													viewBox="0 0 24 24"
+												>
 													<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
 												</svg>
 											{/if}

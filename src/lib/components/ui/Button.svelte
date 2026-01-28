@@ -21,7 +21,7 @@
 		lg: 'px-6 py-3 text-base'
 	};
 
-	let classes = $derived(`${variants[variant]} ${sizes[size]} rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`);
+	let classes = $derived(`${variants[variant]} ${sizes[size]} rounded-lg font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`);
 </script>
 
 <button class={classes} {...rest}>

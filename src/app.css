@@ -42,4 +42,23 @@
 		-webkit-overflow-scrolling: touch;
 		scroll-behavior: smooth;
 	}
+
+	/* Micro-interaction animations */
+	.animate-check-pop {
+		animation: check-pop 200ms ease-out;
+	}
+}
+
+@keyframes check-pop {
+	0% {
+		transform: scale(0);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
