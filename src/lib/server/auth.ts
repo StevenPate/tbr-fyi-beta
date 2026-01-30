@@ -1,8 +1,10 @@
 /**
  * Authentication and Authorization Utilities
  *
- * Provides helpers for extracting and validating user IDs from requests.
+ * Session-based authentication using locals.user populated by hooks.server.ts
  */
+
+import type { RequestEvent } from '@sveltejs/kit';
 
 export interface AuthUser {
 	/**
@@ -25,6 +27,48 @@ export interface AuthUser {
 }
 
 /**
+ * Get the authenticated user from session (populated by hooks.server.ts)
+ * Returns null if not authenticated.
+ */
+export function getSessionUser(event: RequestEvent): User | null {
+	return event.locals.user || null;
+}
+
+/**
+ * Require authenticated user from session.
+ * Throws 401 error if not authenticated.
+ */
+export function requireSessionUser(event: RequestEvent): User {
+	const user = event.locals.user;
+	if (!user) {
+		throw new Error('Authentication required');
+	}
+	return user;
+}
+
+/**
+ * Get the authenticated user's ID (phone_number) from session.
+ * Returns null if not authenticated.
+ */
+export function getSessionUserId(event: RequestEvent): string | null {
+	return event.locals.user?.phone_number || null;
+}
+
+/**
+ * Require authenticated user ID from session.
+ * Throws error if not authenticated.
+ */
+export function requireSessionUserId(event: RequestEvent): string {
+	const userId = event.locals.user?.phone_number;
+	if (!userId) {
+		throw new Error('Authentication required');
+	}
+	return userId;
+}
+
+/**
+ * @deprecated Use getSessionUserId instead. Referer-based auth is insecure.
+ *
  * Extracts user ID from the referer header.
  * The user ID is expected to be the first path segment (e.g., /+15551234567)
  *
@@ -52,10 +96,7 @@ export function getUserIdFromReferer(request: Request): string | null {
 }
 
 /**
- * Derive the authenticated user object from the incoming request.
- *
- * MVP implementation: treats the first path segment of the referer as the user ID.
- * Future auth work can swap this with real session-aware logic while preserving callers.
+ * @deprecated Use getSessionUser instead. Referer-based auth is insecure.
  */
 export function getAuthUserFromRequest(request: Request): AuthUser | null {
 	const userId = getUserIdFromReferer(request);
@@ -93,12 +134,7 @@ export function getAuthUserId(authUser: PhoneLikeUser | null | undefined): strin
 }
 
 /**
- * Extracts user ID from referer and throws an error if not found.
- * Use this in endpoints that require authentication.
- *
- * @param request - The incoming request object
- * @returns The extracted user ID
- * @throws Error if user ID cannot be determined
+ * @deprecated Use requireSessionUserId instead. Referer-based auth is insecure.
  */
 export function requireUserId(request: Request): string {
 	const userId = getUserIdFromReferer(request);

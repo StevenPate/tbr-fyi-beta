@@ -2,26 +2,21 @@
  * Book-Shelves API
  *
  * Handles adding/removing books from shelves.
+ * Requires authenticated session.
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
-import { requireUserId, resolveIdentifierToUserId } from '$lib/server/auth';
+import { requireSessionUserId } from '$lib/server/auth';
 
 // POST: Add a book to a shelf
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
 	try {
-		// Extract identifier from referer (could be username, phone, or email_user_*)
-		const identifier = requireUserId(request);
+		// Get authenticated user from session
+		const userId = requireSessionUserId(event);
 
-		// Resolve to actual user_id (phone_number)
-		const userId = await resolveIdentifierToUserId(identifier);
-		if (!userId) {
-			return json({ error: 'User not found' }, { status: 404 });
-		}
-
-		const body = await request.json();
+		const body = await event.request.json();
 		const { book_id, shelf_id } = body;
 
 		if (!book_id || !shelf_id) {
@@ -82,24 +77,18 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		console.error('Add book to shelf error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
+		const status = error instanceof Error && error.message.includes('Authentication') ? 401 : 500;
 		return json({ error: message }, { status });
 	}
 };
 
 // DELETE: Remove a book from a shelf
-export const DELETE: RequestHandler = async ({ request }) => {
+export const DELETE: RequestHandler = async (event) => {
 	try {
-		// Extract identifier from referer (could be username, phone, or email_user_*)
-		const identifier = requireUserId(request);
+		// Get authenticated user from session
+		const userId = requireSessionUserId(event);
 
-		// Resolve to actual user_id (phone_number)
-		const userId = await resolveIdentifierToUserId(identifier);
-		if (!userId) {
-			return json({ error: 'User not found' }, { status: 404 });
-		}
-
-		const body = await request.json();
+		const body = await event.request.json();
 		const { book_id, shelf_id } = body;
 
 		if (!book_id || !shelf_id) {
@@ -156,7 +145,7 @@ export const DELETE: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		console.error('Remove book from shelf error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
+		const status = error instanceof Error && error.message.includes('Authentication') ? 401 : 500;
 		return json({ error: message }, { status });
 	}
 };

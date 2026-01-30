@@ -1,10 +1,8 @@
 /**
  * Manual Book Addition API Endpoint
  *
- * Accepts ISBN from web UI and adds book to user's shelf
- *
- * SECURITY NOTE: Uses SvelteKit's built-in CSRF protection (enabled by default for same-origin POST requests).
- * Consider adding rate limiting for production if abuse becomes an issue.
+ * Accepts ISBN from web UI and adds book to user's shelf.
+ * Requires authenticated session.
  */
 
 import { json } from '@sveltejs/kit';
@@ -13,15 +11,18 @@ import { fetchBookMetadata, toISBN13, InvalidISBNError } from '$lib/server/metad
 import { logger, logBookAddition, logError, startTimer } from '$lib/server/logger';
 import { validateISBNFormat } from '$lib/server/validation';
 import { upsertBookForUser } from '$lib/server/book-operations';
-import { supabase } from '$lib/server/supabase';
+import { requireSessionUserId } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async (event) => {
 	const requestTimer = startTimer();
 	let userId = '';
 	let method: 'isbn' | 'search' | 'image' | 'amazon_link' = 'isbn';
 
 	try {
-		const { isbn } = await request.json();
+		// Get authenticated user from session
+		userId = requireSessionUserId(event);
+
+		const { isbn } = await event.request.json();
 
 		// Validate ISBN format before attempting normalization
 		const validation = validateISBNFormat(isbn);
@@ -29,50 +30,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ error: validation.error }, { status: 400 });
 		}
 
-		// Derive userId from referer (the [identifier] route parameter)
-		// This prevents client-side userId spoofing
-		const referer = request.headers.get('referer');
-		if (!referer) {
-			return json({ error: 'Invalid request origin' }, { status: 400 });
-		}
-
-		// Extract identifier from referer URL (e.g., /stevenpate or /+15551234567)
-		const refererUrl = new URL(referer);
-		const pathSegments = refererUrl.pathname.split('/').filter(Boolean);
-		const identifier = pathSegments[0];
-
-		if (!identifier) {
-			return json({ error: 'User ID could not be determined' }, { status: 400 });
-		}
-
-		// Decode URL encoding (e.g., %2B -> +)
-		const decodedIdentifier = decodeURIComponent(identifier);
-
-		// Resolve identifier to phone_number (the actual user_id in books table)
-		// Supports: +phone, email_user_*, or username
-		if (decodedIdentifier.startsWith('+') || decodedIdentifier.startsWith('email_user_')) {
-			// Phone number or email user - use directly
-			userId = decodedIdentifier;
-		} else {
-			// Username - look up phone_number
-			const { data: user } = await supabase
-				.from('users')
-				.select('phone_number')
-				.eq('username', decodedIdentifier)
-				.single();
-
-			if (!user) {
-				return json({ error: 'User not found' }, { status: 404 });
-			}
-			userId = user.phone_number;
-		}
-
-		logger.debug({
-			referer,
-			pathname: refererUrl.pathname,
-			identifier: decodedIdentifier,
-			userId
-		}, 'Web book addition - userId resolution');
+		logger.debug({ userId }, 'Web book addition - authenticated user');
 
 		// Normalize ISBN to ISBN-13
 		let isbn13: string;
@@ -148,6 +106,11 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			book: { id: result.bookId }
 		});
 	} catch (error) {
+		// Handle authentication errors
+		if (error instanceof Error && error.message.includes('Authentication')) {
+			return json({ error: 'Authentication required' }, { status: 401 });
+		}
+
 		logError({
 			event: 'error',
 			error_type: 'web_book_addition',
@@ -160,4 +123,3 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		logger.info({ duration_ms: requestTimer(), endpoint: 'books/add', user_id: userId || undefined }, 'Web book addition completed');
 	}
 };
-

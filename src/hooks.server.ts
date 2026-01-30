@@ -1,7 +1,11 @@
 import type { Handle } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { logger, startTimer } from '$lib/server/logger';
 import { createHash } from 'crypto';
 import { supabase } from '$lib/server/supabase';
+
+// Routes exempt from CSRF origin check (receive external webhooks)
+const CSRF_EXEMPT_ROUTES = ['/api/sms', '/api/admin/cleanup'];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const requestTimer = startTimer();
@@ -10,6 +14,26 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// Add request ID to locals for tracing
 	event.locals.requestId = requestId;
+
+	// CSRF protection for mutation requests
+	const method = event.request.method;
+	if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+		const isExempt = CSRF_EXEMPT_ROUTES.some((route) => pathname.startsWith(route));
+
+		if (!isExempt) {
+			const origin = event.request.headers.get('origin');
+			const host = event.url.origin;
+
+			// Origin must match host for non-exempt mutation requests
+			if (!origin || origin !== host) {
+				logger.warn(
+					{ path: pathname, origin, host, request_id: requestId },
+					'CSRF check failed: origin mismatch'
+				);
+				throw error(403, 'CSRF check failed');
+			}
+		}
+	}
 
 	// Session validation
 	const sessionToken = event.cookies.get('tbr_session');
@@ -65,7 +89,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	try {
-		// CSRF protection is disabled in svelte.config.js to allow Twilio webhooks
 		const response = await resolve(event);
 		const duration = requestTimer();
 

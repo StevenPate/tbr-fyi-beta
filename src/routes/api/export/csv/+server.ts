@@ -3,11 +3,12 @@
  *
  * Returns user's complete book collection as Goodreads-compatible CSV.
  * Compatible with StoryGraph, Hardcover, BookWyrm, and Literal.
+ * Requires authenticated session.
  */
 
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
-import { requireUserId, resolveIdentifierToUserId } from '$lib/server/auth';
+import { requireSessionUserId } from '$lib/server/auth';
 
 /**
  * Type for book-shelf join structure from Supabase query
@@ -70,22 +71,13 @@ const GOODREADS_HEADERS = [
 	'BCID'
 ];
 
-export const GET: RequestHandler = async ({ request, url }) => {
+export const GET: RequestHandler = async (event) => {
 	try {
-		// Extract identifier from referer (could be username, phone, or email_user_*)
-		const identifier = requireUserId(request);
-
-		// Resolve to actual user_id (phone_number)
-		const userId = await resolveIdentifierToUserId(identifier);
-		if (!userId) {
-			return new Response(JSON.stringify({ error: 'User not found' }), {
-				status: 404,
-				headers: { 'Content-Type': 'application/json' }
-			});
-		}
+		// Get authenticated user from session
+		const userId = requireSessionUserId(event);
 
 		// Parse optional shelf filter from query params
-		const shelfId = url.searchParams.get('shelf');
+		const shelfId = event.url.searchParams.get('shelf');
 		let shelfName: string | null = null;
 		let bookIdsOnShelf: Set<string> | null = null;
 
@@ -161,7 +153,7 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	} catch (error) {
 		console.error('CSV export error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
+		const status = error instanceof Error && error.message.includes('Authentication') ? 401 : 500;
 		return new Response(JSON.stringify({ error: message }), {
 			status,
 			headers: { 'Content-Type': 'application/json' }

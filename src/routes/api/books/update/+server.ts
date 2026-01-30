@@ -2,25 +2,20 @@
  * Update Book API
  *
  * Handles updating book properties (read, owned, note).
+ * Requires authenticated session.
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/server/supabase';
-import { requireUserId, resolveIdentifierToUserId } from '$lib/server/auth';
+import { requireSessionUserId } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
 	try {
-		// Extract identifier from referer (could be username, phone, or email_user_*)
-		const identifier = requireUserId(request);
+		// Get authenticated user from session
+		const userId = requireSessionUserId(event);
 
-		// Resolve to actual user_id (phone_number)
-		const userId = await resolveIdentifierToUserId(identifier);
-		if (!userId) {
-			return json({ error: 'User not found' }, { status: 404 });
-		}
-
-		const body = await request.json();
+		const body = await event.request.json();
 		const { id, is_read, is_owned, note } = body;
 
 		if (!id) {
@@ -60,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		console.error('Update book error:', error);
 		const message = error instanceof Error ? error.message : 'Internal server error';
-		const status = error instanceof Error && error.message.includes('User ID') ? 401 : 500;
+		const status = error instanceof Error && error.message.includes('Authentication') ? 401 : 500;
 		return json({ error: message }, { status });
 	}
 };
