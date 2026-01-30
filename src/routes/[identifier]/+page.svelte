@@ -6,8 +6,6 @@
 	import { fade, scale } from 'svelte/transition';
 	import { Card, FlipCard, Button, Input, Badge, SearchBar } from '$lib/components/ui';
 	import ShareModal from '$lib/components/ui/ShareModal.svelte';
-	import ReactionChips from '$lib/components/ui/ReactionChips.svelte';
-	import { composeNote } from '$lib/components/ui/reaction-chips';
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
@@ -212,7 +210,6 @@
 	let showNoteStep = $state(false);
 	let addedBookForNote = $state<DetectedBook | null>(null);
 	let addedBookId = $state<string | null>(null);
-	let noteChips = $state<Set<string>>(new Set());
 	let noteText = $state('');
 	let noteTextarea: HTMLTextAreaElement | null = null;
 	let fileInput: HTMLInputElement | null = null;
@@ -965,7 +962,6 @@
 				if (addedBook) {
 					addedBookForNote = booksToAdd[0];
 					addedBookId = addedBook.id;
-					noteChips = new Set();
 					noteText = '';
 					showNoteStep = true;
 				} else {
@@ -1058,24 +1054,10 @@
 	}
 
 	// Note step helpers
-	function toggleNoteChip(chipId: string) {
-		const newSet = new Set(noteChips);
-		if (newSet.has(chipId)) {
-			newSet.delete(chipId);
-		} else {
-			newSet.add(chipId);
-		}
-		noteChips = newSet;
-	}
-
-	function focusNoteTextarea() {
-		noteTextarea?.focus();
-	}
-
 	async function saveAddedBookNote() {
 		if (!addedBookId) return;
 
-		const finalNote = composeNote(noteChips, noteText);
+		const finalNote = noteText.trim();
 		if (finalNote) {
 			try {
 				await fetch('/api/books/update', {
@@ -1111,7 +1093,6 @@
 		detectError = null;
 		addedBookForNote = null;
 		addedBookId = null;
-		noteChips = new Set();
 		noteText = '';
 	}
 
@@ -2057,23 +2038,16 @@
 									<p class="text-sm text-stone-500 mt-1 line-clamp-1">{addedBookForNote.title}</p>
 								</div>
 
-								<!-- Note prompt with wrapped chips -->
-								<div class="space-y-4">
+								<!-- Note prompt -->
+								<div class="space-y-3">
 									<p class="text-sm text-stone-600 text-center">Quick note for future you?</p>
-
-									<ReactionChips
-										selected={noteChips}
-										onToggle={toggleNoteChip}
-										onOtherClick={focusNoteTextarea}
-										wrap={true}
-									/>
 
 									<textarea
 										bind:this={noteTextarea}
 										bind:value={noteText}
 										placeholder="What caught your attention about this one?"
 										class="w-full p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
-										rows={2}
+										rows={3}
 									></textarea>
 								</div>
 							</div>
