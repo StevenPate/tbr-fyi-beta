@@ -12,7 +12,7 @@ import { supabase } from '$lib/server/supabase';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const { identifier } = params;
 
 	// Determine userId (phone_number) based on identifier format
@@ -143,6 +143,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const isPhoneBased = userId.startsWith('+') && !user?.username;
 	const hasUsername = !!user?.username;
 
+	// Check if current visitor is authenticated and owns this shelf
+	const currentUser = locals.user || null;
+	const isAuthenticatedOwner = currentUser?.phone_number === userId;
+
 	return {
 		books: filteredBooks,
 		allBooks: books || [],
@@ -153,6 +157,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		userId,
 		isPhoneBased,
 		hasUsername,
-		username: user?.username || null
+		username: user?.username || null,
+		currentUser,
+		isAuthenticatedOwner
 	};
 };

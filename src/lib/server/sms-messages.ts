@@ -69,7 +69,7 @@ export const SMS_MESSAGES = {
 	searchBestMatch: (title: string, authors: string[], isbn13: string, phoneNumber: string, query: string) => {
 		const authorText = authors && authors.length > 0 ? ` by ${authors[0]}` : '';
 		const url = `${getShelfUrl(phoneNumber)}?q=${encodeURIComponent(query)}`;
-		return `Found: "${title}"${authorText} (ISBN: ${isbn13}).\nReply with that ISBN or reply ADD to add, or open to pick another: ${url}`;
+		return `Found: "${title}"${authorText} (ISBN: ${isbn13}).\nReply ADD to add, or click here to add via web: ${url}`;
 	},
 
 	searchNoMatch: (query: string, phoneNumber: string) => {

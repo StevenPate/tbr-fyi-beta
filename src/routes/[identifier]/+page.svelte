@@ -221,6 +221,10 @@
 	// Delete shelf state
 	let deletingShelfId = $state<string | null>(null);
 
+	// Claim shelf prompt state (shown when ?q= present but user not authenticated)
+	let showClaimPrompt = $state(false);
+	let pendingSearchQuery = $state<string | null>(null);
+
 	// Cover card state (for grid view with FlipCard) - only one card flipped at a time
 	let flippedBookId = $state<string | null>(null);
 
@@ -1150,15 +1154,22 @@
 			}
 		};
 
-		// If URL contains ?q=, auto-open modal, prefill, and run detection
+		// If URL contains ?q=, check auth status before opening add modal
 		try {
 			const searchParams = $page.url.searchParams;
 			const q = searchParams.get('q');
 			if (q) {
-				showIsbnInput = true;
-				inputText = q;
-				// Delay to allow modal to mount
-				setTimeout(() => { void detectBooks(); }, 0);
+				if (data.isAuthenticatedOwner) {
+					// User is signed in and owns this shelf - open add modal
+					showIsbnInput = true;
+					inputText = q;
+					// Delay to allow modal to mount
+					setTimeout(() => { void detectBooks(); }, 0);
+				} else {
+					// User not authenticated - show claim prompt
+					pendingSearchQuery = q;
+					showClaimPrompt = true;
+				}
 			}
 		} catch (e) {
 			console.warn('Failed to parse query params', e);
@@ -1882,6 +1893,86 @@
 			</div>
 		{/if}
 	{/key}
+
+		<!-- Claim Shelf Prompt Modal (shown when ?q= but not authenticated) -->
+		{#if showClaimPrompt}
+			<div
+				class="fixed inset-0 bg-[var(--charcoal)]/50 flex items-center justify-center z-50 p-4"
+				role="button"
+				tabindex="0"
+				aria-label="Close claim shelf dialog"
+				onclick={(e: MouseEvent) => {
+					if (e.target !== e.currentTarget) return;
+					showClaimPrompt = false;
+					pendingSearchQuery = null;
+				}}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Escape') {
+						showClaimPrompt = false;
+						pendingSearchQuery = null;
+					}
+				}}
+			>
+				<div
+					class="bg-[var(--surface)] rounded-lg shadow-xl w-full max-w-md overflow-hidden"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="claim-prompt-title"
+				>
+					<!-- Header -->
+					<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+						<h2 id="claim-prompt-title" class="text-lg font-semibold text-[var(--text-primary)]">
+							Sign in to add books
+						</h2>
+						<button
+							onclick={() => {
+								showClaimPrompt = false;
+								pendingSearchQuery = null;
+							}}
+							class="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded-lg hover:bg-[var(--background)]"
+							aria-label="Close"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+
+					<!-- Content -->
+					<div class="p-5">
+						<p class="text-[var(--text-secondary)] mb-4">
+							To add books from the web, verify your phone number first. This links your SMS shelf to your browser.
+						</p>
+
+						{#if pendingSearchQuery}
+							<div class="bg-[var(--background-alt)] rounded-lg px-4 py-3 mb-4">
+								<p class="text-sm text-[var(--text-secondary)]">You searched for:</p>
+								<p class="font-medium text-[var(--text-primary)] mt-1">"{pendingSearchQuery}"</p>
+							</div>
+						{/if}
+
+						<div class="space-y-3">
+							<a
+								href="/auth/verify-phone"
+								class="block w-full px-4 py-3 bg-[var(--accent)] text-white text-center font-medium rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
+								onclick={() => {
+									// Store phone for auto-fill
+									if (typeof localStorage !== 'undefined' && data.userId.startsWith('+')) {
+										localStorage.setItem('tbr-claim-phone', data.userId);
+									}
+								}}
+							>
+								Verify Phone Number
+							</a>
+
+							<p class="text-center text-sm text-[var(--text-secondary)]">
+								Or reply <span class="font-mono bg-[var(--background)] px-1.5 py-0.5 rounded">ADD</span> to your SMS to add via text
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Multimodal Add Book Modal -->
 		{#if showIsbnInput}
