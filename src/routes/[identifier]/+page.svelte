@@ -895,6 +895,7 @@
 		detectError = null;
 		try {
 			// Add books to library
+			let addedCount = 0;
 			for (const book of booksToAdd) {
 				const resp = await fetch('/api/books/add', {
 					method: 'POST',
@@ -902,8 +903,25 @@
 					body: JSON.stringify({ isbn: book.isbn13 })
 				});
 				if (!resp.ok) {
-					console.error('Failed to add book', book);
+					const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
+					if (resp.status === 401) {
+						detectError = 'Please sign in to add books to your shelf.';
+						return;
+					}
+					if (resp.status === 409) {
+						// Duplicate - count as added since it's already there
+						addedCount++;
+						continue;
+					}
+					detectError = errorData.error || 'Failed to add book. Please try again.';
+					return;
 				}
+				addedCount++;
+			}
+
+			if (addedCount === 0) {
+				detectError = 'No books were added. Please try again.';
+				return;
 			}
 
 			// Refresh data to get book IDs
