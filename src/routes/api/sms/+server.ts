@@ -306,18 +306,19 @@ async function recordPromptShown(
 }
 
 /**
- * Update prompt response when user adds a note
+ * Update prompt response when user adds a note or skips
  */
 async function recordPromptResponse(
 	phoneNumber: string,
 	bookId: string,
+	responded: boolean,
 	noteLength: number
 ): Promise<void> {
 	// Update the most recent prompt for this book
 	await supabase
 		.from('prompt_responses')
 		.update({
-			responded: true,
+			responded,
 			note_length: noteLength
 		})
 		.eq('user_id', phoneNumber)
@@ -509,6 +510,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			// Skip indicators - clear context and acknowledge
 			if (message === '👍' || messageLower === 'skip' || messageLower === 'no') {
+				await recordPromptResponse(userId, noteContext.last_book_id, false, 0);
 				await clearNoteContext(userId);
 				return twimlResponse(SMS_MESSAGES.noteSkipped());
 			}
@@ -526,17 +528,20 @@ export const POST: RequestHandler = async ({ request }) => {
 					.update({ note: chipNote })
 					.eq('id', noteContext.last_book_id);
 
+				await recordPromptResponse(userId, noteContext.last_book_id, true, chipNote.length);
 				await clearNoteContext(userId);
 				return twimlResponse(SMS_MESSAGES.noteSaved(noteContext.last_book_title));
 			}
 
 			// If it looks like a note (not ISBN/URL/command), save it
 			if (looksLikeNote(message)) {
+				const truncatedNote = message.slice(0, 500); // 500 char limit
 				await supabase
 					.from('books')
-					.update({ note: message.slice(0, 500) }) // 500 char limit
+					.update({ note: truncatedNote })
 					.eq('id', noteContext.last_book_id);
 
+				await recordPromptResponse(userId, noteContext.last_book_id, true, truncatedNote.length);
 				await clearNoteContext(userId);
 				return twimlResponse(SMS_MESSAGES.noteSaved(noteContext.last_book_title));
 			}
