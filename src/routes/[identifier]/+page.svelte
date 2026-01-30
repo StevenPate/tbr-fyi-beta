@@ -898,6 +898,7 @@
 		try {
 			// Add books to library
 			let addedCount = 0;
+			const addedBookIds: Map<string, string> = new Map(); // isbn13 -> bookId
 			for (const book of booksToAdd) {
 				const resp = await fetch('/api/books/add', {
 					method: 'POST',
@@ -918,6 +919,10 @@
 					detectError = errorData.error || 'Failed to add book. Please try again.';
 					return;
 				}
+				const result = await resp.json();
+				if (result.book?.id) {
+					addedBookIds.set(book.isbn13, result.book.id);
+				}
 				addedCount++;
 			}
 
@@ -932,9 +937,9 @@
 			// Add books to selected shelves if any were chosen
 			if (selectedShelfIds.size > 0) {
 				for (const book of booksToAdd) {
-					// Find the book in the updated data
-					const addedBook = data.allBooks.find(b => b.isbn13 === book.isbn13);
-					if (addedBook) {
+					// Use the book ID from the add response, or find in updated data
+					const bookId = addedBookIds.get(book.isbn13) || data.allBooks.find(b => b.isbn13 === book.isbn13)?.id;
+					if (bookId) {
 						// Add to each selected shelf
 						for (const shelfId of selectedShelfIds) {
 							try {
@@ -942,7 +947,7 @@
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json' },
 									body: JSON.stringify({
-										book_id: addedBook.id,
+										book_id: bookId,
 										shelf_id: shelfId
 									})
 								});
@@ -959,10 +964,11 @@
 			// For single book adds, show note step
 			// For multi-book adds, skip note step entirely (avoid friction)
 			if (booksToAdd.length === 1) {
-				const addedBook = data.allBooks.find(b => b.isbn13 === booksToAdd[0].isbn13);
-				if (addedBook) {
+				// Use book ID from add response (more reliable than searching allBooks)
+				const bookId = addedBookIds.get(booksToAdd[0].isbn13);
+				if (bookId) {
 					addedBookForNote = booksToAdd[0];
-					addedBookId = addedBook.id;
+					addedBookId = bookId;
 					noteText = '';
 
 					// Fetch the appropriate note prompt
@@ -970,13 +976,19 @@
 						const promptResp = await fetch('/api/books/note-prompt', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ bookId: addedBook.id })
+							body: JSON.stringify({ bookId })
 						});
 						if (promptResp.ok) {
 							currentPrompt = await promptResp.json();
+						} else {
+							// API returned error - use default prompt
+							currentPrompt = {
+								promptId: 'default',
+								text: 'What caught your attention about this one?'
+							};
 						}
 					} catch {
-						// Use default if fetch fails
+						// Network/fetch error - use default prompt
 						currentPrompt = {
 							promptId: 'default',
 							text: 'What caught your attention about this one?'
