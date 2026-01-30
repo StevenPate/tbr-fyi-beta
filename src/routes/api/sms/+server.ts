@@ -20,7 +20,8 @@ import {
 	isUnsupportedBookstoreUrl
 } from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
-import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, getRandomNotePrompt, CHIP_NOTE_PROMPT, WHY_NOTES_RESPONSE } from '$lib/server/sms-messages';
+import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, WHY_NOTES_RESPONSE } from '$lib/server/sms-messages';
+import { selectNotePrompt, formatNotePromptForSMS, type PromptContext, type NotePrompt } from '$lib/server/note-prompts';
 import { matchChipShortcut } from '$lib/components/ui/reaction-chips';
 import { logger, logBookAddition, logUserEvent, logError, startTimer } from '$lib/server/logger';
 import { upsertBookForUser } from '$lib/server/book-operations';
@@ -247,6 +248,99 @@ async function maybeAddFeedbackPrompt(baseMessage: string, phoneNumber: string):
 		return baseMessage + SMS_MESSAGES.FEEDBACK_PROMPT;
 	}
 	return baseMessage;
+}
+
+/**
+ * Get context for selecting the right note prompt
+ */
+async function getPromptContext(
+	phoneNumber: string,
+	sourceType: PromptContext['sourceType']
+): Promise<PromptContext> {
+	const now = new Date();
+	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+	// Get total book count and books added today
+	const [totalResult, todayResult, lastPromptResult] = await Promise.all([
+		supabase.from('books').select('id', { count: 'exact', head: true }).eq('user_id', phoneNumber),
+		supabase
+			.from('books')
+			.select('id', { count: 'exact', head: true })
+			.eq('user_id', phoneNumber)
+			.gte('added_at', todayStart.toISOString()),
+		supabase
+			.from('prompt_responses')
+			.select('prompt_id')
+			.eq('user_id', phoneNumber)
+			.order('created_at', { ascending: false })
+			.limit(1)
+			.maybeSingle()
+	]);
+
+	return {
+		sourceType,
+		totalBooks: totalResult.count || 0,
+		booksAddedToday: todayResult.count || 0,
+		timeOfDay: now.getHours(),
+		lastPromptId: lastPromptResult.data?.prompt_id as PromptContext['lastPromptId']
+	};
+}
+
+/**
+ * Record that a prompt was shown (call immediately after showing)
+ */
+async function recordPromptShown(
+	phoneNumber: string,
+	bookId: string,
+	promptId: string,
+	source: 'sms' | 'web'
+): Promise<void> {
+	await supabase.from('prompt_responses').insert({
+		user_id: phoneNumber,
+		book_id: bookId,
+		prompt_id: promptId,
+		responded: false,
+		note_length: 0,
+		source
+	});
+}
+
+/**
+ * Update prompt response when user adds a note
+ */
+async function recordPromptResponse(
+	phoneNumber: string,
+	bookId: string,
+	noteLength: number
+): Promise<void> {
+	// Update the most recent prompt for this book
+	await supabase
+		.from('prompt_responses')
+		.update({
+			responded: true,
+			note_length: noteLength
+		})
+		.eq('user_id', phoneNumber)
+		.eq('book_id', bookId)
+		.order('created_at', { ascending: false })
+		.limit(1);
+}
+
+/**
+ * Get the note prompt for SMS, formatted with context
+ */
+async function getNotePromptForSMS(
+	phoneNumber: string,
+	bookId: string,
+	sourceType: PromptContext['sourceType']
+): Promise<string> {
+	const context = await getPromptContext(phoneNumber, sourceType);
+	const prompt = selectNotePrompt(context);
+
+	// Record that we showed this prompt
+	await recordPromptShown(phoneNumber, bookId, prompt.id, 'sms');
+
+	return formatNotePromptForSMS(prompt);
 }
 
 /**
@@ -548,7 +642,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			await setNoteContext(userId, result.bookId!, metadata.title);
 
 			const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, CHIP_NOTE_PROMPT);
+			const notePrompt = await getNotePromptForSMS(userId, result.bookId!, 'sms_isbn');
+			let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
 			message = await maybeAddFeedbackPrompt(message, userId);
 			message = await maybeAddAccountPrompt(message, userId);
 			return twimlResponse(message);
@@ -570,7 +665,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		let responseMessage = '';
 		const bookTimer = startTimer();
 		let detectionMethod: 'isbn' | 'amazon_link' | 'search' | 'image' = 'isbn';
-		let sourceType: 'sms_isbn' | 'sms_link' = 'sms_isbn'; // Track how book was added
+		let sourceType: PromptContext['sourceType'] = 'sms_isbn'; // Track how book was added for prompt selection
 
 		// 1. Check if it's a photo (MMS)
 		if (numMedia > 0) {
@@ -899,7 +994,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		await setNoteContext(userId, result.bookId!, metadata.title);
 
 		const authorText = metadata.author.length > 0 ? metadata.author[0] : undefined;
-		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, CHIP_NOTE_PROMPT);
+		const notePrompt = await getNotePromptForSMS(userId, result.bookId!, sourceType);
+		let message = SMS_MESSAGES.bookAdded(metadata.title, userId, authorText, notePrompt);
 		message = await maybeAddFeedbackPrompt(message, userId);
 		message = await maybeAddAccountPrompt(message, userId);
 		return twimlResponse(message);

@@ -212,6 +212,7 @@
 	let addedBookId = $state<string | null>(null);
 	let noteText = $state('');
 	let noteTextarea: HTMLTextAreaElement | null = null;
+	let currentPrompt = $state<{ promptId: string; text: string; subtext?: string } | null>(null);
 	let fileInput: HTMLInputElement | null = null;
 	let queryInput: HTMLTextAreaElement | null = null;
 
@@ -963,6 +964,25 @@
 					addedBookForNote = booksToAdd[0];
 					addedBookId = addedBook.id;
 					noteText = '';
+
+					// Fetch the appropriate note prompt
+					try {
+						const promptResp = await fetch('/api/books/note-prompt', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ bookId: addedBook.id })
+						});
+						if (promptResp.ok) {
+							currentPrompt = await promptResp.json();
+						}
+					} catch {
+						// Use default if fetch fails
+						currentPrompt = {
+							promptId: 'default',
+							text: 'What caught your attention about this one?'
+						};
+					}
+
 					showNoteStep = true;
 				} else {
 					// Couldn't find added book, just close
@@ -1068,6 +1088,18 @@
 						note: finalNote
 					})
 				});
+
+				// Record prompt response (fire and forget)
+				fetch('/api/books/note-prompt', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						bookId: addedBookId,
+						responded: true,
+						noteLength: finalNote.length
+					})
+				}).catch(() => {}); // Ignore analytics errors
+
 				await invalidateAll();
 			} catch (err) {
 				console.error('Failed to save note:', err);
@@ -1077,6 +1109,18 @@
 	}
 
 	function skipAddedBookNote() {
+		// Record that user skipped (fire and forget)
+		if (addedBookId) {
+			fetch('/api/books/note-prompt', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bookId: addedBookId,
+					responded: false,
+					noteLength: 0
+				})
+			}).catch(() => {}); // Ignore analytics errors
+		}
 		closeAddModal();
 	}
 
@@ -1094,6 +1138,7 @@
 		addedBookForNote = null;
 		addedBookId = null;
 		noteText = '';
+		currentPrompt = null;
 	}
 
 	// Global keyboard shortcut: press "+" to open ISBN entry
@@ -2045,10 +2090,14 @@
 									<textarea
 										bind:this={noteTextarea}
 										bind:value={noteText}
-										placeholder="What caught your attention about this one?"
+										placeholder={currentPrompt?.text || "What caught your attention about this one?"}
 										class="w-full p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
 										rows={3}
 									></textarea>
+
+									{#if currentPrompt?.subtext}
+										<p class="text-xs text-stone-400 text-center">{currentPrompt.subtext}</p>
+									{/if}
 								</div>
 							</div>
 						{:else if detectedBooks.length === 0}

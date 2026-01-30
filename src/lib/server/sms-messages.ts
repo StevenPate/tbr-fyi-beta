@@ -192,16 +192,21 @@ export const SMS_MESSAGES = {
 		'You\'re already opted in for feedback. Thanks for your willingness to help!'
 } as const;
 
-// Intent capture prompts - rotated randomly
-export const NOTE_PROMPTS = [
-	"Reply with a note for future you, or just ignore",
-	"What caught your attention? (or ignore)",
-	"Who recommended this? (or ignore)",
-	"What mood is this for? (or ignore)",
-] as const;
+// Re-export note prompts from centralized module
+export {
+	NOTE_PROMPTS,
+	selectNotePrompt,
+	formatNotePromptForSMS,
+	type NotePrompt,
+	type PromptContext
+} from './note-prompts';
 
+// Legacy function for backward compatibility
+import { NOTE_PROMPTS as PROMPTS } from './note-prompts';
 export function getRandomNotePrompt(): string {
-	return NOTE_PROMPTS[Math.floor(Math.random() * NOTE_PROMPTS.length)];
+	const defaults = [PROMPTS.DEFAULT, PROMPTS.MOOD, PROMPTS.DIRECT];
+	const prompt = defaults[Math.floor(Math.random() * defaults.length)];
+	return prompt.text;
 }
 
 // Reaction chip prompt for SMS (after book added)
