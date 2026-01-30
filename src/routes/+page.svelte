@@ -113,6 +113,14 @@
         <p class="closing">Never lose a book recommendation again.</p>
     </section>
 
+    <!-- Big phone number CTA -->
+    {#if !isReturningUser}
+        <section class="phone-cta">
+            <p class="phone-cta-label">Text START to</p>
+            <a href="tel:+13605044327" class="phone-cta-number">+1 (360) 504-4327</a>
+        </section>
+    {/if}
+
     <!-- Returning User: Show login first -->
     {#if isReturningUser}
         <section class="login login-returning">
@@ -365,6 +373,38 @@
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 40px;
+    }
+
+    /* Phone CTA */
+    .phone-cta {
+        text-align: center;
+        padding: 0 24px 48px;
+    }
+
+    .phone-cta-label {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .phone-cta-number {
+        display: block;
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--accent);
+        text-decoration: none;
+        letter-spacing: 0.5px;
+        transition: color 0.15s ease;
+    }
+
+    .phone-cta-number:hover {
+        color: var(--accent-hover);
+    }
+
+    @media (min-width: 640px) {
+        .phone-cta-number {
+            font-size: 40px;
+        }
     }
 
     /* How it works */
