@@ -8,9 +8,12 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter()
-		// Note: CSRF protection is implemented manually in hooks.server.ts
+		adapter: adapter(),
+		// Disable SvelteKit's built-in CSRF - we implement it manually in hooks.server.ts
 		// This allows exempting specific routes (Twilio webhook) while protecting others
+		csrf: {
+			checkOrigin: false
+		}
 	}
 };
 
