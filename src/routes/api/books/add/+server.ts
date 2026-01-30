@@ -83,7 +83,10 @@ export const POST: RequestHandler = async (event) => {
 
 			// Return appropriate status code for duplicates vs errors
 			if (result.isDuplicate) {
-				return json({ error: result.error || 'Book already on shelf' }, { status: 409 });
+				return json({
+					error: result.error || 'Book already on shelf',
+					book: result.bookId ? { id: result.bookId } : undefined
+				}, { status: 409 });
 			}
 
 			return json({ error: 'Failed to save book. Try again?' }, { status: 500 });

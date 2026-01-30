@@ -10,6 +10,7 @@
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
 	import { apiFetch } from '$lib/utils/api';
+	import { authPrompt } from '$lib/stores/auth-prompt';
 
 	let { data }: { data: PageData } = $props();
 
@@ -908,11 +909,14 @@
 				if (!resp.ok) {
 					const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
 					if (resp.status === 401) {
-						detectError = 'Please sign in to add books to your shelf.';
+						authPrompt.trigger('Sign in to add books to your shelf.');
 						return;
 					}
 					if (resp.status === 409) {
 						// Duplicate - count as added since it's already there
+						if (errorData.book?.id) {
+							addedBookIds.set(book.isbn13, errorData.book.id);
+						}
 						addedCount++;
 						continue;
 					}
@@ -1179,6 +1183,10 @@
 
 			if (e.key === '+' || e.key === '=') {
 				e.preventDefault();
+				if (!data.isAuthenticatedOwner) {
+					authPrompt.trigger('Sign in to add books to your shelf.');
+					return;
+				}
 				showIsbnInput = true;
 			}
 		};
@@ -1345,6 +1353,10 @@
 						<!-- Manual ISBN Entry Button -->
 						<button
 							onclick={() => {
+								if (!data.isAuthenticatedOwner) {
+									authPrompt.trigger('Sign in to add books to your shelf.');
+									return;
+								}
 								showIsbnInput = true;
 								addBookError = null;
 								addBookSuccess = false;
@@ -2196,6 +2208,15 @@
 						{:else}
 							<!-- Books Results Section -->
 							<div class="space-y-4">
+
+								{#if detectError}
+									<div
+										class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded border border-red-200"
+										role="alert"
+									>
+										{detectError}
+									</div>
+								{/if}
 
 								{#if detectionMetadata}
 									<div class="text-sm space-y-1">

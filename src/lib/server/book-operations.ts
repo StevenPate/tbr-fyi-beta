@@ -64,10 +64,19 @@ export async function upsertBookForUser(
 				bookError?.code === '23505' ||
 				bookError?.message?.includes('duplicate')
 			) {
+				// Try to get the existing book's ID
+				const { data: existingBook } = await supabase
+					.from('books')
+					.select('id')
+					.eq('user_id', userId)
+					.eq('isbn13', metadata.isbn)
+					.single();
+
 				return {
 					success: false,
 					error: `"${metadata.title}" is already on your shelf`,
-					isDuplicate: true
+					isDuplicate: true,
+					bookId: existingBook?.id
 				};
 			}
 
