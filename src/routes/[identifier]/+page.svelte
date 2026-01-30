@@ -1100,7 +1100,7 @@
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
-						bookId: addedBookId,
+						id: addedBookId,
 						note: finalNote
 					})
 				});

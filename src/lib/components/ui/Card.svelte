@@ -592,7 +592,7 @@
 						{#if linksOpen}
 							<div class="px-1 pb-3 flex flex-wrap gap-x-4 gap-y-1">
 								<a
-									href={`https://www.google.com/books/edition/_/${book.isbn13}`}
+									href={`https://www.google.com/search?tbm=bks&q=isbn:${book.isbn13}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									class="text-sm text-stone-500 hover:text-stone-700 transition-colors"

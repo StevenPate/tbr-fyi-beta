@@ -157,15 +157,22 @@ export const POST = async ({ request }: any) => {
 					return json({ error: 'No books found for your query' }, { status: 404 });
 				}
 
-				// Map directly to detected results; no extra metadata lookups needed
-				const detected = candidates.map((c) => ({
-					isbn13: c.isbn13,
-					title: c.title,
-					author: c.authors,
-					publisher: c.publisher,
-					publicationDate: c.publicationDate,
-					coverUrl: c.coverUrl
-				}));
+				// Map directly to detected results; deduplicate by ISBN13 (keep first occurrence)
+				const seen = new Set<string>();
+				const detected = candidates
+					.filter((c) => {
+						if (seen.has(c.isbn13)) return false;
+						seen.add(c.isbn13);
+						return true;
+					})
+					.map((c) => ({
+						isbn13: c.isbn13,
+						title: c.title,
+						author: c.authors,
+						publisher: c.publisher,
+						publicationDate: c.publicationDate,
+						coverUrl: c.coverUrl
+					}));
 				return json({ success: true, detected });
 			}
 		}
