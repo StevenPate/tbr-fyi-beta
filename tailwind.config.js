@@ -30,6 +30,11 @@ export default {
           DEFAULT: 'var(--accent)',
           hover: 'var(--accent-hover)',
         },
+        // Status indicator colors
+        status: {
+          read: 'var(--status-read)',
+          owned: 'var(--status-owned)',
+        },
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],

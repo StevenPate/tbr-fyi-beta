@@ -2,6 +2,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import JsBarcode from 'jsbarcode';
 	import ReactionChips from './ReactionChips.svelte';
+	import StatusBadge from './StatusBadge.svelte';
 	import { composeNote } from './reaction-chips';
 
 	interface Book {
@@ -342,7 +343,7 @@
 		aria-label={onClose ? undefined : (expanded ? `Collapse ${book.title}` : `Expand ${book.title}`)}
 	>
 		<!-- Cover -->
-		<div class="flex-shrink-0">
+		<div class="flex-shrink-0 relative">
 			{#if book.cover_url}
 				<img
 					src={book.cover_url}
@@ -358,6 +359,21 @@
 				>
 					<div class="text-[8px] md:text-[10px] font-serif italic leading-tight line-clamp-3">{book.title}</div>
 				</div>
+			{/if}
+
+			<!-- Status badges -->
+			{#if book.is_read}
+				<StatusBadge status="read" />
+			{/if}
+			{#if book.is_owned}
+				<StatusBadge status="owned" stacked={book.is_read} />
+			{/if}
+
+			<!-- Screen reader status announcement -->
+			{#if book.is_read || book.is_owned}
+				<span class="sr-only">
+					Status: {[book.is_read && 'Read', book.is_owned && 'Owned'].filter(Boolean).join(', ')}
+				</span>
 			{/if}
 		</div>
 

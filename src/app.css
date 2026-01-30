@@ -13,6 +13,10 @@
 	--warm-gray: #635e58;
 	--white: #ffffff;
 
+	/* Status indicator colors */
+	--status-read: #5d8a66;
+	--status-owned: #8b7355;
+
 	/* Semantic colors */
 	--background: var(--paper-mid);
 	--background-alt: var(--paper-light);
@@ -47,6 +51,9 @@
 	.animate-check-pop {
 		animation: check-pop 200ms ease-out;
 	}
+	.animate-badge-pop {
+		animation: badge-pop 200ms ease-out;
+	}
 }
 
 @keyframes check-pop {
@@ -60,5 +67,25 @@
 	100% {
 		transform: scale(1);
 		opacity: 1;
+	}
+}
+
+@keyframes badge-pop {
+	0% {
+		transform: scale(0);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.15);
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-badge-pop {
+		animation: none;
 	}
 }
