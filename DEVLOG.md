@@ -1,5 +1,102 @@
 # Development Log
 
+## 2026-01-29 - Security: Session-Based Authorization
+
+### Replaced Referer-based auth with session-based authorization
+- **Problem**: API endpoints used Referer header to determine user ID, which is spoofable
+- **Attack vector**: Attacker visits victim's public shelf, calls API with spoofed Referer to modify victim's books
+- **Solution**: All API endpoints now use `requireSessionUserId(event)` from authenticated session
+
+### CSRF protection
+- Added Origin header validation in `hooks.server.ts` for POST/PUT/DELETE/PATCH
+- Exempt routes: `/api/sms` (Twilio webhook), `/api/admin/cleanup`
+- Removed deprecated `csrf.checkOrigin: false` from svelte.config.js
+
+### New auth helpers (`src/lib/server/auth.ts`)
+- `requireSessionUserId(event)` - Get user ID from session or throw 401
+- `getSessionUserId(event)` - Get user ID or null
+- `requireSessionUser(event)` - Get full user object or throw 401
+- Old Referer-based functions marked `@deprecated`
+
+### Endpoints updated
+- `/api/books/add`, `/api/books/update`, `/api/books/delete`
+- `/api/books/shelves`, `/api/export`, `/api/export/csv`
+
+---
+
+## 2026-01-29 - Book Card Status Badges
+
+### Added read/owned status badges to cover thumbnails
+- **Goal**: Show at-a-glance read/owned status without expanding cards
+- **Spec**: `docs/plans/book-card-status-badges-v2.md`
+
+### Implementation
+- **StatusBadge.svelte**: New component with `status` and `stacked` props
+  - Read badge: Green circle (#5d8a66) with white checkmark
+  - Owned badge: Brown circle (#8b7355) with white house icon
+  - When both present: owned becomes plain dot, stacked below read
+- **Design tokens**: Added `--status-read` and `--status-owned` CSS variables
+- **Animation**: `badge-pop` keyframes (scale 0 → 1.15 → 1) with reduced-motion support
+- **Accessibility**: Single sr-only span announces "Status: Read, Owned" instead of per-badge labels
+
+### Key decisions
+- Badges positioned at -4px from cover edge, within card padding (no overflow issues)
+- Preserved `flex-shrink-0` on cover container to prevent layout collapse
+- Used `aria-hidden="true"` on visual badges, sr-only for screen readers
+
+### Files modified
+- `src/app.css` - Status color tokens + badge-pop animation
+- `tailwind.config.js` - Added status.read/status.owned colors
+- `src/lib/components/ui/Card.svelte` - Badge rendering + sr-only summary
+- `src/lib/components/ui/StatusBadge.svelte` - New component
+
+---
+
+## 2026-01-27 - UI Responsiveness and Design Consistency
+
+### Optimistic updates for instant shelf toggle feedback
+- **Problem**: Shelf checkboxes in book cards took 3 seconds to reflect changes (used `invalidateAll()` causing full server round-trip)
+- **Solution**: Added `localBookShelves` state that updates immediately on click, reverts on server error
+- **Implementation**: Created `BookShelf` type and `toggleBookOnShelf()` function with optimistic update pattern
+- **Files modified**: `src/routes/[identifier]/+page.svelte`
+
+### Fixed note save effect overwriting values
+- **Problem**: Effect at Card.svelte:78-84 overwrote just-saved notes when `noteEditing` state changed
+- **Solution**: Track `lastServerNote` and `lastBookId` to only sync when server data actually changes
+- **Implementation**: Added conditional effect that distinguishes between book changes vs. editing state changes
+- **Files modified**: `src/lib/components/ui/Card.svelte`
+
+### Streamlined shelf navigation pills
+- **Before**: All, Research, 2026, TBR, More, +New Shelf (visually cluttered)
+- **After**: All, [current shelf], More dropdown, +add shelf
+- **Implementation**: Changed from `visibleShelves`/`hiddenShelves` to `currentShelf`/`otherShelves` derivations
+- **Behavior**: Only shows currently selected shelf as a pill; other shelves accessible via "More" dropdown
+
+### Added micro-interaction polish
+- **Button press feedback**: Added `active:scale-[0.98]` with `transition-all duration-150`
+- **Checkbox pop animation**: New `animate-check-pop` keyframe (scale 0 → 1.2 → 1 over 200ms)
+- **Chip press feedback**: Added `active:scale-[0.97]` to ReactionChips
+- **Files modified**: `src/lib/components/ui/Button.svelte`, `src/app.css`
+
+### Unified design consistency with rounded-lg
+- **Problem**: Inconsistent shapes across shelf pills, status badges, reaction chips (some rounded-full, some rounded-lg)
+- **Solution**: Standardized all pill/chip elements to `rounded-lg` for cohesive design language
+- **Files modified**: `src/lib/components/ui/Badge.svelte`, `src/lib/components/ui/ReactionChips.svelte`, Card status pills
+
+### Fixed "More shelves" dropdown positioning
+- **Problem**: Dropdown floated to far right of screen instead of attaching to More button
+- **Root cause**: Dropdown was inside scroll container with `overflow-x-auto` which clipped it
+- **Solution**: Moved dropdown outside scroll container, used `moreButtonRef` and `getBoundingClientRect()` for dynamic positioning
+- **Implementation**: Calculate button position on click, set `style="left: {dropdownLeft}px;"` on dropdown
+
+### Simplified Add Note modal
+- **Removed**: Redundant cover image and title (context already visible on card)
+- **Changed**: ReactionChips now display in wrapped rows (added `wrap` prop) instead of horizontal scroll
+- **Spacing**: Fixed whitespace between reaction chips and textarea with `space-y-4`
+- **Files modified**: `src/lib/components/ui/ReactionChips.svelte`, `src/routes/[identifier]/+page.svelte`
+
+---
+
 ## 2026-01-27 - Reaction Chips (Intent Capture Phase 2)
 
 ### Implemented tappable reaction chips for quick intent capture

@@ -22,15 +22,12 @@
 ### Growth & Sharing
 - [ ] StoryGraph portability messaging & import guide (`docs/plans/2026-01-23-storygraph-portability-design.md`)
 - [ ] Share shelf publicly (read-only URL)
-- [ ] Add screenshots or demo GIF to README
 
 
 ### Retention
 - [ ] Paginate or infinite scroll for long lists
 
 ### Polish & Trust
-- [ ] FIX: Checkboxes don't show changed state when clicked (Web UI)
-- [ ] Put read and owned pills on card
 - [ ] Mitigate delay after click for "add/remove from shelf" checkboxes
 - [ ] Add user-facing error messages when metadata fetching fails or ISBNs are invalid
 
@@ -39,9 +36,12 @@
 - [ ] Scrape curated book list pages (e.g., `ptreyesbooks.com/list/...`) to extract individual book URLs
 
 ### Done
+- [x] Read/owned status badges on book card covers (`docs/plans/book-card-status-badges-v2.md`)
 - [x] Reaction chips for quick note capture (`docs/plans/2026-01-26-reaction-chips-design.md`)
 - [x] Intent capture Phase 1: SMS note prompts + source tracking (`docs/plans/2026-01-26-intent-phase1-plan.md`)
 - [x] Note preview on collapsed book cards
+- [x] Add screenshots or demo GIF to README
+- [x] FIX: Checkboxes don't show changed state when clicked (Web UI)
 - [x] Per-shelf export (CSV/JSON): `docs/plans/2026-01-11-json-per-shelf-export-spec.md`
 - [x] Retailer link parsing (Bookshop.org, Barnes & Noble, Indiecommerce `/book/{ISBN}`)
 - [x] Design system implementation with CSS tokens and Tailwind integration
@@ -97,6 +97,7 @@
 ## Completed
 
 ### January 2026
+- [x] Read/owned status badges on book card covers (`docs/plans/book-card-status-badges-v2.md`)
 - [x] Reaction chips for quick intent capture (Phase 2): tappable chips in web UI, emoji/keyword shortcuts in SMS
 - [x] Intent capture Phase 1: SMS note prompts after book save, note reply handling, source_type tracking
 - [x] Note preview on collapsed book cards (shows truncated note without expanding)

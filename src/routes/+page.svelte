@@ -154,7 +154,7 @@
                 <div class="step">
                     <div class="step-number">1</div>
                     <h3>Text START</h3>
-                    <p>Send START to <strong>+1 (360) 504-4327</strong> to get your personal TBR number.</p>
+                    <p>Send START to <strong>+1 (360) 504-4327</strong> to get started.</p>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
