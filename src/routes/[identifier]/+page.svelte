@@ -21,10 +21,21 @@
 	type BookShelf = { book_id: string; shelf_id: string };
 	let localBookShelves = $state<BookShelf[]>([...data.bookShelves]);
 
-	// Sync with server data on navigation (e.g., browser back/forward)
+	// Local books state for optimistic updates (instant read/owned toggling)
+	let localBooks = $state([...data.allBooks]);
+
+	// Track userId to detect actual page navigation vs data refresh from invalidateAll()
+	let previousUserId = data.userId;
+
+	// Sync with server data on navigation (e.g., navigating to a different user's shelf)
+	// Only reset shelf selection when the page identity changes, not on data refreshes
 	$effect(() => {
-		selectedShelfId = data.selectedShelfId;
+		if (data.userId !== previousUserId) {
+			selectedShelfId = data.selectedShelfId;
+			previousUserId = data.userId;
+		}
 		localBookShelves = [...data.bookShelves];
+		localBooks = [...data.allBooks];
 	});
 
 	let newShelfName = $state('');
@@ -55,10 +66,20 @@
 
 	// View mode state (default to list)
 	let viewMode = $state<'grid' | 'list'>('list');
+	let viewDropdownOpen = $state(false);
+	let viewDropdownButtonEl: HTMLButtonElement | undefined = $state();
+	let viewDropdownPosition = $state({ top: 0, left: 0 });
 
 	// Filter state (session-only, not persisted in URL)
 	let readFilter = $state<'all' | 'read' | 'unread'>('all');
 	let ownedFilter = $state<'all' | 'owned' | 'not-owned'>('all');
+
+	// Filter dropdown state
+	let filterDropdownOpen = $state(false);
+	let filterButtonEl: HTMLButtonElement | undefined = $state();
+	let filterDropdownPosition = $state({ top: 0, right: 0 });
+
+	const hasActiveFilters = $derived(readFilter !== 'all' || ownedFilter !== 'all');
 
 	// Shelf pills scroll container ref
 	let shelfScrollContainer: HTMLDivElement | null = null;
@@ -123,10 +144,10 @@
 	}
 
 	// Filter books by selected shelf (client-side for instant switching)
-	const booksForCurrentShelf = $derived(() => {
+	const booksForCurrentShelf = $derived.by(() => {
 		if (!selectedShelfId) {
 			// "All Books" view
-			return data.allBooks;
+			return localBooks;
 		}
 		// Filter to books on the selected shelf
 		const bookIdsOnShelf = new Set(
@@ -134,12 +155,12 @@
 				.filter(bs => bs.shelf_id === selectedShelfId)
 				.map(bs => bs.book_id)
 		);
-		return data.allBooks.filter(book => bookIdsOnShelf.has(book.id));
+		return localBooks.filter(book => bookIdsOnShelf.has(book.id));
 	});
 
 	// Apply status filters to shelf-filtered books
-	const booksFilteredByStatus = $derived(() => {
-		let result = booksForCurrentShelf();
+	const booksFilteredByStatus = $derived.by(() => {
+		let result = booksForCurrentShelf;
 		if (readFilter !== 'all') {
 			result = result.filter(b => readFilter === 'read' ? b.is_read : !b.is_read);
 		}
@@ -150,11 +171,11 @@
 	});
 
 	// Then apply search filter
-	const displayedBooks = $derived(
-		searchQuery.trim()
-			? booksFilteredByStatus().filter(b => matchesSearchQuery(b, searchQuery))
-			: booksFilteredByStatus()
-	);
+	const displayedBooks = $derived.by(() => {
+		return searchQuery.trim()
+			? booksFilteredByStatus.filter(b => matchesSearchQuery(b, searchQuery))
+			: booksFilteredByStatus;
+	});
 
 	// Scroll to and highlight a book, expand/flip it based on view mode
 	function scrollToBook(book: { id: string }) {
@@ -282,7 +303,7 @@
 
 	// Detail modal state (for FlipCard "View Details")
 	let detailModalBookId = $state<string | null>(null);
-	let detailModalBook = $derived(detailModalBookId ? data.allBooks.find(b => b.id === detailModalBookId) : null);
+	let detailModalBook = $derived(detailModalBookId ? localBooks.find(b => b.id === detailModalBookId) : null);
 	let shareModalOpen = $derived(shareModalBook !== null);
 	// Canonical identifier for share URLs: prefer username if available
 	const canonicalIdentifier = $derived(data.username || data.userId);
@@ -300,7 +321,7 @@
 	$effect(() => {
 		if (viewMode === 'grid' && browser) {
 			const dismissed = localStorage.getItem('tbr-flip-hint-dismissed');
-			if (!dismissed && data.allBooks.length > 0) {
+			if (!dismissed && localBooks.length > 0) {
 				showFlipHint = true;
 				// Auto-dismiss after 3 seconds
 				flipHintTimeout = setTimeout(() => {
@@ -499,8 +520,11 @@
 	}
 
 	async function toggleRead(bookId: string, currentValue: boolean) {
+		// Optimistic update - full array reassignment guarantees Svelte reactivity
+		localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_read: !currentValue } : b);
+
 		try {
-			const response = await fetch('/api/books/update', {
+			const response = await apiFetch('/api/books/update', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -509,17 +533,21 @@
 				})
 			});
 
-			if (response.ok) {
-				await invalidateAll();
+			if (!response.ok) {
+				localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_read: currentValue } : b);
 			}
 		} catch (error) {
+			localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_read: currentValue } : b);
 			console.error('Error toggling read:', error);
 		}
 	}
 
 	async function toggleOwned(bookId: string, currentValue: boolean) {
+		// Optimistic update - full array reassignment guarantees Svelte reactivity
+		localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_owned: !currentValue } : b);
+
 		try {
-			const response = await fetch('/api/books/update', {
+			const response = await apiFetch('/api/books/update', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -528,17 +556,18 @@
 				})
 			});
 
-			if (response.ok) {
-				await invalidateAll();
+			if (!response.ok) {
+				localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_owned: currentValue } : b);
 			}
 		} catch (error) {
+			localBooks = localBooks.map(b => b.id === bookId ? { ...b, is_owned: currentValue } : b);
 			console.error('Error toggling owned:', error);
 		}
 	}
 
 	async function updateNote(bookId: string, note: string) {
 		try {
-			await fetch('/api/books/update', {
+			await apiFetch('/api/books/update', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -733,7 +762,7 @@
 			format === 'csv' ? `tbr-export-${sanitizedName}.csv` : `tbr-export-${sanitizedName}.json`;
 
 		try {
-			const response = await fetch(endpoint);
+			const response = await apiFetch(endpoint);
 
 			if (!response.ok) {
 				const result = await response.json();
@@ -831,7 +860,7 @@
 				content = inputText.trim();
 			}
 
-			const response = await fetch('/api/books/detect', {
+			const response = await apiFetch('/api/books/detect', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ type: inputType, content })
@@ -901,7 +930,7 @@
 			let addedCount = 0;
 			const addedBookIds: Map<string, string> = new Map(); // isbn13 -> bookId
 			for (const book of booksToAdd) {
-				const resp = await fetch('/api/books/add', {
+				const resp = await apiFetch('/api/books/add', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ isbn: book.isbn13 })
@@ -942,12 +971,12 @@
 			if (selectedShelfIds.size > 0) {
 				for (const book of booksToAdd) {
 					// Use the book ID from the add response, or find in updated data
-					const bookId = addedBookIds.get(book.isbn13) || data.allBooks.find(b => b.isbn13 === book.isbn13)?.id;
+					const bookId = addedBookIds.get(book.isbn13) || localBooks.find(b => b.isbn13 === book.isbn13)?.id;
 					if (bookId) {
 						// Add to each selected shelf
 						for (const shelfId of selectedShelfIds) {
 							try {
-								await fetch('/api/books/shelves', {
+								await apiFetch('/api/books/shelves', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json' },
 									body: JSON.stringify({
@@ -977,7 +1006,7 @@
 
 					// Fetch the appropriate note prompt
 					try {
-						const promptResp = await fetch('/api/books/note-prompt', {
+						const promptResp = await apiFetch('/api/books/note-prompt', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify({ bookId })
@@ -1053,7 +1082,7 @@
 		isAddingBook = true;
 
 		try {
-			const response = await fetch('/api/books/add', {
+			const response = await apiFetch('/api/books/add', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -1096,7 +1125,7 @@
 		const finalNote = noteText.trim();
 		if (finalNote) {
 			try {
-				await fetch('/api/books/update', {
+				await apiFetch('/api/books/update', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -1157,6 +1186,75 @@
 		currentPrompt = null;
 	}
 
+	// Portal action: teleports element to document.body for dropdown overlays
+	function portal(node: HTMLElement) {
+		document.body.appendChild(node);
+		return {
+			destroy() {
+				node.remove();
+			}
+		};
+	}
+
+	// View dropdown positioning and interaction helpers
+	function updateViewDropdownPosition() {
+		if (viewDropdownButtonEl) {
+			const rect = viewDropdownButtonEl.getBoundingClientRect();
+			viewDropdownPosition = {
+				top: rect.bottom + 4,
+				left: rect.right - 160 // right-align dropdown (160px wide)
+			};
+		}
+	}
+
+	function toggleViewDropdown() {
+		viewDropdownOpen = !viewDropdownOpen;
+		if (viewDropdownOpen) {
+			filterDropdownOpen = false; // close filter if open
+			requestAnimationFrame(() => updateViewDropdownPosition());
+		}
+	}
+
+	function selectViewMode(mode: 'grid' | 'list') {
+		viewMode = mode;
+		viewDropdownOpen = false;
+		umami?.track('view-mode-change', { mode });
+	}
+
+	// Filter dropdown positioning and interaction helpers
+	function updateFilterDropdownPosition() {
+		if (filterButtonEl) {
+			const rect = filterButtonEl.getBoundingClientRect();
+			filterDropdownPosition = {
+				top: rect.bottom + 4,
+				right: window.innerWidth - rect.right
+			};
+		}
+	}
+
+	function toggleFilterDropdown() {
+		filterDropdownOpen = !filterDropdownOpen;
+		if (filterDropdownOpen) {
+			viewDropdownOpen = false; // close view if open
+			requestAnimationFrame(() => updateFilterDropdownPosition());
+		}
+	}
+
+	// Consolidated click-outside handler for view and filter dropdowns
+	function handleGlobalClick(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+
+		if (viewDropdownOpen && !target.closest('[aria-label="Change view mode"]')) {
+			const inViewDropdown = target.closest('[role="listbox"][aria-label="View mode options"]');
+			if (!inViewDropdown) viewDropdownOpen = false;
+		}
+
+		if (filterDropdownOpen && !target.closest('[aria-label="Filter books"]')) {
+			const inFilterDropdown = target.closest('.filter-dropdown-portal');
+			if (!inFilterDropdown) filterDropdownOpen = false;
+		}
+	}
+
 	// Global keyboard shortcut: press "+" to open ISBN entry
 	onMount(() => {
 		// Save user ID to localStorage for quick access from homepage
@@ -1166,6 +1264,18 @@
 		}
 
 		const handleKeydown = (e: KeyboardEvent) => {
+			// Escape: close whichever dropdown is open and return focus to its trigger
+			if (e.key === 'Escape') {
+				if (viewDropdownOpen) {
+					viewDropdownOpen = false;
+					viewDropdownButtonEl?.focus();
+				}
+				if (filterDropdownOpen) {
+					filterDropdownOpen = false;
+					filterButtonEl?.focus();
+				}
+			}
+
 			// Cmd+K / Ctrl+K toggles search (works even in inputs)
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 				e.preventDefault();
@@ -1241,10 +1351,12 @@
 
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('click', handleClick);
+		window.addEventListener('click', handleGlobalClick);
 		window.addEventListener('popstate', handlePopState);
 		return () => {
 			window.removeEventListener('keydown', handleKeydown);
 			window.removeEventListener('click', handleClick);
+			window.removeEventListener('click', handleGlobalClick);
 			window.removeEventListener('popstate', handlePopState);
 		};
 	});
@@ -1298,7 +1410,7 @@
 							</a>
 						</div>
 						<p class="text-xs md:text-sm text-[var(--text-secondary)] font-normal">
-							<span class="font-semibold text-[var(--text-primary)]">{booksForCurrentShelf().length}</span> {booksForCurrentShelf().length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
+							<span class="font-semibold text-[var(--text-primary)]">{booksForCurrentShelf.length}</span> {booksForCurrentShelf.length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
 						</p>
 					</div>
 
@@ -1306,46 +1418,55 @@
 					<div class="flex gap-1 md:gap-2 items-start flex-shrink-0">
 						<!-- Search -->
 						<SearchBar
-							books={booksForCurrentShelf()}
+							books={booksForCurrentShelf}
 							bind:expanded={searchExpanded}
 							bind:query={searchQuery}
 							onSelect={scrollToBook}
 							onQueryChange={(q) => searchQuery = q}
-							{readFilter}
-							{ownedFilter}
-							onReadFilterChange={(f) => readFilter = f}
-							onOwnedFilterChange={(f) => ownedFilter = f}
 						/>
 
-						<div class="flex gap-1 border border-[var(--border)] rounded-lg p-1 bg-[var(--surface)] md:bg-transparent" role="group" aria-label="View mode toggle">
+						<!-- Filter button -->
+						<button
+							bind:this={filterButtonEl}
+							onclick={toggleFilterDropdown}
+							class="relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors border border-[var(--border)] bg-[var(--surface)] md:bg-transparent {hasActiveFilters
+								? 'text-[var(--accent)]'
+								: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
+							aria-label="Filter books"
+							aria-expanded={filterDropdownOpen}
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+								<circle cx="8" cy="6" r="2" fill="currentColor" stroke="currentColor" />
+								<circle cx="16" cy="12" r="2" fill="currentColor" stroke="currentColor" />
+								<circle cx="10" cy="18" r="2" fill="currentColor" stroke="currentColor" />
+							</svg>
+							{#if hasActiveFilters}
+								<span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border border-[var(--surface)]"></span>
+							{/if}
+						</button>
+
+						<!-- View mode dropdown -->
+						<div class="relative view-dropdown-container">
 							<button
-								onclick={() => {
-									viewMode = 'grid';
-									umami?.track('view-mode-change', { mode: 'grid' });
-								}}
-								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'grid'
-									? 'bg-[var(--accent)] text-white'
-									: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
-								aria-label="Grid view"
-								aria-pressed={viewMode === 'grid'}
+								bind:this={viewDropdownButtonEl}
+								onclick={toggleViewDropdown}
+								class="flex items-center justify-center gap-1 w-10 h-10 rounded-lg transition-colors text-[var(--text-primary)] hover:bg-[var(--paper-light)] border border-[var(--border)] bg-[var(--surface)] md:bg-transparent"
+								aria-label="Change view mode"
+								aria-expanded={viewDropdownOpen}
+								aria-haspopup="listbox"
 							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-								</svg>
-							</button>
-							<button
-								onclick={() => {
-									viewMode = 'list';
-									umami?.track('view-mode-change', { mode: 'list' });
-								}}
-								class="px-3 py-1.5 rounded text-sm font-medium transition-colors {viewMode === 'list'
-									? 'bg-[var(--accent)] text-white'
-									: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
-								aria-label="List view"
-								aria-pressed={viewMode === 'list'}
-							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+								{#if viewMode === 'list'}
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+									</svg>
+								{:else}
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+									</svg>
+								{/if}
+								<svg class="w-3 h-3 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 								</svg>
 							</button>
 						</div>
@@ -1393,7 +1514,7 @@
 					onclick={() => selectShelf(null)}
 					class="flex-shrink-0 snap-start"
 				>
-					All ({data.allBooks?.length || 0})
+					All ({localBooks?.length || 0})
 				</Button>
 
 				<!-- Current Shelf Tab (only shown when a shelf is selected) -->
@@ -1569,7 +1690,7 @@
 		{/if}
 
 		<!-- Empty State -->
-		{#if data.allBooks.length === 0}
+		{#if localBooks.length === 0}
 			<!-- No books at all -->
 			<div class="bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-8 text-center">
 				<div class="text-[var(--text-secondary)] text-5xl mb-4">📚</div>
@@ -2365,7 +2486,7 @@
 
 		<!-- Shelf Selection Modal -->
 		{#if shelfModalOpen && shelfModalBookId}
-			{@const currentBook = data.allBooks.find(b => b.id === shelfModalBookId)}
+			{@const currentBook = localBooks.find(b => b.id === shelfModalBookId)}
 			{#if currentBook}
 				<div
 					class="fixed inset-0 bg-[var(--charcoal)]/50 z-50 flex items-center justify-center p-4"
@@ -2548,6 +2669,84 @@
 				onShare={(book) => shareModalBook = book}
 				onClose={() => detailModalBookId = null}
 			/>
+		</div>
+	</div>
+{/if}
+
+{#if viewDropdownOpen}
+	<div
+		use:portal
+		class="fixed bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-40"
+		style="top: {viewDropdownPosition.top}px; left: {viewDropdownPosition.left}px; z-index: 99999;"
+		role="listbox"
+		aria-label="View mode options"
+	>
+		<button
+			onclick={() => selectViewMode('list')}
+			class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors {viewMode === 'list'
+				? 'text-[var(--accent)] bg-[var(--paper-light)]'
+				: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
+			role="option"
+			aria-selected={viewMode === 'list'}
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+			</svg>
+			List
+		</button>
+		<button
+			onclick={() => selectViewMode('grid')}
+			class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors {viewMode === 'grid'
+				? 'text-[var(--accent)] bg-[var(--paper-light)]'
+				: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
+			role="option"
+			aria-selected={viewMode === 'grid'}
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+			</svg>
+			Covers
+		</button>
+	</div>
+{/if}
+
+{#if filterDropdownOpen}
+	<div
+		use:portal
+		class="filter-dropdown-portal fixed bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl p-3 w-[200px]"
+		style="top: {filterDropdownPosition.top}px; right: {filterDropdownPosition.right}px; z-index: 99999;"
+	>
+		<!-- Read filter -->
+		<div class="flex items-center gap-2 mb-2">
+			<span class="text-xs text-[var(--text-secondary)] w-12">Read:</span>
+			<div class="flex gap-1">
+				{#each [['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as [value, label]}
+					<button
+						onclick={() => readFilter = value as typeof readFilter}
+						class="px-2 py-1 text-xs rounded transition-colors {readFilter === value
+							? 'bg-stone-700 text-white'
+							: 'bg-stone-100 text-stone-600 hover:bg-stone-200'}"
+					>
+						{label}
+					</button>
+				{/each}
+			</div>
+		</div>
+		<!-- Owned filter -->
+		<div class="flex items-center gap-2">
+			<span class="text-xs text-[var(--text-secondary)] w-12">Owned:</span>
+			<div class="flex gap-1">
+				{#each [['all', 'All'], ['owned', 'Owned'], ['not-owned', 'Not Owned']] as [value, label]}
+					<button
+						onclick={() => ownedFilter = value as typeof ownedFilter}
+						class="px-2 py-1 text-xs rounded transition-colors {ownedFilter === value
+							? 'bg-stone-700 text-white'
+							: 'bg-stone-100 text-stone-600 hover:bg-stone-200'}"
+					>
+						{label}
+					</button>
+				{/each}
+			</div>
 		</div>
 	</div>
 {/if}
