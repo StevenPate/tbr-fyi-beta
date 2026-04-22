@@ -14,7 +14,7 @@
 		lg: 'px-4 py-3 text-base'
 	};
 
-	const classes = `${sizes[size]} border border-stone-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`;
+	const classes = `${sizes[size]} border border-[var(--border)] rounded bg-[var(--surface)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed ${className || ''}`;
 </script>
 
 <input bind:value class={classes} {...rest} />
