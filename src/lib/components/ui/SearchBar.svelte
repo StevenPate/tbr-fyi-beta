@@ -172,9 +172,9 @@
 	<!-- Search icon button -->
 	<button
 		onclick={toggle}
-		class="p-2 rounded-lg transition-colors {expanded
-			? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-			: 'text-gray-600 hover:bg-gray-100'}"
+		class="p-2 rounded transition-colors {expanded
+			? 'text-[var(--accent)] bg-[var(--background-alt)] hover:bg-[var(--paper-dark)]'
+			: 'text-[var(--text-secondary)] hover:bg-[var(--background-alt)]'}"
 		aria-label={expanded ? 'Close search' : 'Open search'}
 		aria-expanded={expanded}
 	>
@@ -193,12 +193,12 @@
 				oninput={handleInput}
 				onkeydown={handleKeydown}
 				placeholder="Search title, author, notes..."
-				class="w-48 sm:w-64 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				class="w-48 sm:w-64 px-3 py-1.5 text-sm border border-[var(--border)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)]"
 			/>
 			{#if query}
 				<button
 					onclick={() => { query = ''; onQueryChange?.(''); inputEl?.focus(); }}
-					class="ml-1 p-1 text-gray-400 hover:text-gray-600"
+					class="ml-1 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
 					aria-label="Clear search"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,18 +212,18 @@
 		{#if query.trim()}
 			<div
 				use:portal
-				class="search-dropdown-portal fixed w-72 sm:w-80 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto"
+				class="search-dropdown-portal fixed w-72 sm:w-80 bg-[var(--surface)] border border-[var(--border)] rounded shadow-xl max-h-96 overflow-y-auto"
 				style="top: {dropdownPosition.top}px; left: {dropdownPosition.left}px; z-index: 99999;"
 			>
 				{#if matchingBooks.length === 0}
-					<div class="px-4 py-3 text-sm text-gray-500">
+					<div class="px-4 py-3 text-sm text-[var(--text-tertiary)]">
 						No books match "{query}"
 					</div>
 				{:else}
 					{#each matchingBooks as book, i}
 						<button
 							onclick={() => selectBook(book)}
-							class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors {i === highlightedIndex ? 'bg-blue-50' : ''}"
+							class="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-[var(--background-alt)] transition-colors {i === highlightedIndex ? 'bg-[var(--background-alt)]' : ''}"
 						>
 							{#if book.cover_url}
 								<img
@@ -232,14 +232,14 @@
 									class="w-8 h-12 object-cover rounded flex-shrink-0"
 								/>
 							{:else}
-								<div class="w-8 h-12 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
-									<span class="text-gray-400 text-xs">?</span>
+								<div class="w-8 h-12 bg-[var(--background-alt)] rounded flex items-center justify-center flex-shrink-0">
+									<span class="text-[var(--text-tertiary)] text-xs">?</span>
 								</div>
 							{/if}
 							<div class="flex-1 min-w-0">
-								<div class="font-medium text-sm text-gray-900 truncate">{book.title}</div>
+								<div class="font-medium text-sm text-[var(--text-primary)] truncate">{book.title}</div>
 								{#if book.author && book.author.length > 0}
-									<div class="text-xs text-gray-500 truncate">{book.author.join(', ')}</div>
+									<div class="text-xs text-[var(--text-tertiary)] truncate">{book.author.join(', ')}</div>
 								{/if}
 							</div>
 						</button>
