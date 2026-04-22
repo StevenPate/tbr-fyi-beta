@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { onMount, tick } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
-	import { Card, FlipCard, Button, Input, Badge, SearchBar } from '$lib/components/ui';
+	import { Card, Button, Input, Badge, SearchBar } from '$lib/components/ui';
 	import ShareModal from '$lib/components/ui/ShareModal.svelte';
 	import JsBarcode from 'jsbarcode';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
@@ -63,12 +63,6 @@
 			}
 		}
 	});
-
-	// View mode state (default to list)
-	let viewMode = $state<'grid' | 'list'>('list');
-	let viewDropdownOpen = $state(false);
-	let viewDropdownButtonEl: HTMLButtonElement | undefined = $state();
-	let viewDropdownPosition = $state({ top: 0, left: 0 });
 
 	// Filter state (session-only, not persisted in URL)
 	let readFilter = $state<'all' | 'read' | 'unread'>('all');
@@ -177,7 +171,7 @@
 			: booksFilteredByStatus;
 	});
 
-	// Scroll to and highlight a book, expand/flip it based on view mode
+	// Scroll to and highlight a book, then expand it
 	function scrollToBook(book: { id: string }) {
 		// Small delay to let DOM settle after search clears
 		requestAnimationFrame(() => {
@@ -187,12 +181,7 @@
 				element.classList.add('highlight-pulse');
 				setTimeout(() => element.classList.remove('highlight-pulse'), 1000);
 			}
-			// Flip or expand the card based on view mode
-			if (viewMode === 'grid') {
-				flippedBookId = book.id;
-			} else {
-				expandedCardId = book.id;
-			}
+			expandedCardId = book.id;
 		});
 	}
 
@@ -245,26 +234,9 @@
 	let showClaimPrompt = $state(false);
 	let pendingSearchQuery = $state<string | null>(null);
 
-	// Cover card state (for grid view with FlipCard) - only one card flipped at a time
-	let flippedBookId = $state<string | null>(null);
-
-	// Expanded card state (for list view) - only one card expanded at a time
+	// Expanded card state - only one card expanded at a time
 	let expandedCardId = $state<string | null>(null);
 
-	// Grid flip hint (one-time for new users)
-	let showFlipHint = $state(false);
-	let flipHintTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	function dismissFlipHint() {
-		showFlipHint = false;
-		if (flipHintTimeout) {
-			clearTimeout(flipHintTimeout);
-			flipHintTimeout = null;
-		}
-		if (browser) {
-			localStorage.setItem('tbr-flip-hint-dismissed', 'true');
-		}
-	}
 	let noteEditingMap = $state<Map<string, boolean>>(new Map());
 	let noteExpandedMap = $state<Map<string, boolean>>(new Map());
 	let descriptionOpenMap = $state<Map<string, boolean>>(new Map());
@@ -276,7 +248,7 @@
 	let copiedMap = $state<Map<string, boolean>>(new Map());
 	let tempNoteMap = $state<Map<string, string>>(new Map());
 
-	// Soft success feedback (for FlipCard actions)
+	// Soft success feedback (toast for status/shelf changes)
 	let savedFeedback = $state<string | null>(null);
 	let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -301,9 +273,6 @@
 	// Share modal state
 	let shareModalBook = $state<{ isbn13: string; title: string } | null>(null);
 
-	// Detail modal state (for FlipCard "View Details")
-	let detailModalBookId = $state<string | null>(null);
-	let detailModalBook = $derived(detailModalBookId ? localBooks.find(b => b.id === detailModalBookId) : null);
 	let shareModalOpen = $derived(shareModalBook !== null);
 	// Canonical identifier for share URLs: prefer username if available
 	const canonicalIdentifier = $derived(data.username || data.userId);
@@ -316,51 +285,6 @@
 			});
 		}
 	});
-
-	// Show flip hint when entering grid view (first time only)
-	$effect(() => {
-		if (viewMode === 'grid' && browser) {
-			const dismissed = localStorage.getItem('tbr-flip-hint-dismissed');
-			if (!dismissed && localBooks.length > 0) {
-				showFlipHint = true;
-				// Auto-dismiss after 3 seconds
-				flipHintTimeout = setTimeout(() => {
-					dismissFlipHint();
-				}, 3000);
-			}
-		} else {
-			// Hide hint when leaving grid view
-			if (showFlipHint) {
-				showFlipHint = false;
-				if (flipHintTimeout) {
-					clearTimeout(flipHintTimeout);
-					flipHintTimeout = null;
-				}
-			}
-		}
-	});
-
-	// Helper to get/set flipped state for a book (only one at a time)
-	function getFlipped(bookId: string) {
-		return flippedBookId === bookId;
-	}
-
-	function setFlipped(bookId: string, value: boolean) {
-		flippedBookId = value ? bookId : null;
-		// Dismiss hint on any card interaction
-		if (showFlipHint) {
-			dismissFlipHint();
-		}
-	}
-
-	// Close flipped card when clicking outside
-	function handleGridClick(e: MouseEvent) {
-		const target = e.target as HTMLElement;
-		// Check if click is outside any flip-card
-		if (!target.closest('.flip-card')) {
-			flippedBookId = null;
-		}
-	}
 
 	// Shelf navigation state
 	let showMoreShelves = $state(false);
@@ -1196,31 +1120,6 @@
 		};
 	}
 
-	// View dropdown positioning and interaction helpers
-	function updateViewDropdownPosition() {
-		if (viewDropdownButtonEl) {
-			const rect = viewDropdownButtonEl.getBoundingClientRect();
-			viewDropdownPosition = {
-				top: rect.bottom + 4,
-				left: rect.right - 160 // right-align dropdown (160px wide)
-			};
-		}
-	}
-
-	function toggleViewDropdown() {
-		viewDropdownOpen = !viewDropdownOpen;
-		if (viewDropdownOpen) {
-			filterDropdownOpen = false; // close filter if open
-			requestAnimationFrame(() => updateViewDropdownPosition());
-		}
-	}
-
-	function selectViewMode(mode: 'grid' | 'list') {
-		viewMode = mode;
-		viewDropdownOpen = false;
-		umami?.track('view-mode-change', { mode });
-	}
-
 	// Filter dropdown positioning and interaction helpers
 	function updateFilterDropdownPosition() {
 		if (filterButtonEl) {
@@ -1235,19 +1134,13 @@
 	function toggleFilterDropdown() {
 		filterDropdownOpen = !filterDropdownOpen;
 		if (filterDropdownOpen) {
-			viewDropdownOpen = false; // close view if open
 			requestAnimationFrame(() => updateFilterDropdownPosition());
 		}
 	}
 
-	// Consolidated click-outside handler for view and filter dropdowns
+	// Click-outside handler for filter dropdown
 	function handleGlobalClick(e: MouseEvent) {
 		const target = e.target as HTMLElement;
-
-		if (viewDropdownOpen && !target.closest('[aria-label="Change view mode"]')) {
-			const inViewDropdown = target.closest('[role="listbox"][aria-label="View mode options"]');
-			if (!inViewDropdown) viewDropdownOpen = false;
-		}
 
 		if (filterDropdownOpen && !target.closest('[aria-label="Filter books"]')) {
 			const inFilterDropdown = target.closest('.filter-dropdown-portal');
@@ -1264,12 +1157,8 @@
 		}
 
 		const handleKeydown = (e: KeyboardEvent) => {
-			// Escape: close whichever dropdown is open and return focus to its trigger
+			// Escape: close filter dropdown and return focus to its trigger
 			if (e.key === 'Escape') {
-				if (viewDropdownOpen) {
-					viewDropdownOpen = false;
-					viewDropdownButtonEl?.focus();
-				}
 				if (filterDropdownOpen) {
 					filterDropdownOpen = false;
 					filterButtonEl?.focus();
@@ -1445,31 +1334,6 @@
 								<span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border border-[var(--surface)]"></span>
 							{/if}
 						</button>
-
-						<!-- View mode dropdown -->
-						<div class="relative view-dropdown-container">
-							<button
-								bind:this={viewDropdownButtonEl}
-								onclick={toggleViewDropdown}
-								class="flex items-center justify-center gap-1 w-10 h-10 rounded-lg transition-colors text-[var(--text-primary)] hover:bg-[var(--paper-light)] border border-[var(--border)] bg-[var(--surface)] md:bg-transparent"
-								aria-label="Change view mode"
-								aria-expanded={viewDropdownOpen}
-								aria-haspopup="listbox"
-							>
-								{#if viewMode === 'list'}
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-									</svg>
-								{:else}
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-									</svg>
-								{/if}
-								<svg class="w-3 h-3 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-								</svg>
-							</button>
-						</div>
 
 						<!-- Manual ISBN Entry Button -->
 						<button
@@ -1710,329 +1574,8 @@
 			</div>
 		{/if}
 
-		<!-- Books Grid/List -->
+		<!-- Books List -->
 		{#key selectedShelfId}
-			{#if viewMode === 'grid'}
-				<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-				<div class="relative" onclick={handleGridClick}>
-				<!-- Flip hint tooltip anchored to first card -->
-				{#if showFlipHint && displayedBooks.length > 0}
-					<div
-						class="absolute top-2 left-2 z-20 max-w-[200px] px-3 py-2 bg-stone-800/90 text-white text-xs rounded-lg shadow-sm"
-						in:fade={{ duration: 150 }}
-						out:fade={{ duration: 100 }}
-					>
-						Tap any book to flip it over for notes, status, and details.
-					</div>
-				{/if}
-				<div
-					class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-					in:fade={{ duration: 300, delay: 150 }}
-					out:fade={{ duration: 150 }}
-				>
-					{#each displayedBooks as book, index (book.id)}
-					{@const flipped = getFlipped(book.id)}
-					<FlipCard
-							id="book-{book.id}"
-							{flipped}
-							onflip={(isFlipped) => setFlipped(book.id, isFlipped)}
-							class="w-full"
-							ariaLabel="Flip card for {book.title}"
-							autoFlipOnMount={index === 0}
-						animationIndex={index}
-					>
-					<!-- Front: Book Cover -->
-					{#snippet front()}
-						<div
-							class="relative w-full h-full bg-gray-100 flex items-center justify-center"
-						>
-							<!-- Corner fold hint -->
-							<div class="absolute top-0 right-0 w-6 h-6 pointer-events-none z-10">
-								<div class="absolute top-0 right-0 w-0 h-0 border-t-[24px] border-t-white/90 border-l-[24px] border-l-transparent"></div>
-								<div class="absolute top-0 right-0 w-6 h-6 bg-gradient-to-br from-stone-200/50 to-transparent"></div>
-							</div>
-							{#if book.cover_url}
-								<img
-									src={book.cover_url}
-									alt={book.title}
-									class="w-full h-full object-cover"
-									loading="lazy"
-									decoding="async"
-								/>
-							{:else}
-								<div class="w-full h-full bg-gradient-to-br from-[var(--paper-dark)] to-[var(--terracotta)] flex flex-col justify-between p-4 text-white">
-									<div>
-										{#if book.author && book.author.length > 0}
-											<div class="text-xs font-medium opacity-90">{book.author.join(', ')}</div>
-										{/if}
-										<div class="text-sm leading-tight mt-1 book-title">{book.title}</div>
-									</div>
-									{#if book.publisher}
-										<div class="text-[10px] opacity-70">{book.publisher}</div>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/snippet}
-
-					<!-- Back: Book Details with full-width button layout -->
-					{#snippet back()}
-						{@const isEditingNote = noteEditingMap.get(book.id) || false}
-						{@const isNoteExpanded = noteExpandedMap.get(book.id) || false}
-						{@const tempNote = tempNoteMap.get(book.id) || book.note || ''}
-						{@const isDescOpen = descriptionOpenMap.get(book.id) || false}
-						{@const isLinksOpen = linksOpenMap.get(book.id) || false}
-						{@const isShelvesOpen = shelvesOpenMap.get(book.id) || false}
-						{@const isBarcodeOpen = barcodeOpenMap.get(book.id) || false}
-						{@const isMenuOpen = menuOpenMap.get(book.id) || false}
-						{@const showRemoveConfirm = removeConfirmMap.get(book.id) || false}
-						{@const isCopied = copiedMap.get(book.id) || false}
-						{@const activeShelfCount = localBookShelves.filter(bs => bs.book_id === book.id).length}
-
-						<div
-							class="w-full h-full bg-white flex flex-col overflow-hidden"
-						>
-							<!-- Header with title/author and close button -->
-							<div class="flex items-start justify-between p-3 border-b border-[var(--border)]">
-								<div class="flex-1 min-w-0 pr-2">
-									<h2 class="text-base text-[var(--text-primary)] leading-tight line-clamp-2 book-title">{book.title}</h2>
-									{#if book.author && book.author.length > 0}
-										<p class="text-sm text-[var(--text-secondary)] mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
-									{/if}
-								</div>
-								<!-- Overflow menu -->
-								<div class="relative flex-shrink-0">
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											const newMap = new Map(menuOpenMap);
-											newMap.set(book.id, !isMenuOpen);
-											menuOpenMap = newMap;
-										}}
-										class="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
-										aria-label="More options"
-									>
-										<svg class="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-											<circle cx="12" cy="5" r="2"/>
-											<circle cx="12" cy="12" r="2"/>
-											<circle cx="12" cy="19" r="2"/>
-										</svg>
-									</button>
-									{#if isMenuOpen}
-										<div
-											class="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[140px] z-10"
-											onclick={(e) => e.stopPropagation()}
-											onkeydown={(e) => e.stopPropagation()}
-											role="menu"
-											tabindex="-1"
-										>
-											<button
-												onclick={() => {
-													shareModalBook = { isbn13: book.isbn13, title: book.title };
-													const newMap = new Map(menuOpenMap);
-													newMap.set(book.id, false);
-													menuOpenMap = newMap;
-												}}
-												class="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
-												role="menuitem"
-											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-												</svg>
-												Share
-											</button>
-											<button
-												onclick={() => {
-													if (showRemoveConfirm) {
-														deleteBook(book.id, book.title);
-														const newMap = new Map(removeConfirmMap);
-														newMap.set(book.id, false);
-														removeConfirmMap = newMap;
-														const menuMap = new Map(menuOpenMap);
-														menuMap.set(book.id, false);
-														menuOpenMap = menuMap;
-													} else {
-														const newMap = new Map(removeConfirmMap);
-														newMap.set(book.id, true);
-														removeConfirmMap = newMap;
-														setTimeout(() => {
-															const resetMap = new Map(removeConfirmMap);
-															resetMap.set(book.id, false);
-															removeConfirmMap = resetMap;
-														}, 3000);
-													}
-												}}
-												class="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors {showRemoveConfirm
-													? 'bg-red-600 text-white hover:bg-red-700'
-													: 'text-red-600 hover:bg-red-50'}"
-												role="menuitem"
-											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-												</svg>
-												{showRemoveConfirm ? 'Tap to confirm' : 'Remove'}
-											</button>
-										</div>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Scrollable content area -->
-							<div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-
-								<!-- Status toggles - side by side -->
-								<div
-									class="flex items-center gap-2"
-									onclick={(e) => e.stopPropagation()}
-									onkeydown={(e) => e.stopPropagation()}
-									role="group"
-									aria-label="Status toggles"
-								>
-									<button
-										onclick={() => {
-											toggleRead(book.id, book.is_read);
-											showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
-										}}
-										class="flex-1 text-sm font-medium py-2 rounded-lg border transition-all duration-200 ease-out {book.is_read
-											? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-											: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}"
-									>
-										{book.is_read ? '✓ Read' : 'Unread'}
-									</button>
-									<button
-										onclick={() => {
-											toggleOwned(book.id, book.is_owned);
-											showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
-										}}
-										class="flex-1 text-sm font-medium py-2 rounded-lg border transition-all duration-200 ease-out {book.is_owned
-											? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-											: 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'}"
-									>
-										{book.is_owned ? '✓ Owned' : 'Not owned'}
-									</button>
-								</div>
-
-								<!-- Note - button or expandable preview -->
-
-								{#if !book.note && !isEditingNote}
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											const editMap = new Map(noteEditingMap);
-											editMap.set(book.id, true);
-											noteEditingMap = editMap;
-
-											const tempMap = new Map(tempNoteMap);
-											tempMap.set(book.id, book.note || '');
-											tempNoteMap = tempMap;
-										}}
-										class="w-full text-left text-sm text-stone-400 py-2 px-3 rounded-lg border border-dashed border-stone-300 hover:border-stone-400 hover:text-stone-500 transition-colors"
-									>
-										+ Add a note
-									</button>
-								{:else if isEditingNote}
-									<div
-										class="space-y-2"
-										onclick={(e) => e.stopPropagation()}
-										onkeydown={(e) => e.stopPropagation()}
-										role="group"
-										aria-label="Note editing"
-									>
-										<textarea
-											value={tempNote}
-											oninput={(e) => {
-												const newMap = new Map(tempNoteMap);
-												newMap.set(book.id, e.currentTarget.value);
-												tempNoteMap = newMap;
-											}}
-											placeholder="Why did you add this?"
-											class="w-full text-sm text-stone-700 placeholder-stone-400 border border-stone-200 rounded-lg p-2.5 focus:outline-none focus:border-stone-400 resize-none"
-											rows={2}
-										></textarea>
-										<div class="flex gap-2">
-											<button
-												onclick={() => {
-													const editMap = new Map(noteEditingMap);
-													editMap.set(book.id, false);
-													noteEditingMap = editMap;
-
-													const tempMap = new Map(tempNoteMap);
-													tempMap.delete(book.id);
-													tempNoteMap = tempMap;
-												}}
-												class="flex-1 py-1.5 text-sm text-stone-500 hover:text-stone-700 border border-stone-200 rounded-lg transition-colors"
-											>
-												Cancel
-											</button>
-											<button
-												onclick={async () => {
-													const newNote = tempNoteMap.get(book.id) || '';
-													await updateNote(book.id, newNote);
-
-													const editMap = new Map(noteEditingMap);
-													editMap.set(book.id, false);
-													noteEditingMap = editMap;
-
-													const tempMap = new Map(tempNoteMap);
-													tempMap.delete(book.id);
-													tempNoteMap = tempMap;
-
-													showSavedFeedback('Note saved');
-												}}
-												class="flex-1 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
-											>
-												Save
-											</button>
-										</div>
-									</div>
-								{:else}
-									<div class="flex-1 min-h-0 relative bg-stone-50 border border-stone-200 rounded-lg flex flex-col">
-										<div class="flex-1 min-h-0 overflow-hidden py-2 px-3 pr-10">
-											<p class="text-sm text-stone-600 whitespace-pre-wrap line-clamp-[8]">{book.note}</p>
-										</div>
-										<button
-											onclick={(e) => {
-												e.stopPropagation();
-												const editMap = new Map(noteEditingMap);
-												editMap.set(book.id, true);
-												noteEditingMap = editMap;
-
-												const tempMap = new Map(tempNoteMap);
-												tempMap.set(book.id, book.note || '');
-												tempNoteMap = tempMap;
-											}}
-											class="absolute top-2 right-2 p-1.5 text-stone-400 hover:text-stone-600 active:text-stone-700 transition-colors"
-											aria-label="Edit note"
-										>
-											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-											</svg>
-										</button>
-									</div>
-								{/if}
-
-								<!-- View Details button -->
-								<button
-									onclick={(e) => {
-										e.stopPropagation();
-										detailModalBookId = book.id;
-									}}
-									class="w-full flex items-center justify-center gap-2 text-sm text-stone-600 py-2 px-3 rounded-lg border border-stone-200 hover:bg-stone-50 active:bg-stone-100 transition-colors"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-									</svg>
-									<span>View Details</span>
-								</button>
-							</div>
-						</div>
-					{/snippet}
-				</FlipCard>
-			{/each}
-				</div>
-			</div>
-		{:else}
-			<!-- List View -->
 			<div
 				class="flex flex-col gap-6"
 				in:fade={{ duration: 300, delay: 150 }}
@@ -2062,7 +1605,6 @@
 					/>
 				{/each}
 			</div>
-		{/if}
 	{/key}
 
 		<!-- Claim Shelf Prompt Modal (shown when ?q= but not authenticated) -->
@@ -2636,77 +2178,6 @@
 		out:fade={{ duration: 200 }}
 	>
 		{savedFeedback}
-	</div>
-{/if}
-
-<!-- Book Detail Modal (from FlipCard "View Details") -->
-{#if detailModalBook}
-	<div
-		class="fixed inset-0 bg-[var(--charcoal)]/50 z-50 flex items-center justify-center p-4"
-		onclick={() => detailModalBookId = null}
-		onkeydown={(e) => e.key === 'Escape' && (detailModalBookId = null)}
-		role="dialog"
-		aria-modal="true"
-		aria-label="Book details"
-		tabindex="-1"
-		in:fade={{ duration: 150 }}
-		out:fade={{ duration: 100 }}
-	>
-		<div
-			class="w-full max-w-lg max-h-[90vh] overflow-y-auto"
-			onclick={(e) => e.stopPropagation()}
-		>
-			<Card
-				book={detailModalBook}
-				shelves={data.shelves}
-				bookShelves={localBookShelves}
-				expanded={true}
-				onToggleRead={(bookId, current) => toggleRead(bookId, current)}
-				onToggleOwned={(bookId, current) => toggleOwned(bookId, current)}
-				onUpdateNote={(bookId, note) => updateNote(bookId, note)}
-				onToggleShelf={(bookId, shelfId, isOn) => toggleBookOnShelf(bookId, shelfId, isOn)}
-				onDelete={(bookId, title) => deleteBook(bookId, title)}
-				onShare={(book) => shareModalBook = book}
-				onClose={() => detailModalBookId = null}
-			/>
-		</div>
-	</div>
-{/if}
-
-{#if viewDropdownOpen}
-	<div
-		use:portal
-		class="fixed bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl py-1 w-40"
-		style="top: {viewDropdownPosition.top}px; left: {viewDropdownPosition.left}px; z-index: 99999;"
-		role="listbox"
-		aria-label="View mode options"
-	>
-		<button
-			onclick={() => selectViewMode('list')}
-			class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors {viewMode === 'list'
-				? 'text-[var(--accent)] bg-[var(--paper-light)]'
-				: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
-			role="option"
-			aria-selected={viewMode === 'list'}
-		>
-			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-			</svg>
-			List
-		</button>
-		<button
-			onclick={() => selectViewMode('grid')}
-			class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors {viewMode === 'grid'
-				? 'text-[var(--accent)] bg-[var(--paper-light)]'
-				: 'text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
-			role="option"
-			aria-selected={viewMode === 'grid'}
-		>
-			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-			</svg>
-			Covers
-		</button>
 	</div>
 {/if}
 
