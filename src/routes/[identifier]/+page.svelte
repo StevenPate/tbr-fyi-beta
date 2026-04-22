@@ -1278,14 +1278,14 @@
 		<div class="max-w-4xl mx-auto px-4">
 		<!-- Header - slides up/down based on scroll direction (mobile only) -->
 		<div
-			class="sticky top-0 z-30 -mx-4 px-4 header-sticky border-b border-[var(--border)]/50 transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
+			class="sticky top-0 z-30 -mx-4 px-4 bg-[var(--background)] border-b border-[var(--border)] transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
 			style="will-change: transform;"
 		>
-			<div class="py-2 md:py-0">
+			<div class="py-3 md:py-0">
 				<div class="flex items-start justify-between gap-2">
 					<div class="min-w-0 group/title">
 						<div class="flex items-center gap-2">
-							<h1 class="text-xl md:text-3xl font-bold text-[var(--text-primary)] truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
+							<h1 class="text-xl font-semibold text-[var(--text-primary)] truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
 							<a
 								href="/{$page.params.identifier}/settings"
 								class="settings-gear opacity-40 md:opacity-0 md:group-hover/title:opacity-40 hover:!opacity-100 transition-opacity"
@@ -1372,14 +1372,14 @@
 				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth pr-8 md:pr-0"
 			>
 				<!-- All Books Tab -->
-				<Button
-					variant={!selectedShelfId ? 'primary' : 'secondary'}
-					size="md"
+				<button
 					onclick={() => selectShelf(null)}
-					class="flex-shrink-0 snap-start"
+					class="flex-shrink-0 snap-start px-3 py-1.5 text-sm rounded font-medium transition-colors {!selectedShelfId
+						? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)]'
+						: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)]'}"
 				>
 					All ({localBooks?.length || 0})
-				</Button>
+				</button>
 
 				<!-- Current Shelf Tab (only shown when a shelf is selected) -->
 				{#if currentShelf()}
@@ -1387,28 +1387,25 @@
 					{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf?.id).length}
 					<div
 						data-shelf-id={shelf?.id}
-						class="group inline-flex items-center gap-0 rounded-lg overflow-hidden flex-shrink-0 snap-start"
+						class="group inline-flex items-center gap-0 rounded overflow-hidden flex-shrink-0 snap-start"
 					>
-						<Button
-							variant="primary"
-							size="md"
-							disabled={deletingShelfId === shelf?.id}
-							class="rounded-none cursor-default whitespace-nowrap pr-0"
+						<span
+							class="px-3 py-1.5 text-sm font-medium bg-[var(--surface-dark)] text-[var(--text-on-dark)] whitespace-nowrap"
 						>
 							{#if deletingShelfId === shelf?.id}
 								Deleting...
 							{:else}
 								{shelf?.name} ({bookCount})
 							{/if}
-						</Button>
+						</span>
 						<!-- Deselect button (return to All) -->
 						<button
 							onclick={() => selectShelf(null)}
-							class="px-2 self-stretch flex items-center hover:bg-stone-700 transition-colors cursor-pointer bg-stone-800 text-stone-300"
+							class="px-2 self-stretch flex items-center hover:bg-[var(--surface-dark-secondary)] transition-colors cursor-pointer bg-[var(--surface-dark)] text-[var(--text-on-dark)]"
 							aria-label="Show all books"
 							title="Show all books"
 						>
-							×
+							&times;
 						</button>
 					</div>
 				{/if}
@@ -1419,9 +1416,7 @@
 						bind:this={moreButtonRef}
 						class="more-shelves-container flex-shrink-0 snap-start"
 					>
-						<Button
-							variant="secondary"
-							size="md"
+						<button
 							onclick={() => {
 								// Calculate dropdown position based on button location
 								if (moreButtonRef && shelfScrollContainer) {
@@ -1433,10 +1428,10 @@
 								}
 								showMoreShelves = !showMoreShelves;
 							}}
-							class="cursor-pointer whitespace-nowrap"
+							class="cursor-pointer whitespace-nowrap px-3 py-1.5 text-sm rounded font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors"
 						>
 							More ({otherShelves().length}) {showMoreShelves ? '▲' : '▼'}
-						</Button>
+						</button>
 					</div>
 				{/if}
 
@@ -1445,7 +1440,7 @@
 					<Button
 						variant="ghost"
 						size="sm"
-						class="border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 flex-shrink-0 snap-start"
+						class="border border-dashed border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] flex-shrink-0 snap-start"
 						onclick={() => showNewShelfInput = true}
 					>
 						<span class="md:hidden">+ New</span>
@@ -1478,7 +1473,7 @@
 			<!-- More Shelves Dropdown (outside scroll container to avoid clipping) -->
 			{#if showMoreShelves && otherShelves().length > 0}
 				<div
-					class="more-shelves-container absolute top-full mt-1 bg-white rounded-lg shadow-lg border border-stone-200 py-1 min-w-[200px] max-h-[60vh] overflow-y-auto z-[100]"
+					class="more-shelves-container absolute top-full mt-1 bg-[var(--surface)] rounded shadow-lg border border-[var(--border)] py-1 min-w-[200px] max-h-[60vh] overflow-y-auto z-[100]"
 					style="left: {dropdownLeft}px;"
 				>
 					{#each otherShelves() as shelf}
@@ -1488,23 +1483,23 @@
 								selectShelf(shelf.id);
 								showMoreShelves = false;
 							}}
-							class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+							class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors"
 						>
 							<span class="truncate">{shelf.name}</span>
-							<span class="text-stone-400 text-xs flex-shrink-0">({bookCount})</span>
+							<span class="text-[var(--text-tertiary)] text-xs flex-shrink-0">({bookCount})</span>
 						</button>
 					{/each}
 
 					{#if currentShelf()}
 						{@const shelf = currentShelf()}
-						<div class="border-t border-stone-200 mt-1 pt-1">
+						<div class="border-t border-[var(--border)] mt-1 pt-1">
 							<button
 								onclick={() => {
 									if (shelf) exportShelf(shelf.id, shelf.name, 'csv');
 									showMoreShelves = false;
 								}}
 								disabled={exportingShelfId === shelf?.id}
-								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50"
+								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors disabled:opacity-50"
 							>
 								<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
@@ -1556,21 +1551,23 @@
 		<!-- Empty State -->
 		{#if localBooks.length === 0}
 			<!-- No books at all -->
-			<div class="bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-8 text-center">
-				<div class="text-[var(--text-secondary)] text-5xl mb-4">📚</div>
-				<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No books yet!</h2>
-				<p class="text-[var(--text-secondary)] mb-4">Text an ISBN or send a photo of a barcode to (360) 504-4327 to get started.</p>
-				<div class="text-sm text-[var(--text-secondary)] space-y-2">
-					<p>Try texting an ISBN: <code class="bg-[var(--paper-light)] px-2 py-1 rounded">9780140449136</code></p>
-					<p>Or send a photo of a book barcode!</p>
-				</div>
+			<div class="text-center py-16">
+				<p class="font-serif italic text-xl text-[var(--text-primary)] mb-4">
+					Your shelf is empty
+				</p>
+				<p class="text-sm text-[var(--text-secondary)]">
+					Text your first ISBN to get started.
+				</p>
 			</div>
 		{:else if displayedBooks.length === 0}
 			<!-- Shelf is empty but user has books -->
-			<div class="bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border)] p-8 text-center">
-				<div class="text-[var(--text-secondary)] text-5xl mb-4">📖</div>
-				<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No books on this shelf</h2>
-				<p class="text-[var(--text-secondary)]">Add books to this shelf from your library, or switch to "All" to see all your books.</p>
+			<div class="text-center py-16">
+				<p class="font-serif italic text-xl text-[var(--text-primary)] mb-4">
+					Nothing here yet
+				</p>
+				<p class="text-sm text-[var(--text-secondary)]">
+					Add books to this shelf, or switch to "All" to see your full collection.
+				</p>
 			</div>
 		{/if}
 
@@ -2228,10 +2225,6 @@
 		font-family: var(--font-sans);
 		background: var(--background);
 		color: var(--text-primary);
-	}
-
-	.header-sticky {
-		background: var(--background);
 	}
 
 	.shelf-nav-sticky {
