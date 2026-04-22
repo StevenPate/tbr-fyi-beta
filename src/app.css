@@ -4,18 +4,27 @@
 /* TBR.fyi Design System Tokens */
 :root {
 	/* Color palette */
-	--paper-light: #f5f0e8;
-	--paper-mid: #ebe4d8;
-	--paper-dark: #e5ddd0;
-	--terracotta: #c4a67c;
-	--terracotta-dark: #a8845c;
-	--charcoal: #3d3d3d;
-	--warm-gray: #635e58;
+	--paper-light: #f6f1e9;
+	--paper-mid: #ece5d9;
+	--paper-dark: #ddd5c7;
+	--surface-dark: #2a2118;
+	--surface-dark-secondary: #3d3225;
 	--white: #ffffff;
 
-	/* Status indicator colors */
+	/* Accent */
+	--terracotta: #b8784a;
+	--terracotta-dark: #9a6238;
+
+	/* Text */
+	--charcoal: #2d2926;
+	--warm-gray: #6b6560;
+	--text-tertiary: #a09890;
+	--text-on-dark: #e8e0d4;
+
+	/* Status */
 	--status-read: #5d8a66;
 	--status-owned: #8b7355;
+	--status-in-stock: #6b9e78;
 
 	/* Semantic colors */
 	--background: var(--paper-mid);
@@ -30,6 +39,39 @@
 	/* Typography */
 	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 	--font-serif: 'Lora', Georgia, serif;
+
+	/* Type scale */
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.25rem;
+	--text-xl: 1.625rem;
+	--text-2xl: 2.5rem;
+
+	/* Line heights */
+	--leading-tight: 1.15;
+	--leading-snug: 1.3;
+	--leading-normal: 1.5;
+
+	/* Spacing (4px base) */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-12: 48px;
+	--space-16: 64px;
+
+	/* Border radius */
+	--radius-sm: 2px;
+	--radius: 4px;
+	--radius-lg: 8px;
+
+	/* Transitions */
+	--transition-fast: 100ms ease;
+	--transition-base: 150ms ease;
+	--transition-slow: 300ms ease;
 }
 
 /* Hide scrollbar for horizontal scroll areas */
