@@ -3,30 +3,104 @@
  *
  * Shared prompt system for both SMS and web flows.
  * Prompts are selected based on user context to encourage note-taking.
+ * Uses pattern-anchored prompts that map to common intent types.
  */
 
 export const NOTE_PROMPTS = {
-	DEFAULT: {
-		id: 'default',
-		text: "Who recommended it? What caught your attention?",
-		subtext: "(Your note helps you remember later)"
+	// Source-based prompts (who/where did this come from?)
+	SOURCE_DEFAULT: {
+		id: 'source_default',
+		text: "Who told you about this one?",
+		subtext: "(friend, podcast, article, etc.)"
 	},
-	CASUAL: {
-		id: 'casual',
-		text: "Jot down who mentioned this—future you will thank you."
+	SOURCE_WHERE: {
+		id: 'source_where',
+		text: "Where did you hear about this?",
+		subtext: "(bookstore, recommendation, etc.)"
 	},
-	MOOD: {
-		id: 'mood',
-		text: "What were you in the mood for when you saved this?",
-		subtext: "(Fiction escape? Learn something? Comfort read?)"
+	SOURCE_REC: {
+		id: 'source_rec',
+		text: "Did someone recommend this?",
+		subtext: "(who and why?)"
 	},
-	DIRECT: {
-		id: 'direct',
-		text: "Why this book? Future you will want to know."
+
+	// Use-case prompts (when or why would I read this?)
+	USE_CASE: {
+		id: 'use_case',
+		text: "What's this for?",
+		subtext: "(vacation, book club, mood, etc.)"
 	},
+	TIMING: {
+		id: 'timing',
+		text: "When do you imagine reading this?",
+		subtext: "(soon, winter, when I need comfort, etc.)"
+	},
+	MOMENT: {
+		id: 'moment',
+		text: "Is this for a specific moment?",
+		subtext: "(travel, break-up, learning, etc.)"
+	},
+
+	// Vibe/feeling prompts (what kind of experience is this?)
+	VIBE: {
+		id: 'vibe',
+		text: "What kind of mood is this?",
+		subtext: "(cozy, intense, thoughtful, etc.)"
+	},
+	ATTENTION: {
+		id: 'attention',
+		text: "What about it caught your attention?",
+		subtext: "(the cover, the premise, the author, etc.)"
+	},
+	EXPERIENCE: {
+		id: 'experience',
+		text: "What kind of experience is this?",
+		subtext: "(escape, learning, reflection, etc.)"
+	},
+
+	// Topic hook prompts (what is it about?)
+	TOPIC: {
+		id: 'topic',
+		text: "What's it about that grabbed you?",
+		subtext: "(the story, the ideas, the style, etc.)"
+	},
+	HOOK: {
+		id: 'hook',
+		text: "What's the hook?",
+		subtext: "(what makes it interesting?)"
+	},
+	INTERESTING: {
+		id: 'interesting',
+		text: "What's interesting about this one?",
+		subtext: "(to you personally)"
+	},
+
+	// Personal trigger prompts (why did this matter to me?)
+	PERSONAL: {
+		id: 'personal',
+		text: "Why this one, right now?",
+		subtext: "(what made you stop on this?)"
+	},
+	TRIGGER: {
+		id: 'trigger',
+		text: "What made you stop on this?",
+		subtext: "(something specific?)"
+	},
+	CONNECTION: {
+		id: 'connection',
+		text: "What made this stick?",
+		subtext: "(personal connection?)"
+	},
+
+	// Fallback prompts
 	SKIP: {
 		id: 'skip',
 		text: "Add a note for later—or reply 'skip' to move on."
+	},
+	WHY: {
+		id: 'why',
+		text: "Why did you save this?",
+		subtext: "(any reason at all)"
 	}
 } as const;
 
@@ -43,29 +117,54 @@ export interface PromptContext {
 
 /**
  * Select the most appropriate note prompt based on user context
+ * Uses pattern-anchored prompts that map to common intent types
  */
 export function selectNotePrompt(context: PromptContext): NotePrompt {
-	// First book -> teach the pattern
+	// First book -> teach the pattern with source-based prompt
 	if (context.totalBooks === 1) {
-		return NOTE_PROMPTS.DEFAULT;
+		return NOTE_PROMPTS.SOURCE_DEFAULT;
 	}
 
-	// Photo -> casual (they're likely in a bookstore)
+	// Photo additions -> source-based (they're likely in a bookstore/store)
 	if (context.sourceType === 'sms_photo') {
-		return NOTE_PROMPTS.CASUAL;
+		return NOTE_PROMPTS.SOURCE_WHERE;
 	}
 
-	// Power user -> offer skip option
+	// Power users -> offer skip option occasionally
 	if (context.totalBooks > 20 || context.booksAddedToday >= 5) {
-		return NOTE_PROMPTS.SKIP;
+		// 30% chance of skip prompt for power users
+		if (Math.random() < 0.3) {
+			return NOTE_PROMPTS.SKIP;
+		}
 	}
 
-	// Default rotation
-	const defaults = [NOTE_PROMPTS.DEFAULT, NOTE_PROMPTS.MOOD, NOTE_PROMPTS.DIRECT];
+	// Define prompt categories for rotation
+	const promptCategories = {
+		source: [NOTE_PROMPTS.SOURCE_DEFAULT, NOTE_PROMPTS.SOURCE_WHERE, NOTE_PROMPTS.SOURCE_REC],
+		useCase: [NOTE_PROMPTS.USE_CASE, NOTE_PROMPTS.TIMING, NOTE_PROMPTS.MOMENT],
+		vibe: [NOTE_PROMPTS.VIBE, NOTE_PROMPTS.ATTENTION, NOTE_PROMPTS.EXPERIENCE],
+		topic: [NOTE_PROMPTS.TOPIC, NOTE_PROMPTS.HOOK, NOTE_PROMPTS.INTERESTING],
+		personal: [NOTE_PROMPTS.PERSONAL, NOTE_PROMPTS.TRIGGER, NOTE_PROMPTS.CONNECTION]
+	};
 
-	// Avoid repeating last prompt
-	const available = defaults.filter((p) => p.id !== context.lastPromptId);
-	return available[Math.floor(Math.random() * available.length)];
+	// Rotation order: source → use-case → vibe → topic → personal → repeat
+	const rotationOrder = ['source', 'useCase', 'vibe', 'topic', 'personal'] as const;
+
+	// Determine position in rotation based on total books added
+	const rotationIndex = (context.totalBooks - 1) % rotationOrder.length;
+	const currentCategory = rotationOrder[rotationIndex];
+
+	// Get prompts for current category
+	const categoryPrompts = promptCategories[currentCategory];
+
+	// Avoid repeating the last prompt if possible
+	const availablePrompts = categoryPrompts.filter((p) => p.id !== context.lastPromptId);
+
+	// If we have alternatives, use them; otherwise use any from the category
+	const promptsToChooseFrom = availablePrompts.length > 0 ? availablePrompts : categoryPrompts;
+
+	// Random selection within the category
+	return promptsToChooseFrom[Math.floor(Math.random() * promptsToChooseFrom.length)];
 }
 
 /**

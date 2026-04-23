@@ -22,7 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_prompt_responses_prompt_id ON prompt_responses(pr
 CREATE INDEX IF NOT EXISTS idx_prompt_responses_user_created ON prompt_responses(user_id, created_at DESC);
 
 COMMENT ON TABLE prompt_responses IS 'Tracks which note prompts were shown and whether users responded';
-COMMENT ON COLUMN prompt_responses.prompt_id IS 'ID from NOTE_PROMPTS: default, casual, mood, direct, skip';
+COMMENT ON COLUMN prompt_responses.prompt_id IS 'ID from NOTE_PROMPTS: source_default, source_where, source_rec, use_case, timing, moment, vibe, attention, experience, topic, hook, interesting, personal, trigger, connection, skip, why';
 COMMENT ON COLUMN prompt_responses.responded IS 'True if user entered a note, false if skipped';
 COMMENT ON COLUMN prompt_responses.note_length IS 'Character count of note if responded';
 COMMENT ON COLUMN prompt_responses.source IS 'Channel: web or sms';

@@ -204,7 +204,7 @@ export {
 // Legacy function for backward compatibility
 import { NOTE_PROMPTS as PROMPTS } from './note-prompts';
 export function getRandomNotePrompt(): string {
-	const defaults = [PROMPTS.DEFAULT, PROMPTS.MOOD, PROMPTS.DIRECT];
+	const defaults = [PROMPTS.SOURCE_DEFAULT, PROMPTS.USE_CASE, PROMPTS.VIBE];
 	const prompt = defaults[Math.floor(Math.random() * defaults.length)];
 	return prompt.text;
 }
