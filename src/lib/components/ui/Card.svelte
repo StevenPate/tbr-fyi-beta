@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fade, slide } from 'svelte/transition';
+	import JsBarcode from 'jsbarcode';
 	import ReactionChips from './ReactionChips.svelte';
 	import StatusBadge from './StatusBadge.svelte';
 	import { composeNote } from './reaction-chips';
@@ -76,6 +77,10 @@
 	let menuOpen = $state(false);
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 	let descriptionExpanded = $state(false);
+	let barcodeOpen = $state(false);
+	let linksOpen = $state(false);
+	let copied = $state(false);
+	let barcodeCanvas = $state<HTMLCanvasElement | null>(null);
 
 	// Track what the server's note value is, so we know when it changes
 	let lastServerNote = $state(book.note);
@@ -211,6 +216,35 @@
 	function focusTextarea() {
 		textareaRef?.focus();
 	}
+
+	// Copy ISBN
+	async function copyISBN() {
+		try {
+			await navigator.clipboard.writeText(book.isbn13);
+			copied = true;
+			setTimeout(() => copied = false, 2000);
+		} catch (err) {
+			console.error('Failed to copy ISBN:', err);
+		}
+	}
+
+	// Generate barcode when opened
+	$effect(() => {
+		if (barcodeOpen && barcodeCanvas) {
+			try {
+				JsBarcode(barcodeCanvas, book.isbn13, {
+					format: 'EAN13',
+					width: 1.5,
+					height: 60,
+					displayValue: false,
+					background: '#ffffff',
+					lineColor: '#3d3d3d'
+				});
+			} catch (error) {
+				console.error('Error generating barcode:', error);
+			}
+		}
+	});
 
 	// Close menu when clicking outside
 	function handleDocumentClick(e: MouseEvent) {
@@ -609,12 +643,72 @@
 					{/if}
 				</div>
 
-				<!-- Footer - metadata -->
-				<div class="mt-4 pl-[60px] flex items-center text-xs text-[var(--text-tertiary)]">
-					<span>Added {new Date(book.added_at).toLocaleDateString()}</span>
-					{#if isRecentlyAdded()}
-						<span class="ml-2">· Just added</span>
+				<!-- Find Elsewhere -->
+				<div class="pl-[60px]">
+					<button
+						onclick={() => linksOpen = !linksOpen}
+						class="flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mb-2 mt-2"
+					>
+						<span>Find Elsewhere</span>
+						<svg class="w-3 h-3 transition-transform duration-150" class:rotate-180={linksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+						</svg>
+					</button>
+					{#if linksOpen}
+						<div class="flex flex-wrap gap-x-4 gap-y-1 pb-1">
+							<a href={`https://www.google.com/search?tbm=bks&q=isbn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Google Books ↗</a>
+							<a href={`https://bookshop.org/a/5733/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Bookshop.org ↗</a>
+							<a href={`https://www.powells.com/book/-${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Powell's ↗</a>
+							<a href={`https://www.portbooknews.com/book/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Port Book & News ↗</a>
+							<a href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">WorldCat ↗</a>
+						</div>
 					{/if}
+				</div>
+
+				<!-- Barcode -->
+				<div class="pl-[60px]">
+					<button
+						onclick={() => barcodeOpen = !barcodeOpen}
+						class="flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mb-2 mt-2"
+					>
+						<span>Barcode</span>
+						<svg class="w-3 h-3 transition-transform duration-150" class:rotate-180={barcodeOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+						</svg>
+					</button>
+					{#if barcodeOpen}
+						<div class="flex flex-col items-center py-3 bg-white rounded-lg mb-1">
+							<p class="text-[10px] text-[var(--text-tertiary)] mb-2">Scan at bookstore or library</p>
+							<canvas bind:this={barcodeCanvas} class="max-w-full"></canvas>
+							<p class="text-xs font-mono text-[var(--text-secondary)] mt-2 tracking-wider">{book.isbn13}</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Footer - metadata -->
+				<div class="mt-4 pl-[60px] pr-4 flex items-center justify-between gap-3 text-xs text-[var(--text-tertiary)]">
+					<div class="flex items-center shrink-0">
+						<span>Added {new Date(book.added_at).toLocaleDateString()}</span>
+						{#if isRecentlyAdded()}
+							<span class="ml-2">· Just added</span>
+						{/if}
+					</div>
+					<button
+						onclick={copyISBN}
+						class="flex items-center gap-1.5 shrink-0 hover:text-[var(--text-secondary)] transition-colors"
+					>
+						{#if copied}
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+							</svg>
+							<span>Copied</span>
+						{:else}
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+							</svg>
+							<span>{book.isbn13}</span>
+						{/if}
+					</button>
 				</div>
 			</div>
 		</div>
