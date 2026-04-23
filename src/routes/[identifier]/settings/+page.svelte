@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/stores';
+
+	const identifier = $derived($page.params.identifier);
+
 	let isExporting = $state(false);
 	let exportError = $state<string | null>(null);
 	let exportFormat = $state<'csv' | 'json'>('csv');
@@ -53,6 +57,7 @@
 	<div class="settings-container">
 		<!-- Header -->
 		<div class="settings-header">
+			<a href="/{identifier}" class="back-link">&larr; Back to shelf</a>
 			<h1 class="settings-title">Settings</h1>
 			<p class="settings-subtitle">
 				Manage your account and export your library
@@ -149,6 +154,19 @@
 
 	.settings-header {
 		margin-bottom: 32px;
+	}
+
+	.back-link {
+		display: inline-block;
+		margin-bottom: 16px;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+		text-decoration: none;
+		transition: color 0.1s;
+	}
+
+	.back-link:hover {
+		color: var(--accent);
 	}
 
 	.settings-title {

@@ -42,7 +42,9 @@
 		onEditDetails?: (bookId: string) => void;
 		onShare?: (book: { isbn13: string; title: string }) => void;
 		expanded?: boolean;
+		lifted?: boolean;
 		onToggleExpand?: (bookId: string, isExpanded: boolean) => void;
+		onSettle?: (bookId: string) => void;
 		onClose?: () => void;
 	}
 
@@ -59,7 +61,9 @@
 		onEditDetails,
 		onShare,
 		expanded = $bindable(false),
+		lifted = false,
 		onToggleExpand,
+		onSettle,
 		onClose
 	}: Props = $props();
 
@@ -185,6 +189,7 @@
 			onUpdateNote(book.id, noteValue);
 			showSavedFeedback('Note saved');
 		}
+		if (lifted) onSettle?.(book.id);
 	}
 
 	function cancelNoteEdit() {
@@ -226,12 +231,30 @@
 	function toggleExpanded() {
 		expanded = !expanded;
 		onToggleExpand?.(book.id, expanded);
+		// Settle lifted items when collapsed after interaction
+		if (!expanded && lifted) {
+			onSettle?.(book.id);
+		}
+	}
+
+	// Relative time for lifted items
+	function relativeTime(addedAt: string): string {
+		const days = Math.floor((Date.now() - new Date(addedAt).getTime()) / (1000 * 60 * 60 * 24));
+		if (days < 7) return `${days} days ago`;
+		const weeks = Math.floor(days / 7);
+		if (weeks <= 8) return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+		const months = Math.floor(days / 30);
+		return `${months} month${months > 1 ? 's' : ''} ago`;
 	}
 </script>
 
 <div
 	{id}
-	class="relative w-full transition-all duration-150 {isRecentlyAdded() ? 'border-l-2 border-l-[var(--accent)]' : ''} {expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'} border-b border-[var(--border)]"
+	class="relative w-full transition-all duration-150
+		{isRecentlyAdded() ? 'border-l-2 border-l-[var(--accent)]' : ''}
+		{expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'}
+		{lifted && !expanded ? 'py-2' : ''}
+		border-b border-[var(--border)]"
 >
 	<!-- Close button for modal mode -->
 	{#if onClose}
@@ -248,7 +271,7 @@
 
 	<!-- Header row (always visible, clickable to expand unless in modal mode) -->
 	<div
-		class="py-3 px-0 flex items-center gap-3 {onClose ? '' : 'cursor-pointer'}"
+		class="py-3 px-4 flex items-center gap-3 {onClose ? '' : 'cursor-pointer'}"
 		onclick={(e) => {
 			if (onClose) return;
 			const target = e.target as HTMLElement;
@@ -359,16 +382,71 @@
 		{/if}
 	</div>
 
+	<!-- Lifted note zone: visible when lifted, stays during expansion -->
+	{#if lifted && (noteValue || noteEditing) && !onClose}
+		<div class="pl-[60px] px-4 {expanded ? '' : 'pb-2'}">
+			{#if noteEditing}
+				<div class="relative space-y-3">
+					<ReactionChips
+						selected={selectedChips}
+						onToggle={toggleChip}
+						onOtherClick={focusTextarea}
+					/>
+					<textarea
+						bind:this={textareaRef}
+						bind:value={tempNoteValue}
+						placeholder="What caught your attention?"
+						class="w-full text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] border border-[var(--border)] rounded p-3 focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none bg-[var(--surface)]"
+						rows={2}
+					></textarea>
+					<div class="flex justify-end gap-2">
+						<button
+							onclick={cancelNoteEdit}
+							class="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+						>
+							Cancel
+						</button>
+						<button
+							onclick={saveNote}
+							class="px-3 py-1.5 text-xs bg-[var(--surface-dark)] text-[var(--text-on-dark)] rounded hover:bg-[var(--surface-dark-secondary)] transition-colors"
+						>
+							Save
+						</button>
+					</div>
+				</div>
+			{:else}
+				<div class="group relative">
+					<p class="text-sm text-[var(--text-secondary)] leading-relaxed italic pr-8">"{noteValue}"</p>
+					{#if expanded}
+						<button
+							onclick={startEditingNote}
+							class="absolute top-0 right-0 p-1.5 text-[var(--text-tertiary)] md:opacity-0 md:group-hover:opacity-100 hover:text-[var(--text-secondary)] active:text-[var(--text-primary)] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center -mr-1.5 -mt-1.5"
+							aria-label="Edit note"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+							</svg>
+						</button>
+					{/if}
+				</div>
+				{#if !expanded}
+					<p class="text-xs text-[var(--warm-gray)] mt-1">added {relativeTime(book.added_at)}</p>
+				{/if}
+			{/if}
+		</div>
+	{/if}
+
 	<!-- Expanded content -->
 	{#if expanded}
 		<div
-			transition:slide={{ duration: 150 }}
+			transition:slide={{ duration: lifted ? 100 : 150 }}
 			ontouchstart={handleTouchStart}
 			ontouchend={handleTouchEnd}
 			ontouchmove={handleTouchMove}
 		>
 			<div class="px-0 pb-4 pt-1">
-				<!-- Note section -->
+				<!-- Note section: skip if lifted (already showing in lifted zone) -->
+				{#if !lifted || !noteValue}
 				<div class="mb-4 pl-[60px]">
 					{#if !noteValue && !noteEditing}
 						<button
@@ -421,6 +499,7 @@
 						</div>
 					{/if}
 				</div>
+				{/if}
 
 				<!-- Description (show first 3 lines with "more" link) -->
 				{#if book.description}
@@ -455,6 +534,7 @@
 							e.stopPropagation();
 							onToggleRead?.(book.id, book.is_read);
 							showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
+							if (lifted) onSettle?.(book.id);
 						}}
 						class="text-xs transition-colors {book.is_read
 							? 'text-[var(--status-read)]'

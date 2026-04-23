@@ -137,6 +137,86 @@
 		return titleMatch || authorMatch || noteMatch;
 	}
 
+	// Time grouping for temporal texture
+	type TimeGroup = 'this-week' | 'this-month' | 'older';
+
+	function getTimeGroup(addedAt: string): TimeGroup {
+		const days = (Date.now() - new Date(addedAt).getTime()) / (1000 * 60 * 60 * 24);
+		if (days <= 7) return 'this-week';
+		if (days <= 30) return 'this-month';
+		return 'older';
+	}
+
+	const TIME_GROUP_LABELS: Record<TimeGroup, string> = {
+		'this-week': 'THIS WEEK',
+		'this-month': 'EARLIER THIS MONTH',
+		'older': 'A WHILE AGO',
+	};
+
+	// Deterministic daily seed for lifted item selection
+	function simpleHash(str: string): number {
+		let hash = 0;
+		for (let i = 0; i < str.length; i++) {
+			hash = ((hash << 5) - hash) + str.charCodeAt(i);
+			hash |= 0;
+		}
+		return Math.abs(hash);
+	}
+
+	function seededRandom(seed: number): () => number {
+		let s = seed;
+		return () => {
+			s = (s * 1664525 + 1013904223) & 0x7fffffff;
+			return s / 0x7fffffff;
+		};
+	}
+
+	type BookWithNote = { id: string; added_at: string; note?: string | null };
+
+	function selectLiftedItems(books: BookWithNote[], dateStr: string): Set<string> {
+		const now = Date.now();
+		const DAY = 1000 * 60 * 60 * 24;
+
+		// Eligible pool: 14-90 days old, has non-empty note
+		const eligible = books
+			.map((book, index) => ({ book, index }))
+			.filter(({ book }) => {
+				const age = (now - new Date(book.added_at).getTime()) / DAY;
+				return age >= 14 && age <= 90 && book.note && book.note.trim().length > 0;
+			});
+
+		if (eligible.length === 0) return new Set();
+
+		// ~1 per 20 books, minimum 1
+		const count = Math.max(1, Math.round(books.length / 20));
+
+		// Seeded shuffle
+		const rng = seededRandom(simpleHash(dateStr));
+		const shuffled = [...eligible];
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(rng() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		}
+
+		// Pick non-adjacent items
+		const selected = new Set<string>();
+		const selectedIndices = new Set<number>();
+
+		for (const item of shuffled) {
+			if (selected.size >= count) break;
+			let adjacent = false;
+			for (const idx of selectedIndices) {
+				if (Math.abs(item.index - idx) <= 1) { adjacent = true; break; }
+			}
+			if (!adjacent) {
+				selected.add(item.book.id);
+				selectedIndices.add(item.index);
+			}
+		}
+
+		return selected;
+	}
+
 	// Filter books by selected shelf (client-side for instant switching)
 	const booksForCurrentShelf = $derived.by(() => {
 		if (!selectedShelfId) {
@@ -236,6 +316,23 @@
 
 	// Expanded card state - only one card expanded at a time
 	let expandedCardId = $state<string | null>(null);
+
+	// Resurfacing state
+	let settledBookIds = $state(new Set<string>());
+	const todayStr = new Date().toISOString().slice(0, 10);
+
+	const liftedBookIds = $derived.by(() => {
+		const baseSet = selectLiftedItems(displayedBooks, todayStr);
+		const active = new Set<string>();
+		for (const id of baseSet) {
+			if (!settledBookIds.has(id)) active.add(id);
+		}
+		return active;
+	});
+
+	function settleBook(bookId: string) {
+		settledBookIds = new Set([...settledBookIds, bookId]);
+	}
 
 	let noteEditingMap = $state<Map<string, boolean>>(new Map());
 	let noteExpandedMap = $state<Map<string, boolean>>(new Map());
@@ -1369,7 +1466,7 @@
 
 			<div
 				bind:this={shelfScrollContainer}
-				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth pr-8 md:pr-0"
+				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth pr-12 md:pr-0"
 			>
 				<!-- All Books Tab -->
 				<button
@@ -1578,27 +1675,39 @@
 				in:fade={{ duration: 300, delay: 150 }}
 				out:fade={{ duration: 150 }}
 			>
-				{#each displayedBooks as book (book.id)}
+				{#each displayedBooks as book, i (book.id)}
 					{@const isExpanded = expandedCardId === book.id}
+					{@const isLifted = liftedBookIds.has(book.id)}
+					{@const group = getTimeGroup(book.added_at)}
+					{@const prevGroup = i > 0 ? getTimeGroup(displayedBooks[i - 1].added_at) : null}
+
+					<!-- Time group marker -->
+					{#if group !== prevGroup}
+						<p class="text-xs text-[var(--warm-gray)] uppercase tracking-widest mt-6 mb-0 pl-[60px] select-none">
+							{TIME_GROUP_LABELS[group]}
+						</p>
+					{/if}
+
 					<Card
 						id="book-{book.id}"
 						{book}
 						shelves={data.shelves}
 						bookShelves={localBookShelves}
 						expanded={isExpanded}
+						lifted={isLifted}
 						onToggleRead={toggleRead}
 						onToggleOwned={toggleOwned}
 						onUpdateNote={updateNote}
 						onToggleShelf={toggleBookOnShelf}
 						onDelete={deleteBook}
 						onEditDetails={() => {
-							// TODO: Implement edit details modal
 							console.log('Edit details for book:', book.id);
 						}}
 						onShare={(b: { isbn13: string; title: string }) => shareModalBook = b}
 						onToggleExpand={(bookId, isNowExpanded) => {
 							expandedCardId = isNowExpanded ? bookId : null;
 						}}
+						onSettle={settleBook}
 					/>
 				{/each}
 			</div>
@@ -2181,19 +2290,19 @@
 {#if filterDropdownOpen}
 	<div
 		use:portal
-		class="filter-dropdown-portal fixed bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl p-3 w-[200px]"
+		class="filter-dropdown-portal fixed bg-[var(--surface)] border border-[var(--border)] rounded shadow-lg p-3 w-[220px]"
 		style="top: {filterDropdownPosition.top}px; right: {filterDropdownPosition.right}px; z-index: 99999;"
 	>
 		<!-- Read filter -->
-		<div class="flex items-center gap-2 mb-2">
-			<span class="text-xs text-[var(--text-secondary)] w-12">Read:</span>
-			<div class="flex gap-1">
+		<div class="flex items-center gap-2 mb-3">
+			<span class="text-xs text-[var(--text-tertiary)] w-12 shrink-0">Read:</span>
+			<div class="flex gap-1 flex-1">
 				{#each [['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as [value, label]}
 					<button
 						onclick={() => readFilter = value as typeof readFilter}
-						class="px-2 py-1 text-xs rounded transition-colors {readFilter === value
-							? 'bg-stone-700 text-white'
-							: 'bg-stone-100 text-stone-600 hover:bg-stone-200'}"
+						class="flex-1 px-2 py-1.5 text-xs rounded transition-colors {readFilter === value
+							? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)] font-medium'
+							: 'text-[var(--text-secondary)] hover:bg-[var(--background-alt)]'}"
 					>
 						{label}
 					</button>
@@ -2202,14 +2311,14 @@
 		</div>
 		<!-- Owned filter -->
 		<div class="flex items-center gap-2">
-			<span class="text-xs text-[var(--text-secondary)] w-12">Owned:</span>
-			<div class="flex gap-1">
+			<span class="text-xs text-[var(--text-tertiary)] w-12 shrink-0">Owned:</span>
+			<div class="flex gap-1 flex-1">
 				{#each [['all', 'All'], ['owned', 'Owned'], ['not-owned', 'Not Owned']] as [value, label]}
 					<button
 						onclick={() => ownedFilter = value as typeof ownedFilter}
-						class="px-2 py-1 text-xs rounded transition-colors {ownedFilter === value
-							? 'bg-stone-700 text-white'
-							: 'bg-stone-100 text-stone-600 hover:bg-stone-200'}"
+						class="flex-1 px-2 py-1.5 text-xs rounded transition-colors {ownedFilter === value
+							? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)] font-medium'
+							: 'text-[var(--text-secondary)] hover:bg-[var(--background-alt)]'}"
 					>
 						{label}
 					</button>
