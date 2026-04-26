@@ -198,12 +198,18 @@
 			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
 		}
 
-		// Pick non-adjacent items
+		// Pick non-adjacent items, allowing 1 in the first 10
 		const selected = new Set<string>();
 		const selectedIndices = new Set<number>();
+		let earlySlotUsed = false;
 
 		for (const item of shuffled) {
 			if (selected.size >= count) break;
+
+			// Allow 1 item in first 10 positions
+			const isEarly = item.index < 10;
+			if (isEarly && earlySlotUsed) continue;
+
 			let adjacent = false;
 			for (const idx of selectedIndices) {
 				if (Math.abs(item.index - idx) <= 1) { adjacent = true; break; }
@@ -211,6 +217,7 @@
 			if (!adjacent) {
 				selected.add(item.book.id);
 				selectedIndices.add(item.index);
+				if (isEarly) earlySlotUsed = true;
 			}
 		}
 

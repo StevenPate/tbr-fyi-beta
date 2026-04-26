@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { fade, slide } from 'svelte/transition';
 	import JsBarcode from 'jsbarcode';
-	import ReactionChips from './ReactionChips.svelte';
-	import StatusBadge from './StatusBadge.svelte';
-	import { composeNote } from './reaction-chips';
 
 	interface Book {
 		id: string;
@@ -73,11 +70,9 @@
 	let noteEditing = $state(false);
 	let noteValue = $state(book.note || '');
 	let tempNoteValue = $state('');
-	let selectedChips = $state<Set<string>>(new Set());
-	let menuOpen = $state(false);
-	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 	let descriptionExpanded = $state(false);
-	let barcodeOpen = $state(false);
+	let menuOpen = $state(false);
+	let noteFocused = $state(false);
 	let linksOpen = $state(false);
 	let copied = $state(false);
 	let barcodeCanvas = $state<HTMLCanvasElement | null>(null);
@@ -87,18 +82,15 @@
 	let lastBookId = $state(book.id);
 
 	// Sync noteValue with book.note when it changes externally (e.g., after invalidateAll)
-	// Only sync if: not editing AND (server note changed OR different book)
 	$effect(() => {
 		const serverNote = book.note;
 		const bookChanged = book.id !== lastBookId;
 
 		if (bookChanged) {
-			// Different book - always sync
 			noteValue = serverNote || '';
 			lastServerNote = serverNote;
 			lastBookId = book.id;
 		} else if (!noteEditing && serverNote !== lastServerNote) {
-			// Same book, server note updated - sync if not editing
 			noteValue = serverNote || '';
 			lastServerNote = serverNote;
 		}
@@ -119,35 +111,6 @@
 		}, 1500);
 	}
 
-	// Long-press to open menu (mobile-native feel)
-	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-
-	function handleTouchStart(e: TouchEvent) {
-		const target = e.target as HTMLElement;
-		if (target.closest('button, a, input, textarea')) return;
-
-		longPressTimer = setTimeout(() => {
-			menuOpen = true;
-			if ('vibrate' in navigator) {
-				navigator.vibrate(10);
-			}
-		}, 500);
-	}
-
-	function handleTouchEnd() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer);
-			longPressTimer = null;
-		}
-	}
-
-	function handleTouchMove() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer);
-			longPressTimer = null;
-		}
-	}
-
 	// Compute active shelves for this book
 	const activeShelfIds = $derived(() => {
 		return new Set(bookShelves.filter(bs => bs.book_id === book.id).map(bs => bs.shelf_id));
@@ -157,7 +120,6 @@
 		return activeShelfIds().size;
 	});
 
-	// Keep shelves in their original order (no reordering on selection)
 	const sortedShelves = $derived(() => {
 		return shelves;
 	});
@@ -171,50 +133,47 @@
 
 	const publicationYear = $derived(getPublicationYear(book.publication_date));
 
-	// Recency indicator: books added within last 24 hours
-	const isRecentlyAdded = $derived(() => {
-		const addedAt = new Date(book.added_at);
-		const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-		return addedAt > dayAgo;
-	});
+	const metaParts = $derived(
+		[book.publisher, publicationYear].filter(Boolean) as string[]
+	);
+
+	const addedDate = $derived(
+		new Date(book.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+	);
 
 	// Handle note editing
 	function startEditingNote() {
+		if (noteEditing) return;
 		tempNoteValue = noteValue;
-		selectedChips = new Set();
 		noteEditing = true;
 	}
 
 	function saveNote() {
-		const finalNote = composeNote(selectedChips, tempNoteValue);
-		noteValue = finalNote;
+		noteValue = tempNoteValue.trim();
 		noteEditing = false;
-		selectedChips = new Set();
 		if (onUpdateNote) {
 			onUpdateNote(book.id, noteValue);
 			showSavedFeedback('Note saved');
 		}
-		if (lifted) onSettle?.(book.id);
+		if (lifted) setTimeout(() => onSettle?.(book.id), 200);
 	}
 
 	function cancelNoteEdit() {
 		tempNoteValue = '';
-		selectedChips = new Set();
 		noteEditing = false;
 	}
 
-	function toggleChip(chipId: string) {
-		const newSet = new Set(selectedChips);
-		if (newSet.has(chipId)) {
-			newSet.delete(chipId);
-		} else {
-			newSet.add(chipId);
+	function saveInlineNote() {
+		const trimmed = tempNoteValue.trim();
+		if (!trimmed) return;
+		noteValue = trimmed;
+		tempNoteValue = '';
+		noteFocused = false;
+		if (onUpdateNote) {
+			onUpdateNote(book.id, noteValue);
+			showSavedFeedback('Note saved');
 		}
-		selectedChips = newSet;
-	}
-
-	function focusTextarea() {
-		textareaRef?.focus();
+		if (lifted) setTimeout(() => onSettle?.(book.id), 200);
 	}
 
 	// Copy ISBN
@@ -230,7 +189,7 @@
 
 	// Generate barcode when opened
 	$effect(() => {
-		if (barcodeOpen && barcodeCanvas) {
+		if (menuOpen && barcodeCanvas) {
 			try {
 				JsBarcode(barcodeCanvas, book.isbn13, {
 					format: 'EAN13',
@@ -246,28 +205,13 @@
 		}
 	});
 
-	// Close menu when clicking outside
-	function handleDocumentClick(e: MouseEvent) {
-		const target = e.target as HTMLElement;
-		if (!target.closest('.menu-container')) {
-			menuOpen = false;
-		}
-	}
-
-	$effect(() => {
-		if (menuOpen) {
-			document.addEventListener('click', handleDocumentClick);
-			return () => document.removeEventListener('click', handleDocumentClick);
-		}
-	});
-
 	// Toggle expand/collapse
 	function toggleExpanded() {
 		expanded = !expanded;
 		onToggleExpand?.(book.id, expanded);
-		// Settle lifted items when collapsed after interaction
-		if (!expanded && lifted) {
-			onSettle?.(book.id);
+		if (!expanded) {
+			noteFocused = false;
+			if (lifted) onSettle?.(book.id);
 		}
 	}
 
@@ -285,13 +229,12 @@
 <div
 	{id}
 	class="relative w-full transition-all duration-150
-		{isRecentlyAdded() ? 'border-l-2 border-l-[var(--accent)]' : ''}
 		{expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'}
-		{lifted && !expanded ? 'py-2' : ''}
+		{lifted && !expanded ? 'py-3 bg-[var(--paper-light)]/30' : ''}
 		border-b border-[var(--border)]"
 >
-	<!-- Close button for modal mode -->
 	{#if onClose}
+		<!-- Close button for modal mode -->
 		<button
 			onclick={onClose}
 			class="absolute top-2 right-2 z-10 p-1.5 rounded bg-[var(--background-alt)] hover:bg-[var(--paper-dark)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -301,134 +244,125 @@
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 			</svg>
 		</button>
+	{:else if expanded}
+		<!-- Kebab menu -->
+		<button
+			onclick={() => menuOpen = !menuOpen}
+			class="absolute top-3 right-3 z-10 p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+			aria-label="More options"
+		>
+			<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+				<circle cx="12" cy="5" r="1.5"/>
+				<circle cx="12" cy="12" r="1.5"/>
+				<circle cx="12" cy="19" r="1.5"/>
+			</svg>
+		</button>
 	{/if}
 
-	<!-- Header row (always visible, clickable to expand unless in modal mode) -->
-	<div
-		class="py-3 px-4 flex items-center gap-3 {onClose ? '' : 'cursor-pointer'}"
-		onclick={(e) => {
-			if (onClose) return;
-			const target = e.target as HTMLElement;
-			if (target.closest('button, a, input, textarea')) return;
-			const selection = window.getSelection();
-			if (selection && selection.toString().length > 0) return;
-			toggleExpanded();
-		}}
-		onkeydown={(e) => {
-			if (onClose) return;
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				toggleExpanded();
-			}
-		}}
-		role={onClose ? undefined : 'button'}
-		tabindex={onClose ? undefined : 0}
-		aria-expanded={onClose ? undefined : expanded}
-		aria-label={onClose ? undefined : (expanded ? `Collapse ${book.title}` : `Expand ${book.title}`)}
-	>
-		<!-- Cover -->
-		<div class="flex-shrink-0 relative">
-			{#if book.cover_url}
-				<img
-					src={book.cover_url}
-					alt={book.title}
-					class="w-12 h-[72px] object-cover rounded-sm shadow-sm"
-					loading="lazy"
-					decoding="async"
-				/>
-			{:else}
-				<!-- Placeholder cover -->
-				<div
-					class="w-12 h-[72px] bg-gradient-to-br from-[var(--paper-dark)] to-[var(--warm-gray)] rounded-sm shadow-sm flex flex-col justify-center p-1 text-white"
-				>
-					<div class="text-[7px] font-serif italic leading-tight line-clamp-3">{book.title}</div>
-				</div>
-			{/if}
+	<!-- Header row (identical in all states — no badges, no menus, no timestamps) -->
+	{#if onClose}
+		<div class="py-3 px-4 flex gap-3 {expanded ? 'items-start' : 'items-center'}">
+			<!-- Cover 40×60 -->
+			<div class="flex-shrink-0">
+				{#if book.cover_url}
+					<img
+						src={book.cover_url}
+						alt={book.title}
+						class="{expanded ? 'w-20 h-[120px]' : 'w-10 h-[60px]'} object-cover rounded-sm shadow-sm transition-all duration-200 ease-out"
+						loading="lazy"
+						decoding="async"
+					/>
+				{:else}
+					<div
+						class="{expanded ? 'w-20 h-[120px]' : 'w-10 h-[60px]'} bg-gradient-to-br from-[var(--paper-dark)] to-[var(--warm-gray)] rounded-sm shadow-sm flex flex-col justify-center p-2 text-white transition-all duration-200 ease-out"
+					>
+						<div class="text-[7px] font-serif italic leading-tight line-clamp-3">{book.title}</div>
+					</div>
+				{/if}
+			</div>
 
-			<!-- Status badges -->
-			{#if book.is_read}
-				<StatusBadge status="read" />
-			{/if}
-			{#if book.is_owned}
-				<StatusBadge status="owned" stacked={book.is_read} />
-			{/if}
+			<!-- Title + Author -->
+			<div class="flex-1 min-w-0">
+				<h2 class="font-serif italic text-lg text-[var(--text-primary)] leading-snug line-clamp-2">{book.title}{#if book.is_read}<span class="text-sm not-italic text-[var(--text-tertiary)]"> ✓</span>{/if}</h2>
+				{#if book.author && book.author.length > 0}
+					<p class="text-sm text-[var(--warm-gray)]/70 mt-1 line-clamp-1">{book.author.join(', ')}</p>
+				{/if}
+			</div>
 
-			<!-- Screen reader status announcement -->
+			<!-- Screen reader status (no visual indicator in header) -->
 			{#if book.is_read || book.is_owned}
 				<span class="sr-only">
 					Status: {[book.is_read && 'Read', book.is_owned && 'Owned'].filter(Boolean).join(', ')}
 				</span>
 			{/if}
 		</div>
+	{:else}
+		<!-- Interactive header (button role) -->
+		<div
+			class="py-3 px-4 flex gap-3 {expanded ? 'items-start' : 'items-center'} cursor-pointer"
+			onclick={(e) => {
+				const target = e.target as HTMLElement;
+				if (target.closest('button, a, input, textarea')) return;
+				const selection = window.getSelection();
+				if (selection && selection.toString().length > 0) return;
+				toggleExpanded();
+			}}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					toggleExpanded();
+				}
+			}}
+			role="button"
+			tabindex="0"
+			aria-expanded={expanded}
+			aria-label={expanded ? `Collapse ${book.title}` : `Expand ${book.title}`}
+		>
+			<!-- Cover 40×60 -->
+			<div class="flex-shrink-0">
+				{#if book.cover_url}
+					<img
+						src={book.cover_url}
+						alt={book.title}
+						class="{expanded ? 'w-20 h-[120px]' : 'w-10 h-[60px]'} object-cover rounded-sm shadow-sm transition-all duration-200 ease-out"
+						loading="lazy"
+						decoding="async"
+					/>
+				{:else}
+					<div
+						class="{expanded ? 'w-20 h-[120px]' : 'w-10 h-[60px]'} bg-gradient-to-br from-[var(--paper-dark)] to-[var(--warm-gray)] rounded-sm shadow-sm flex flex-col justify-center p-2 text-white transition-all duration-200 ease-out"
+					>
+						<div class="text-[7px] font-serif italic leading-tight line-clamp-3">{book.title}</div>
+					</div>
+				{/if}
+			</div>
 
-		<!-- Content area -->
-		<div class="flex-1 min-w-0">
-			<h2 class="font-serif italic text-lg text-[var(--text-primary)] leading-snug line-clamp-2">{book.title}</h2>
-			{#if book.author && book.author.length > 0}
-				<p class="text-sm text-[var(--text-secondary)] mt-0.5 line-clamp-1">{book.author.join(', ')}</p>
+			<!-- Title + Author -->
+			<div class="flex-1 min-w-0">
+				<h2 class="font-serif italic text-lg text-[var(--text-primary)] leading-snug line-clamp-2">{book.title}{#if book.is_read}<span class="text-sm not-italic text-[var(--text-tertiary)]"> ✓</span>{/if}</h2>
+				{#if book.author && book.author.length > 0}
+					<p class="text-sm text-[var(--warm-gray)]/70 mt-1 line-clamp-1">{book.author.join(', ')}</p>
+				{/if}
+			</div>
+
+			<!-- Screen reader status (no visual indicator in header) -->
+			{#if book.is_read || book.is_owned}
+				<span class="sr-only">
+					Status: {[book.is_read && 'Read', book.is_owned && 'Owned'].filter(Boolean).join(', ')}
+				</span>
 			{/if}
 		</div>
+	{/if}
 
-		<!-- Right side: menu when expanded -->
-		{#if expanded}
-			<div class="flex-shrink-0 flex items-start">
-				<!-- Overflow menu -->
-				<div class="relative menu-container">
-					<button
-						onclick={(e) => { e.stopPropagation(); menuOpen = !menuOpen; }}
-						class="p-2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--background-alt)] rounded transition-colors"
-						aria-label="More options"
-					>
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h.01M12 12h.01M18 12h.01"/>
-						</svg>
-					</button>
-					{#if menuOpen}
-						<div class="absolute right-0 top-10 bg-[var(--surface)] border border-[var(--border)] rounded shadow-lg py-1.5 z-10 flex flex-col">
-							{#if onEditDetails}
-								<button
-									onclick={() => { menuOpen = false; onEditDetails?.(book.id); }}
-									class="px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors whitespace-nowrap"
-								>
-									Edit book details
-								</button>
-							{/if}
-							{#if onShare}
-								<button
-									onclick={() => { menuOpen = false; onShare?.({ isbn13: book.isbn13, title: book.title }); }}
-									class="px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors whitespace-nowrap"
-								>
-									Share
-								</button>
-							{/if}
-							{#if onDelete}
-								<button
-									onclick={() => { menuOpen = false; onDelete?.(book.id, book.title); }}
-									class="px-4 py-2.5 text-left text-sm text-red-600 hover:bg-[var(--background-alt)] transition-colors whitespace-nowrap"
-								>
-									Remove from library
-								</button>
-							{/if}
-						</div>
-					{/if}
-				</div>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Lifted note zone: visible when lifted, stays during expansion -->
+	<!-- Lifted note zone: recognition + meaning (persists during expansion) -->
 	{#if lifted && (noteValue || noteEditing) && !onClose}
-		<div class="pl-[60px] px-4 {expanded ? '' : 'pb-2'}">
+		<div class="{expanded ? 'pl-[108px]' : 'pl-[68px]'} pr-4 {expanded ? '' : 'pb-3'} transition-[padding] duration-200 ease-out"
+			style="{expanded ? 'margin-top: calc(var(--spacing) * -15)' : ''}"
+		>
 			{#if noteEditing}
-				<div class="relative space-y-3">
-					<ReactionChips
-						selected={selectedChips}
-						onToggle={toggleChip}
-						onOtherClick={focusTextarea}
-					/>
+				<div class="relative space-y-2 mt-3">
 					<textarea
-						bind:this={textareaRef}
-						bind:value={tempNoteValue}
+		bind:value={tempNoteValue}
 						placeholder="What caught your attention?"
 						class="w-full text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] border border-[var(--border)] rounded p-3 focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none bg-[var(--surface)]"
 						rows={2}
@@ -449,56 +383,26 @@
 					</div>
 				</div>
 			{:else}
-				<div class="group relative">
-					<p class="text-sm text-[var(--text-secondary)] leading-relaxed italic pr-8">"{noteValue}"</p>
-					{#if expanded}
-						<button
-							onclick={startEditingNote}
-							class="absolute top-0 right-0 p-1.5 text-[var(--text-tertiary)] md:opacity-0 md:group-hover:opacity-100 hover:text-[var(--text-secondary)] active:text-[var(--text-primary)] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center -mr-1.5 -mt-1.5"
-							aria-label="Edit note"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-							</svg>
-						</button>
-					{/if}
-				</div>
+				<p class="text-base text-[var(--text-secondary)] leading-relaxed mt-1 italic">{noteValue}</p>
 				{#if !expanded}
-					<p class="text-xs text-[var(--warm-gray)] mt-1">added {relativeTime(book.added_at)}</p>
+					<p class="text-xs text-[var(--warm-gray)] mt-1.5">added {relativeTime(book.added_at)}</p>
 				{/if}
 			{/if}
 		</div>
 	{/if}
 
-	<!-- Expanded content -->
+	<!-- Expanded content: act on the book -->
 	{#if expanded}
-		<div
-			transition:slide={{ duration: lifted ? 100 : 150 }}
-			ontouchstart={handleTouchStart}
-			ontouchend={handleTouchEnd}
-			ontouchmove={handleTouchMove}
-		>
-			<div class="px-0 pb-4 pt-1">
-				<!-- Note section: skip if lifted (already showing in lifted zone) -->
-				{#if !lifted || !noteValue}
-				<div class="mb-4 pl-[60px]">
-					{#if !noteValue && !noteEditing}
-						<button
-							onclick={startEditingNote}
-							class="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-						>
-							+ Add a note
-						</button>
-					{:else if noteEditing}
+		<div transition:slide={{ duration: lifted ? 100 : 150 }}>
+			<div class="pb-4" style="{lifted && (noteValue || noteEditing) ? '' : 'margin-top: calc(var(--spacing) * -15)'}">
+				<!-- Note -->
+				{#if lifted && noteEditing}
+					<!-- Lifted zone above handles edit form -->
+				{:else if !lifted && noteEditing}
+					<div class="mb-3 pl-[108px] pr-4">
 						<div class="relative space-y-3">
-							<ReactionChips
-								selected={selectedChips}
-								onToggle={toggleChip}
-								onOtherClick={focusTextarea}
-							/>
 							<textarea
-								bind:this={textareaRef}
-								bind:value={tempNoteValue}
+						bind:value={tempNoteValue}
 								placeholder="What caught your attention?"
 								class="w-full text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] border border-[var(--border)] rounded p-3 focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none bg-[var(--surface)]"
 								rows={2}
@@ -518,27 +422,65 @@
 								</button>
 							</div>
 						</div>
-					{:else}
-						<div class="group relative">
-							<p class="text-sm text-[var(--text-secondary)] leading-relaxed italic pr-8">"{noteValue}"</p>
+					</div>
+				{:else if noteValue}
+					<div class="mb-3 pl-[108px] pr-4">
+						{#if lifted}
 							<button
 								onclick={startEditingNote}
-								class="absolute top-0 right-0 p-1.5 text-[var(--text-tertiary)] md:opacity-0 md:group-hover:opacity-100 hover:text-[var(--text-secondary)] active:text-[var(--text-primary)] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center -mr-1.5 -mt-1.5"
-								aria-label="Edit note"
+								class="flex items-center gap-1.5 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
 							>
 								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
 								</svg>
+								<span>Edit note</span>
 							</button>
+						{:else}
+							<div class="flex items-start gap-2">
+								<p class="text-base text-[var(--text-secondary)] leading-relaxed italic flex-1">{noteValue}</p>
+								<button
+									onclick={startEditingNote}
+									class="flex-shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mt-0.5"								aria-label="Edit note"								>
+									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+									</svg>
+								</button>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<div class="mb-3 pl-[108px] pr-4"
+						onfocusin={() => noteFocused = true}
+						onfocusout={(e) => {
+							const related = (e as FocusEvent).relatedTarget as HTMLElement | null;
+							if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
+								if (!tempNoteValue.trim()) noteFocused = false;
+							}
+						}}
+					>
+						<div class="flex gap-2 items-stretch">
+							<textarea
+								bind:value={tempNoteValue}
+								placeholder="Write a note…"
+								class="flex-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/50 rounded-md px-3 py-2 resize-none bg-transparent border border-[var(--border)]/30 focus:border-[var(--border)]/60 focus:bg-[var(--surface)]/50 focus:outline-none transition-all duration-150"
+								rows={1}
+							></textarea>
+							{#if noteFocused || tempNoteValue.trim()}
+								<button
+									onclick={saveInlineNote}
+									class="flex-shrink-0 px-3 text-xs rounded bg-[var(--background-alt)] text-[var(--text-secondary)] hover:bg-[var(--paper-dark)] hover:text-[var(--text-primary)] transition-all duration-150"
+								>
+									Save
+								</button>
+							{/if}
 						</div>
-					{/if}
-				</div>
+					</div>
 				{/if}
 
-				<!-- Description (show first 3 lines with "more" link) -->
+				<!-- Description -->
 				{#if book.description}
-					<div class="mb-4 pl-[60px]">
-						<p class="text-sm text-[var(--text-secondary)] leading-relaxed {descriptionExpanded ? '' : 'line-clamp-3'}">
+					<div class="mt-3 mb-5 pl-[108px] pr-4">
+						<p class="text-sm text-[var(--text-tertiary)] leading-relaxed {descriptionExpanded ? '' : 'line-clamp-3'}">
 							{book.description}
 						</p>
 						{#if !descriptionExpanded && book.description.length > 200}
@@ -552,29 +494,30 @@
 					</div>
 				{/if}
 
-				<!-- Publisher/year metadata -->
-				{#if book.publisher || publicationYear}
-					<div class="mb-3 pl-[60px]">
-						<p class="text-xs text-[var(--text-tertiary)]">
-							{book.publisher}{#if publicationYear}{book.publisher ? ' · ' : ''}{publicationYear}{/if}
-						</p>
+				<!-- Metadata line -->
+				{#if metaParts.length > 0}
+					<div class="pl-[108px] pr-4 text-xs text-[var(--text-tertiary)]">
+						<p>{#each metaParts as part, i}{#if i > 0} &ensp;&middot;&ensp; {/if}{part}{/each}</p>
 					</div>
 				{/if}
 
-				<!-- Status toggles as subtle text links -->
-				<div class="flex items-center gap-4 mb-4 pl-[60px]">
+				<!-- Zone 2: Control Panel -->
+				<div class="mt-5 mx-3 mb-1 rounded-lg border-t border-[var(--border)]/40 bg-[var(--background)]/50 pt-2.5 pb-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)]">
+
+				<!-- Status pills -->
+				<div class="pl-[96px] pr-3 flex gap-2 mb-1.5">
 					<button
 						onclick={(e) => {
 							e.stopPropagation();
 							onToggleRead?.(book.id, book.is_read);
 							showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
-							if (lifted) onSettle?.(book.id);
+							if (lifted) setTimeout(() => onSettle?.(book.id), 200);
 						}}
-						class="text-xs transition-colors {book.is_read
-							? 'text-[var(--status-read)]'
-							: 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}"
+						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_read
+							? 'bg-[var(--charcoal)] text-white border-[var(--charcoal)]'
+							: 'bg-transparent text-[var(--text-tertiary)] border-[var(--paper-dark)] hover:border-[var(--warm-gray)] hover:text-[var(--text-secondary)]'}"
 					>
-						{book.is_read ? 'Read \u2713' : 'Mark as read'}
+						{book.is_read ? '✓ Read' : 'Read'}
 					</button>
 					<button
 						onclick={(e) => {
@@ -582,80 +525,87 @@
 							onToggleOwned?.(book.id, book.is_owned);
 							showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
 						}}
-						class="text-xs transition-colors {book.is_owned
-							? 'text-[var(--status-owned)]'
-							: 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'}"
+						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_owned
+							? 'bg-[var(--charcoal)] text-white border-[var(--charcoal)]'
+							: 'bg-transparent text-[var(--text-tertiary)] border-[var(--paper-dark)] hover:border-[var(--warm-gray)] hover:text-[var(--text-secondary)]'}"
 					>
-						{book.is_owned ? 'Owned \u2713' : 'Mark as owned'}
+						{book.is_owned ? '✓ Owned' : 'Owned'}
 					</button>
 				</div>
 
-				<!-- Shelves section -->
-				<div class="pl-[60px]">
+				<!-- Shelves -->
+				<div class="pl-[96px] pr-3 mb-0.5">
 					<button
 						onclick={() => shelvesOpen = !shelvesOpen}
-						class="flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mb-2"
+						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"
 					>
-						<span>Shelves</span>
-						<span class="text-[var(--text-tertiary)]">({activeShelfCount()})</span>
-						<svg class="w-3 h-3 transition-transform duration-150" class:rotate-180={shelvesOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+						</svg>
+						<span>Shelves ({activeShelfCount()})</span>
+						<svg class="w-3.5 h-3.5 transition-transform duration-150" class:rotate-180={shelvesOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
 						</svg>
 					</button>
 					{#if shelvesOpen}
-						<div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
-							{#each sortedShelves() as shelf}
-								{@const isChecked = activeShelfIds().has(shelf.id)}
-								<button
-									onclick={() => {
-										onToggleShelf?.(book.id, shelf.id, isChecked);
-										showSavedFeedback(isChecked ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
-									}}
-									class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-[var(--background-alt)] active:scale-[0.98] cursor-pointer group transition-all duration-150 text-left"
-									role="checkbox"
-									aria-checked={isChecked}
-									aria-label={`${shelf.name} shelf`}
-								>
-									<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-150 ease-out {isChecked
-										? 'bg-[var(--surface-dark)] border-[var(--surface-dark)] scale-100'
-										: 'border-[var(--paper-dark)] group-hover:border-[var(--warm-gray)] group-active:scale-95'}">
-										{#if isChecked}
-											<svg
-												class="w-3 h-3 text-white animate-check-pop"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="3"
-												viewBox="0 0 24 24"
-											>
-												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-											</svg>
-										{/if}
-									</div>
-									<span class="text-xs transition-colors duration-150 {isChecked ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}">
-										{shelf.name}
-									</span>
-								</button>
-							{/each}
-							{#if shelves.length === 0}
-								<p class="text-xs text-[var(--text-tertiary)] italic py-1 col-span-2">No shelves yet</p>
-							{/if}
+						<div class="mt-1 mb-2">
+							<div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
+								{#each sortedShelves() as shelf}
+									{@const isChecked = activeShelfIds().has(shelf.id)}
+									<button
+										onclick={() => {
+											onToggleShelf?.(book.id, shelf.id, isChecked);
+											showSavedFeedback(isChecked ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
+										}}
+										class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-[var(--background-alt)] active:scale-[0.98] cursor-pointer group transition-all duration-150 text-left"
+										role="checkbox"
+										aria-checked={isChecked}
+										aria-label={`${shelf.name} shelf`}
+									>
+										<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-150 ease-out {isChecked
+											? 'bg-[var(--surface-dark)] border-[var(--surface-dark)] scale-100'
+											: 'border-[var(--paper-dark)] group-hover:border-[var(--warm-gray)] group-active:scale-95'}">
+											{#if isChecked}
+												<svg
+													class="w-3 h-3 text-white animate-check-pop"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="3"
+													viewBox="0 0 24 24"
+												>
+													<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+												</svg>
+											{/if}
+										</div>
+										<span class="text-xs transition-colors duration-150 {isChecked ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}">
+											{shelf.name}
+										</span>
+									</button>
+								{/each}
+								{#if shelves.length === 0}
+									<p class="text-xs text-[var(--text-tertiary)] italic py-1 col-span-2">No shelves yet</p>
+								{/if}
+							</div>
 						</div>
 					{/if}
 				</div>
 
 				<!-- Find Elsewhere -->
-				<div class="pl-[60px]">
+				<div class="pl-[96px] pr-3 mb-0.5">
 					<button
 						onclick={() => linksOpen = !linksOpen}
-						class="flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mb-2 mt-2"
+						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"
 					>
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+						</svg>
 						<span>Find Elsewhere</span>
-						<svg class="w-3 h-3 transition-transform duration-150" class:rotate-180={linksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-3.5 h-3.5 transition-transform duration-150" class:rotate-180={linksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
 						</svg>
 					</button>
 					{#if linksOpen}
-						<div class="flex flex-wrap gap-x-4 gap-y-1 pb-1">
+						<div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 pb-1">
 							<a href={`https://www.google.com/search?tbm=bks&q=isbn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Google Books ↗</a>
 							<a href={`https://bookshop.org/a/5733/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Bookshop.org ↗</a>
 							<a href={`https://www.powells.com/book/-${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Powell's ↗</a>
@@ -665,51 +615,76 @@
 					{/if}
 				</div>
 
-				<!-- Barcode -->
-				<div class="pl-[60px]">
-					<button
-						onclick={() => barcodeOpen = !barcodeOpen}
-						class="flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors mb-2 mt-2"
-					>
-						<span>Barcode</span>
-						<svg class="w-3 h-3 transition-transform duration-150" class:rotate-180={barcodeOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-						</svg>
-					</button>
-					{#if barcodeOpen}
-						<div class="flex flex-col items-center py-3 bg-white rounded-lg mb-1">
-							<p class="text-[10px] text-[var(--text-tertiary)] mb-2">Scan at bookstore or library</p>
-							<canvas bind:this={barcodeCanvas} class="max-w-full"></canvas>
-							<p class="text-xs font-mono text-[var(--text-secondary)] mt-2 tracking-wider">{book.isbn13}</p>
-						</div>
-					{/if}
-				</div>
-
-				<!-- Footer - metadata -->
-				<div class="mt-4 pl-[60px] pr-4 flex items-center justify-between gap-3 text-xs text-[var(--text-tertiary)]">
-					<div class="flex items-center shrink-0">
-						<span>Added {new Date(book.added_at).toLocaleDateString()}</span>
-						{#if isRecentlyAdded()}
-							<span class="ml-2">· Just added</span>
-						{/if}
 					</div>
-					<button
-						onclick={copyISBN}
-						class="flex items-center gap-1.5 shrink-0 hover:text-[var(--text-secondary)] transition-colors"
-					>
-						{#if copied}
-							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-							</svg>
-							<span>Copied</span>
-						{:else}
-							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-							</svg>
-							<span>{book.isbn13}</span>
-						{/if}
-					</button>
-				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- More menu overlay -->
+	{#if menuOpen}
+		<!-- Backdrop -->
+		<button
+			class="fixed inset-0 z-10"
+			onclick={() => menuOpen = false}
+			aria-label="Close menu"
+		></button>
+		<!-- Full-card on mobile, dropdown on desktop -->
+		<div
+			class="absolute inset-0 z-20 bg-[var(--surface)] flex flex-col items-center pt-10
+				sm:inset-auto sm:top-10 sm:right-3 sm:rounded-lg sm:shadow-lg sm:border sm:border-[var(--border)] sm:pt-1 sm:items-stretch sm:min-w-[140px]"
+			transition:fade={{ duration: 80 }}
+		>
+			<!-- Close button (mobile only) -->
+			<button
+				onclick={() => menuOpen = false}
+				class="absolute top-3 right-3 p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors sm:hidden"
+				aria-label="Close menu"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				</svg>
+			</button>
+			{#if onEditDetails}
+				<button
+					onclick={() => { menuOpen = false; onEditDetails?.(book.id); }}
+					class="w-full text-center sm:text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+				>
+					Edit details
+				</button>
+			{/if}
+			{#if onShare}
+				<button
+					onclick={() => { menuOpen = false; onShare?.({ isbn13: book.isbn13, title: book.title }); }}
+					class="w-full text-center sm:text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+				>
+					Share
+				</button>
+			{/if}
+			{#if onDelete}
+				<button
+					onclick={() => { menuOpen = false; onDelete?.(book.id, book.title); }}
+					class="w-full text-center sm:text-left px-4 py-2 text-sm text-red-400/80 hover:bg-[var(--background-alt)] hover:text-red-500 transition-colors sm:border-t sm:border-[var(--border)] sm:mt-1 sm:pt-3"
+				>
+					Remove
+				</button>
+			{/if}
+			<!-- Added date -->
+			<p class="w-full text-center sm:text-left px-4 py-2 text-xs text-[var(--text-tertiary)]">Added {addedDate}</p>
+			<!-- Barcode + ISBN -->
+			<div class="flex-1 flex flex-col items-center justify-center w-full px-4 py-4 sm:py-3 sm:border-t sm:border-[var(--border)] sm:mt-1">
+				<canvas bind:this={barcodeCanvas} class="max-w-full"></canvas>
+				<button
+					onclick={copyISBN}
+					class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-mono text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer tracking-wider"
+				>
+					{#if copied}
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+						Copied
+					{:else}
+						{book.isbn13}
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+					{/if}
+				</button>
 			</div>
 		</div>
 	{/if}
