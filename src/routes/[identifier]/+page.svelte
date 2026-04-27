@@ -1363,9 +1363,9 @@
 </script>
 
 <svelte:head>
-	<title>{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi</title>
+	<title>{data.username ? `${data.username}'s Shelves` : 'Shelves'} | TBR.fyi</title>
 	<meta name="description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
-	<meta property="og:title" content="{data.username ? `${data.username}'s Reading List` : 'Reading List'} | TBR.fyi" />
+	<meta property="og:title" content="{data.username ? `${data.username}'s Shelves` : 'Shelves'} | TBR.fyi" />
 	<meta property="og:description" content="{data.allBooks.length} {data.allBooks.length === 1 ? 'book' : 'books'} on {data.username ? `${data.username}'s` : 'this'} reading list" />
 	<meta property="og:image" content="https://tbr.fyi/og-image.png" />
 	<meta property="og:type" content="website" />
@@ -1389,7 +1389,7 @@
 				<div class="flex items-start justify-between gap-2">
 					<div class="min-w-0 group/title">
 						<div class="flex items-center gap-2">
-							<h1 class="text-xl font-semibold text-[var(--text-primary)] truncate">{data.username ? `${data.username}'s Reading List` : 'Reading List'}</h1>
+							<h1 class="text-xl font-semibold text-[var(--text-primary)] truncate">{data.username ? `${data.username}'s Shelves` : 'Shelves'}</h1>
 							<a
 								href="/{$page.params.identifier}/settings"
 								class="settings-gear opacity-40 md:opacity-0 md:group-hover/title:opacity-40 hover:!opacity-100 transition-opacity"
