@@ -1,6 +1,8 @@
+> **Status: Superseded** — replaced by LLM-based approach. See `docs/plans/2026-04-26-cover-to-capture.md`.
+
 # Cover Photo Recognition
 
-**Status:** Planned (Needs Prototype Validation)
+**Status:** Superseded
 **Created:** 2025-01-07
 **Priority:** Medium - Enables frictionless book capture
 

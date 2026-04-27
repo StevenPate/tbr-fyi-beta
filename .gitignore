@@ -36,3 +36,4 @@ claude.md
 .env.local
 .vercel
 supabase/.temp/
+test-covers/
