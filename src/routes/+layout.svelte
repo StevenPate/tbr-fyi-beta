@@ -60,11 +60,9 @@
 					<a href="/help" class="footer-link">Help</a>
 					<span class="footer-separator">•</span>
 					<a href={currentUserId() ? `/${currentUserId()}/settings` : '/settings'} class="footer-link">Settings</a>
-					<span class="footer-separator">•</span>
-					<a href="https://ko-fi.com/stevenpate" target="_blank" rel="noopener noreferrer" class="footer-link">Leave me a tip</a>
-				</nav>
+					</nav>
 				<div class="footer-tagline">
-					TBR.FYI - Your Personal Reading Inbox
+					TBR.FYI
 				</div>
 			</div>
 		</div>

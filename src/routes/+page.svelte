@@ -4,6 +4,43 @@
 
 	let identifier = $state('');
 	let isReturningUser = $state(false);
+	let currentSlide = $state(0);
+	let touchStartX = $state(0);
+	let touchEndX = $state(0);
+
+	const totalSlides = 2;
+
+	function handleTouchStart(e: TouchEvent) {
+		touchStartX = e.touches[0].clientX;
+	}
+
+	function handleTouchMove(e: TouchEvent) {
+		touchEndX = e.touches[0].clientX;
+	}
+
+	function handleTouchEnd() {
+		const swipeThreshold = 50;
+		const diff = touchStartX - touchEndX;
+
+		if (Math.abs(diff) > swipeThreshold) {
+			if (diff > 0 && currentSlide < totalSlides - 1) {
+				currentSlide++;
+			} else if (diff < 0 && currentSlide > 0) {
+				currentSlide--;
+			}
+		}
+
+		touchStartX = 0;
+		touchEndX = 0;
+	}
+
+	function goToSlide(index: number) {
+		currentSlide = index;
+	}
+
+	function toggleSlide() {
+		currentSlide = (currentSlide + 1) % totalSlides;
+	}
 
 	onMount(() => {
 		// Check if user has visited before
@@ -48,9 +85,9 @@
 
 <svelte:head>
 	<title>TBR.fyi - text yourself books</title>
-	<meta name="description" content="Someone mentions a book on a podcast, in a group chat, or across the table from you - text it to TBR.fyi and it lands on your shelf. No app to install. No account to remember." />
+	<meta name="description" content="Text yourself books. Snap a photo of a book, send an ISBN or a link — it lands on your shelf in seconds. You'll remember something more than the title: why it mattered." />
 	<meta property="og:title" content="TBR.fyi - text yourself books" />
-	<meta property="og:description" content="Text yourself book recommendations. No app to install. No account to remember." />
+	<meta property="og:description" content="Text yourself books. You'll remember something more than the title: why it mattered." />
 	<meta property="og:image" content="https://tbr.fyi/og-image.png" />
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://tbr.fyi" />
@@ -62,10 +99,10 @@
 <section class="bg-[var(--surface-dark)] py-16 px-6">
 	<div class="max-w-xl mx-auto text-center">
 		<h1 class="font-serif italic text-2xl text-[var(--text-on-dark)] mb-4">
-			text yourself books
+			Text Yourself Books.
 		</h1>
 		<p class="text-base text-[var(--text-on-dark)] opacity-70 mb-8">
-			Someone mentions a book on a podcast, in a group chat, or across the table from you — text it to your shelf.
+			You'll remember something more than the title: why it mattered.
 		</p>
 		<a
 			href="sms:+13605044327"
@@ -79,8 +116,8 @@
 <!-- Pitch -->
 <section class="max-w-lg mx-auto px-6 py-12 text-center">
 	<p class="text-base text-[var(--text-primary)] leading-relaxed">
-		TBR.fyi is a reading list you can text. Send any ISBN, Amazon link, or bookstore URL
-		and it appears on your personal shelf — organized, searchable, and shareable.
+		Snap a photo of a book, text an ISBN or a link — it lands on your shelf
+		in seconds. Organized, searchable, and shareable.
 		No app to install. No account to remember.
 	</p>
 </section>
@@ -107,3 +144,194 @@
 		Or <a href="/auth/signin" class="text-[var(--accent)] hover:text-[var(--accent-hover)]">sign in with email</a>
 	</p>
 </section>
+
+<!-- Phone Demo Carousel -->
+<section class="demo">
+	<div
+		class="carousel-container"
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+		onclick={toggleSlide}
+		onkeydown={(e) => e.key === 'Enter' && toggleSlide()}
+		role="button"
+		tabindex="0"
+		aria-label="Phone demo carousel - click to switch views"
+	>
+		<div class="carousel-track" style="transform: translateX(-{currentSlide * 100}%)">
+			<!-- Slide 1: SMS Conversation -->
+			<div class="carousel-slide">
+				<div class="phone-mock">
+					<div class="message outgoing">
+						<div class="bubble"><span class="book-title">Braiding Sweetgrass</span></div>
+					</div>
+					<div class="message incoming">
+						<div class="bubble">Added <span class="book-title">Braiding Sweetgrass</span> by Robin Wall Kimmerer to your shelf.</div>
+					</div>
+					<div class="message outgoing">
+						<div class="bubble image-bubble">
+							<img src="/barcode.png" alt="Photo of book barcode" />
+						</div>
+					</div>
+					<div class="message incoming">
+						<div class="bubble">Added <span class="book-title">All Systems Red</span> by Martha Wells.</div>
+					</div>
+					<div class="message outgoing">
+						<div class="bubble">https://amazon.com/dp/...</div>
+					</div>
+					<div class="message incoming">
+						<div class="bubble">Added <span class="book-title">The Pearl</span> by John Steinbeck to your shelf.</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Slide 2: Shelf Screenshot -->
+			<div class="carousel-slide">
+				<div class="phone-mock phone-mock-shelf">
+					<img src="/shelf-mockup.png" alt="Your shelf with book covers and titles" class="shelf-screenshot" />
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Dot Indicators -->
+	<div class="carousel-dots">
+		{#each Array(totalSlides) as _, i}
+			<button
+				class="carousel-dot"
+				class:active={currentSlide === i}
+				onclick={() => goToSlide(i)}
+				aria-label="Go to slide {i + 1}"
+				aria-current={currentSlide === i ? 'true' : undefined}
+			></button>
+		{/each}
+	</div>
+	<p class="carousel-hint">Tap or swipe to see your shelf</p>
+</section>
+
+<style>
+	.demo {
+		padding: 48px 24px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.carousel-container {
+		width: 100%;
+		max-width: 320px;
+		overflow: hidden;
+		touch-action: pan-y pinch-zoom;
+		cursor: pointer;
+	}
+
+	.carousel-track {
+		display: flex;
+		transition: transform 0.3s ease-out;
+	}
+
+	.carousel-slide {
+		flex: 0 0 100%;
+		display: flex;
+		justify-content: center;
+	}
+
+	.phone-mock {
+		background: var(--surface);
+		border: 1.5px solid var(--border);
+		border-radius: 24px;
+		padding: 24px 20px;
+		max-width: 320px;
+		width: 100%;
+	}
+
+	.phone-mock-shelf {
+		padding: 0;
+		overflow: hidden;
+		border-color: var(--terracotta-dark);
+	}
+
+	.shelf-screenshot {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 22px;
+	}
+
+	.carousel-dots {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+	}
+
+	.carousel-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		border: none;
+		background: var(--border);
+		cursor: pointer;
+		padding: 0;
+		transition: background 0.2s, transform 0.2s;
+	}
+
+	.carousel-dot:hover {
+		background: var(--text-secondary);
+	}
+
+	.carousel-dot.active {
+		background: var(--accent);
+		transform: scale(1.25);
+	}
+
+	.carousel-hint {
+		font-size: 13px;
+		color: var(--text-secondary);
+		margin-top: 4px;
+	}
+
+	.message {
+		margin-bottom: 12px;
+	}
+
+	.message.outgoing {
+		text-align: right;
+	}
+
+	.bubble {
+		display: inline-block;
+		padding: 10px 14px;
+		border-radius: 16px;
+		font-size: 15px;
+		max-width: 85%;
+	}
+
+	.message.outgoing .bubble {
+		background: var(--accent);
+		color: white;
+		border-bottom-right-radius: 4px;
+	}
+
+	.message.outgoing .bubble.image-bubble {
+		padding: 6px;
+		background: var(--accent);
+	}
+
+	.message.outgoing .bubble.image-bubble img {
+		display: block;
+		max-width: 180px;
+		border-radius: 10px;
+	}
+
+	.message.incoming .bubble {
+		background: var(--background-alt);
+		color: var(--text-primary);
+		border-bottom-left-radius: 4px;
+	}
+
+	.message .book-title {
+		font-family: var(--font-serif);
+		font-style: italic;
+	}
+</style>

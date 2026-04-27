@@ -22,7 +22,7 @@
 		<!-- Intro -->
 		<div class="card">
 			<p class="text-[var(--text-secondary)] text-lg leading-relaxed">
-				Someone mentions a book on a podcast, in a group chat, or across the table from you—and you can save it instantly. No notes app, no screenshots, no forgotten tabs. Everything lands in one calm, searchable reading list.
+				Someone mentions a book on a podcast, in a group chat, or across the table—and you can save it instantly. No notes app, no screenshots, no forgotten tabs. Everything lands in one calm, searchable shelf.
 			</p>
 		</div>
 
@@ -31,12 +31,17 @@
 			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Why this exists</h2>
 
 			<div class="space-y-4 text-[var(--text-secondary)]">
+
 				<p>
-					I was using Goodreads' "to-read" list, but I never actually checked it. It became a graveyard of 200 books I'll never read.
+					Book recommendations come from everywhere, and they almost always arrive when you're busy. TBR.fyi is designed to capture those moments with as little friction as possible—whether you're on your phone, at your desk, or mid-conversation. It also helps you remember why you saved each book.
 				</p>
 
 				<p>
-					Book recommendations come from everywhere, and they almost always arrive when you're busy. TBR.fyi is designed to capture those moments with as little friction as possible—whether you're on your phone, at your desk, or mid-conversation.
+					I'm Steven Pate, a bookseller at <a href="https://portbookandnews.com" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">Port Book and News</a> in Port Angeles, WA. I built this because I see the same pattern every day—people hear about a book and want to remember it, but the moment passes.
+				</p>
+
+				<p>
+					If TBR.fyi is useful to you, you can <a href="https://ko-fi.com/stevenpate" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">leave me a tip</a>.
 				</p>
 
 				<p class="font-medium text-[var(--text-primary)]">
@@ -66,19 +71,19 @@
 						<p class="text-xs text-[var(--text-secondary)] mt-1">US number · standard messaging rates apply</p>
 					</div>
 					<p class="text-sm text-[var(--text-secondary)]">
-						TBR.fyi figures out the book and adds it to your list automatically.
+						TBR.fyi figures out the book and adds it to your shelf automatically.
 					</p>
 				</div>
 
 				<div class="bg-[var(--paper-light)] rounded-lg p-4">
 					<p class="font-semibold text-[var(--text-primary)] mb-2">Use the web app.</p>
 					<p class="text-sm text-[var(--text-secondary)]">
-						You can also add books directly here—same result, same list, no SMS required.
+						You can also add books directly here—same result, same shelf, no SMS required.
 					</p>
 				</div>
 
 				<p class="mt-4">
-					Once added, books show up in your TBR list. You can mark them read or unread, note whether you own them, and add context like "Recommended on Fresh Air" so you remember why you saved it.
+					Once added, books show up on your shelf. You can mark them read or unread, note whether you own them, and add context like "Recommended on Fresh Air" so you remember why you saved it. When a book resurfaces months later, that context comes with it—so you're not staring at a title wondering why it's there.
 				</p>
 			</div>
 		</div>
@@ -100,33 +105,18 @@
 
 		<!-- Where This Is At -->
 		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-				<span class="text-xl">🚧</span> Where this is at
-			</h2>
+			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Where this is at</h2>
 
 			<div class="space-y-4 text-[var(--text-secondary)]">
 				<p>
-					<strong class="text-[var(--text-primary)]">Honest truth:</strong> this is early. I'm testing it with a small group to see if it's useful or if I'm solving a problem that doesn't exist.
+					Built and maintained by one person. Still early—developing in the open on <a href="https://github.com/stevenpate/tbr-fyi-beta" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a>.
 				</p>
 
-				<div class="mt-6">
-					<h3 class="text-base font-semibold text-[var(--text-primary)] mb-3">Things that work:</h3>
-					<ul class="space-y-1 text-sm ml-4">
-						<li>• Text ISBN → book appears on shelf</li>
-						<li>• Photo barcode detection</li>
-						<li>• Amazon link parsing</li>
-						<li>• Title/author search ("The Hobbit by Tolkien")</li>
-						<li>• Multiple shelves, read/unread status, personal notes</li>
-					</ul>
-				</div>
-
-				<div class="mt-6">
-					<h3 class="text-base font-semibold text-[var(--text-primary)] mb-3">Things that could be better:</h3>
+				<div class="mt-4">
+					<h3 class="text-base font-semibold text-[var(--text-primary)] mb-3">On the list:</h3>
 					<ul class="space-y-1 text-sm text-[var(--text-secondary)] ml-4">
-						<li>• Long lists need pagination</li>
-						<li>• No edition finder yet</li>
-						<li>• Can't export to CSV or Goodreads</li>
-						<li>• Probably other stuff I haven't discovered</li>
+						<li>• Pagination for large shelves</li>
+						<li>• Edition finder (wrong cover? find the right one)</li>
 					</ul>
 				</div>
 
@@ -175,7 +165,19 @@
 				</p>
 
 				<p>
-					To delete everything, text STOP or open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a>.
+					SMS is handled through Twilio on a registered 10DLC number—no shared short codes, no spam, no resale. Reply STOP at any time to unsubscribe instantly.
+				</p>
+
+				<p>
+					Your books are yours. Claim your shelf and you can export your full library anytime—CSV (Goodreads-compatible) or JSON—from your <a href="/settings" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">Settings</a> page.
+				</p>
+
+				<p>
+					If I ever shut this down, you'll get 60 days' notice first.
+				</p>
+
+				<p>
+					To unsubscribe from SMS, text STOP. To delete your data entirely, open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a>.
 				</p>
 			</div>
 		</div>
@@ -186,7 +188,7 @@
 
 			<div class="space-y-3 text-white/90">
 				<p>
-					If you already have an account, jump back to your list and add a book. If you're new, try adding one right now—by text or directly in the web app—and see if it earns a place in your workflow.
+					If you already have an account, jump back to your shelf and add a book. If you're new, try adding one right now—by text or directly in the web app—and see if it earns a place in your workflow.
 				</p>
 
 				<div class="flex flex-col sm:flex-row gap-3 mt-6">
