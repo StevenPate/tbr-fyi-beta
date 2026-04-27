@@ -109,10 +109,23 @@ export type NotePromptId = NotePrompt['id'];
 
 export interface PromptContext {
 	sourceType: 'sms_isbn' | 'sms_photo' | 'sms_search' | 'sms_link' | 'web';
+	bookId: string;
 	booksAddedToday: number;
 	totalBooks: number;
 	timeOfDay: number; // 0-23
-	lastPromptId?: NotePromptId;
+}
+
+/**
+ * Simple deterministic hash from a string to a positive integer.
+ * Used to anchor prompt selection to a specific book ID so the same
+ * book always gets the same prompt across page loads.
+ */
+function hashString(str: string): number {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+	}
+	return Math.abs(hash);
 }
 
 /**
@@ -130,10 +143,12 @@ export function selectNotePrompt(context: PromptContext): NotePrompt {
 		return NOTE_PROMPTS.SOURCE_WHERE;
 	}
 
-	// Power users -> offer skip option occasionally
+	// Anchor all selection to the book ID for stability across page loads
+	const bookHash = hashString(context.bookId);
+
+	// Power users -> offer skip option for ~30% of books (deterministic per book)
 	if (context.totalBooks > 20 || context.booksAddedToday >= 5) {
-		// 30% chance of skip prompt for power users
-		if (Math.random() < 0.3) {
+		if (bookHash % 10 < 3) {
 			return NOTE_PROMPTS.SKIP;
 		}
 	}
@@ -150,21 +165,16 @@ export function selectNotePrompt(context: PromptContext): NotePrompt {
 	// Rotation order: source → use-case → vibe → topic → personal → repeat
 	const rotationOrder = ['source', 'useCase', 'vibe', 'topic', 'personal'] as const;
 
-	// Determine position in rotation based on total books added
-	const rotationIndex = (context.totalBooks - 1) % rotationOrder.length;
+	// Category selected by book ID — each book "owns" its prompt category
+	const rotationIndex = bookHash % rotationOrder.length;
 	const currentCategory = rotationOrder[rotationIndex];
 
 	// Get prompts for current category
 	const categoryPrompts = promptCategories[currentCategory];
 
-	// Avoid repeating the last prompt if possible
-	const availablePrompts = categoryPrompts.filter((p) => p.id !== context.lastPromptId);
-
-	// If we have alternatives, use them; otherwise use any from the category
-	const promptsToChooseFrom = availablePrompts.length > 0 ? availablePrompts : categoryPrompts;
-
-	// Random selection within the category
-	return promptsToChooseFrom[Math.floor(Math.random() * promptsToChooseFrom.length)];
+	// Deterministic selection within category, also anchored to book
+	const withinIndex = Math.floor(bookHash / rotationOrder.length) % categoryPrompts.length;
+	return categoryPrompts[withinIndex];
 }
 
 /**

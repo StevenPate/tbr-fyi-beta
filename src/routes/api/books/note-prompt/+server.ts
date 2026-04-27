@@ -33,28 +33,21 @@ export const POST: RequestHandler = async (event) => {
 		const now = new Date();
 		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-		const [totalResult, todayResult, lastPromptResult] = await Promise.all([
+		const [totalResult, todayResult] = await Promise.all([
 			supabase.from('books').select('id', { count: 'exact', head: true }).eq('user_id', userId),
 			supabase
 				.from('books')
 				.select('id', { count: 'exact', head: true })
 				.eq('user_id', userId)
-				.gte('added_at', todayStart.toISOString()),
-			supabase
-				.from('prompt_responses')
-				.select('prompt_id')
-				.eq('user_id', userId)
-				.order('created_at', { ascending: false })
-				.limit(1)
-				.maybeSingle()
+				.gte('added_at', todayStart.toISOString())
 		]);
 
 		const context: PromptContext = {
 			sourceType: 'web',
+			bookId,
 			totalBooks: totalResult.count || 0,
 			booksAddedToday: todayResult.count || 0,
-			timeOfDay: now.getHours(),
-			lastPromptId: lastPromptResult.data?.prompt_id as PromptContext['lastPromptId']
+			timeOfDay: now.getHours()
 		};
 
 		const prompt = selectNotePrompt(context);

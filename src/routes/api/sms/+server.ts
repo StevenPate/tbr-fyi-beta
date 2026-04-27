@@ -255,34 +255,28 @@ async function maybeAddFeedbackPrompt(baseMessage: string, phoneNumber: string):
  */
 async function getPromptContext(
 	phoneNumber: string,
+	bookId: string,
 	sourceType: PromptContext['sourceType']
 ): Promise<PromptContext> {
 	const now = new Date();
 	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
 	// Get total book count and books added today
-	const [totalResult, todayResult, lastPromptResult] = await Promise.all([
+	const [totalResult, todayResult] = await Promise.all([
 		supabase.from('books').select('id', { count: 'exact', head: true }).eq('user_id', phoneNumber),
 		supabase
 			.from('books')
 			.select('id', { count: 'exact', head: true })
 			.eq('user_id', phoneNumber)
-			.gte('added_at', todayStart.toISOString()),
-		supabase
-			.from('prompt_responses')
-			.select('prompt_id')
-			.eq('user_id', phoneNumber)
-			.order('created_at', { ascending: false })
-			.limit(1)
-			.maybeSingle()
+			.gte('added_at', todayStart.toISOString())
 	]);
 
 	return {
 		sourceType,
+		bookId,
 		totalBooks: totalResult.count || 0,
 		booksAddedToday: todayResult.count || 0,
-		timeOfDay: now.getHours(),
-		lastPromptId: lastPromptResult.data?.prompt_id as PromptContext['lastPromptId']
+		timeOfDay: now.getHours()
 	};
 }
 
@@ -335,7 +329,7 @@ async function getNotePromptForSMS(
 	bookId: string,
 	sourceType: PromptContext['sourceType']
 ): Promise<string> {
-	const context = await getPromptContext(phoneNumber, sourceType);
+	const context = await getPromptContext(phoneNumber, bookId, sourceType);
 	const prompt = selectNotePrompt(context);
 
 	// Record that we showed this prompt
