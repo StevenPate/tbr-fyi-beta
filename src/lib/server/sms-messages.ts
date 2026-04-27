@@ -140,6 +140,13 @@ export const SMS_MESSAGES = {
 	MMS_UNAVAILABLE:
 		'Photo processing temporarily unavailable.',
 
+	// === Cover Photo Recognition ===
+	coverNoMatch: (title: string) =>
+		`I read "${title}" from the cover but couldn't find a match. Try texting the title and author directly.`,
+
+	coverSearchFailed: () =>
+		"I could see text on the cover but couldn't match it to a book. Try texting the title and author directly.",
+
 	// === Amazon Link Processing ===
 	AMAZON_NO_ISBN:
 		"Couldn't find ISBN from that Amazon link. Try texting the ISBN directly!",

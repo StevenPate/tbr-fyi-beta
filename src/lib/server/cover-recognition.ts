@@ -46,7 +46,7 @@ export async function identifyBookFromCover(
 
 	try {
 		const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
-		const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+		const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 		const resultPromise = model.generateContent({
 			contents: [

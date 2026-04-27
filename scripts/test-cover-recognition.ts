@@ -86,7 +86,7 @@ async function identifyCover(
 	mimeType: string
 ): Promise<{ title: string | null; author: string | null; confidence: string }> {
 	const genAI = new GoogleGenerativeAI(GEMINI_API_KEY!);
-	const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+	const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 	const result = await model.generateContent({
 		contents: [

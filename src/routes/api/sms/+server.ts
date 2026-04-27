@@ -20,6 +20,7 @@ import {
 	isUnsupportedBookstoreUrl
 } from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
+import { identifyBookFromCover } from '$lib/server/cover-recognition';
 import { SMS_MESSAGES, detectCommand, getShelfUrl, getClaimUrl, WHY_NOTES_RESPONSE } from '$lib/server/sms-messages';
 import { selectNotePrompt, formatNotePromptForSMS, type PromptContext, type NotePrompt } from '$lib/server/note-prompts';
 import { matchChipShortcut } from '$lib/components/ui/reaction-chips';
@@ -730,6 +731,56 @@ export const POST: RequestHandler = async ({ request }) => {
 				console.log('MMS detectBarcodes result', { reqId, count: isbns.length });
 
 				if (isbns.length === 0) {
+					// Barcode detection failed — try cover recognition via Gemini Flash
+					const coverResult = await identifyBookFromCover(imageBuffer, contentType);
+					console.log('MMS cover recognition result', {
+						reqId,
+						confidence: coverResult.confidence,
+						title: coverResult.title
+					});
+
+					if (coverResult.title && coverResult.confidence !== 'none') {
+						// Search Google Books to validate the identification
+						try {
+							const candidates = await searchBooks({
+								title: coverResult.title,
+								author: coverResult.author || undefined,
+								max: 8
+							});
+
+							if (candidates && candidates.length > 0) {
+								const top = candidates[0];
+								// Reuse existing search -> ADD flow via sms_context
+								await supabase.from('sms_context').upsert({
+									phone_number: userId,
+									last_isbn13: top.isbn13,
+									last_title: top.title,
+									updated_at: new Date().toISOString()
+								});
+
+								const query = coverResult.author
+									? `${coverResult.title} ${coverResult.author}`
+									: coverResult.title;
+
+								const msg = SMS_MESSAGES.searchBestMatch(
+									top.title,
+									top.authors,
+									top.isbn13,
+									userId,
+									query
+								);
+								return twimlResponse(msg);
+							}
+
+							// Search returned no results
+							return twimlResponse(SMS_MESSAGES.coverNoMatch(coverResult.title));
+						} catch (e) {
+							console.error('Cover search error:', e);
+							return twimlResponse(SMS_MESSAGES.coverSearchFailed());
+						}
+					}
+
+					// Cover recognition also failed — original fallback
 					return twimlResponse(SMS_MESSAGES.MMS_NO_ISBN_DETECTED);
 				}
 

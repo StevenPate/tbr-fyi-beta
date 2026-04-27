@@ -9,6 +9,7 @@ import {
 	isUnsupportedBookstoreUrl
 } from '$lib/server/bookshop-parser';
 import { detectBarcodes } from '$lib/server/vision';
+import { identifyBookFromCover } from '$lib/server/cover-recognition';
 import { logger, startTimer } from '$lib/server/logger';
 
 interface DetectedBook {
@@ -186,17 +187,59 @@ export const POST = async ({ request }: any) => {
 			// Convert base64 to buffer
 			const imageBuffer = Buffer.from(content as string, 'base64');
 
-			// Detect barcodes using Google Vision
+			// Try barcode detection first (fast, reliable)
 			const { isbns: detectedISBNs } = await detectBarcodes(imageBuffer, {
 				timeoutMs: 5000,
 				maxResults: 5
 			});
 
-			if (detectedISBNs.length === 0) {
-				return json({ error: 'No barcodes found in image' }, { status: 400 });
-			}
+			if (detectedISBNs.length > 0) {
+				isbns = detectedISBNs;
+			} else {
+				// Barcode failed — try cover recognition via Gemini Flash
+				const coverResult = await identifyBookFromCover(imageBuffer);
 
-			isbns = detectedISBNs;
+				if (coverResult.title && coverResult.confidence !== 'none') {
+					// Search Google Books with identified title/author
+					const candidates = await searchBooks({
+						title: coverResult.title,
+						author: coverResult.author || undefined,
+						max: 8
+					});
+
+					if (candidates && candidates.length > 0) {
+						// Deduplicate and return as detected books (same shape as text search results)
+						const seen = new Set<string>();
+						const detected = candidates
+							.filter((c) => {
+								if (seen.has(c.isbn13)) return false;
+								seen.add(c.isbn13);
+								return true;
+							})
+							.map((c) => ({
+								isbn13: c.isbn13,
+								title: c.title,
+								author: c.authors,
+								publisher: c.publisher,
+								publicationDate: c.publicationDate,
+								coverUrl: c.coverUrl
+							}));
+						return json({ success: true, detected });
+					}
+
+					return json(
+						{
+							error: `Couldn't find a match for "${coverResult.title}". Try entering the title manually.`
+						},
+						{ status: 404 }
+					);
+				}
+
+				return json(
+					{ error: 'No books detected in image. Try a clearer photo or enter the ISBN manually.' },
+					{ status: 400 }
+				);
+			}
 		} else if (type === 'file') {
 			// Handle CSV/TXT file content
 			const MAX_BOOKS = 50;
