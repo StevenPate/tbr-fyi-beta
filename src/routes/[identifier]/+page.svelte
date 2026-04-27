@@ -1451,8 +1451,8 @@
 								addBookSuccess = false;
 							}}
 							class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors text-xl font-bold bg-[var(--surface)] md:bg-transparent"
-							aria-label="Add book manually by ISBN"
-							title="Add book by ISBN or photo of barcode"
+							aria-label="Add book"
+							title="Add book by cover photo, ISBN, or title"
 						>
 							+
 						</button>
@@ -1660,7 +1660,7 @@
 					Your shelf is empty
 				</p>
 				<p class="text-sm text-[var(--text-secondary)]">
-					Text your first ISBN to get started.
+					Snap a cover photo or text an ISBN to get started.
 				</p>
 			</div>
 		{:else if displayedBooks.length === 0}
@@ -1940,7 +1940,7 @@
 									disabled={isDetecting || isAddingBook}
 									class="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-[var(--border)] rounded-lg hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									📷 Take/Upload Photo or CSV
+									📷 Snap a Cover, Barcode, or Upload CSV
 								</button>
 
 								<input
@@ -1953,7 +1953,7 @@
 								/>
 
 								<p class="text-xs text-gray-500 text-center">
-									💡 Tip: Upload CSV/TXT files with ISBNs for bulk import (max 50)
+									💡 Cover photos, barcodes, and CSV/TXT bulk imports all work here
 								</p>
 							</div>
 

@@ -46,7 +46,7 @@
                     <ul class="space-y-2 text-sm ml-4">
                         <li>• An ISBN (10 or 13 digits)</li>
                         <li>• A title and author ("The Hobbit by Tolkien")</li>
-                        <li>• A photo of a barcode</li>
+                        <li>• A photo of a cover or barcode</li>
                         <li>• An Amazon link</li>
                     </ul>
                 </div>
@@ -168,9 +168,9 @@
                 </div>
 
                 <div>
-                    <h3 class="text-base font-semibold text-[var(--text-primary)] mb-2">Why can't I send a photo of the book cover?</h3>
+                    <h3 class="text-base font-semibold text-[var(--text-primary)] mb-2">How does cover photo recognition work?</h3>
                     <p class="text-sm">
-                        Reliably extracting title and author from cover images is surprisingly complex—there's a lot of variation in cover design. For now, we're focused on features that work reliably. Once the core experience is solid, cover recognition is on the list.
+                        When you send a photo of a book cover, TBR reads the title and author from the image and searches for a match. Clear, well-lit photos work best. If the cover isn't recognized, try texting the title and author directly.
                     </p>
                 </div>
 

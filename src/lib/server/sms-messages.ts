@@ -46,7 +46,7 @@ export const SMS_MESSAGES = {
 		'Welcome to TBR! Reply START to begin adding books to your shelf.',
 
 	welcomeActivated: (phoneNumber: string) =>
-		`Great! Text me an ISBN, Amazon link, or photo of a barcode to add your first book.\n\nView your shelf: ${getShelfUrl(phoneNumber)}`,
+		`Great! Text me an ISBN, Amazon link, or photo of a cover or barcode to add your first book.\n\nView your shelf: ${getShelfUrl(phoneNumber)}`,
 
 	// === Opt-out Flow ===
 	STOP_CONFIRMATION:
@@ -60,10 +60,10 @@ export const SMS_MESSAGES = {
 
 	// === Help & Instructions ===
 	HELP:
-		'Send me an ISBN (10 or 13 digits), Title by Author, photo of a barcode, or Amazon link!',
+		'Send me a photo of a cover or barcode, an ISBN, Title by Author, or Amazon link!',
 
 	NO_ISBN_FOUND:
-		'Send me an ISBN (10 or 13 digits), Title by Author, photo of a barcode, or Amazon link!',
+		'Send me a photo of a cover or barcode, an ISBN, Title by Author, or Amazon link!',
 
 	// === Title/Author Search (stateless MVP) ===
 	searchBestMatch: (title: string, authors: string[], isbn13: string, phoneNumber: string, query: string) => {
@@ -135,7 +135,7 @@ export const SMS_MESSAGES = {
 		'Could not download the photo. Please try again.',
 
 	MMS_INVALID_FILE_TYPE:
-		"That doesn't look like an image. Please send a photo of a barcode.",
+		"That doesn't look like an image. Please send a photo of a book cover or barcode.",
 
 	MMS_UNAVAILABLE:
 		'Photo processing temporarily unavailable.',
