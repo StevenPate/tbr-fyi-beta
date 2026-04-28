@@ -45,6 +45,9 @@
 		onToggleExpand?: (bookId: string, isExpanded: boolean) => void;
 		onSettle?: (bookId: string) => void;
 		onClose?: () => void;
+		selectable?: boolean;
+		selected?: boolean;
+		onToggleSelect?: (bookId: string) => void;
 	}
 
 	let {
@@ -64,7 +67,10 @@
 		viewMode = 'books',
 		onToggleExpand,
 		onSettle,
-		onClose
+		onClose,
+		selectable = false,
+		selected = false,
+		onToggleSelect
 	}: Props = $props();
 
 	// State
@@ -343,19 +349,38 @@
 				if (target.closest('button, a, input, textarea')) return;
 				const selection = window.getSelection();
 				if (selection && selection.toString().length > 0) return;
-				toggleExpanded();
+				if (selectable) {
+					onToggleSelect?.(book.id);
+				} else {
+					toggleExpanded();
+				}
 			}}
 			onkeydown={(e) => {
 				if (e.key === 'Enter' || e.key === ' ') {
 					e.preventDefault();
-					toggleExpanded();
+					if (selectable) {
+						onToggleSelect?.(book.id);
+					} else {
+						toggleExpanded();
+					}
 				}
 			}}
 			role="button"
 			tabindex="0"
-			aria-expanded={expanded}
-			aria-label={expanded ? `Collapse ${book.title}` : `Expand ${book.title}`}
+			aria-expanded={selectable ? undefined : expanded}
+			aria-label={selectable ? `Select ${book.title}` : (expanded ? `Collapse ${book.title}` : `Expand ${book.title}`)}
 		>
+			{#if selectable}
+				<div class="flex-shrink-0 flex items-center">
+					<input
+						type="checkbox"
+						checked={selected}
+						onchange={() => onToggleSelect?.(book.id)}
+						onclick={(e) => e.stopPropagation()}
+						class="w-5 h-5 accent-[var(--accent)] cursor-pointer"
+					/>
+				</div>
+			{/if}
 			<!-- Cover 40×60 -->
 			<div class="flex-shrink-0">
 				{#if book.cover_url}

@@ -47,6 +47,61 @@
 
 	// Shelf kebab menu
 	let shelfMenuOpen = $state(false);
+	let shelfMenuButton = $state<HTMLButtonElement | null>(null);
+	let shelfMenuPanel = $state<HTMLDivElement | null>(null);
+	let shelfMenuPos = $state<{ top: number; right: number }>({ top: 0, right: 0 });
+
+	function openShelfMenu() {
+		if (shelfMenuButton) {
+			const rect = shelfMenuButton.getBoundingClientRect();
+			shelfMenuPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+		}
+		shelfMenuOpen = true;
+		// Focus first menuitem after render
+		tick().then(() => {
+			const first = shelfMenuPanel?.querySelector<HTMLElement>('[role="menuitem"]');
+			first?.focus();
+		});
+	}
+
+	function closeShelfMenu(returnFocus = true) {
+		shelfMenuOpen = false;
+		if (returnFocus) shelfMenuButton?.focus();
+	}
+
+	function handleShelfMenuKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			closeShelfMenu();
+			return;
+		}
+		if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+			e.preventDefault();
+			const items = Array.from(shelfMenuPanel?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+			if (items.length === 0) return;
+			const current = items.indexOf(document.activeElement as HTMLElement);
+			let next: number;
+			if (e.key === 'ArrowDown') {
+				next = current < items.length - 1 ? current + 1 : 0;
+			} else {
+				next = current > 0 ? current - 1 : items.length - 1;
+			}
+			items[next].focus();
+			return;
+		}
+		if (e.key === 'Tab') {
+			closeShelfMenu();
+		}
+	}
+
+	// Sort state
+	let sortBy = $state<'added' | 'title' | 'author'>('added');
+	let sortDirection = $state<'desc' | 'asc'>('desc');
+
+	// Bulk edit state
+	let bulkEditMode = $state(false);
+	let bulkSelectedBookIds = $state<Set<string>>(new Set());
+	let isBulkProcessing = $state(false);
 
 	// Detect if current visitor is likely the shelf owner
 	let isOwner = $state(false);
@@ -292,6 +347,39 @@
 			: booksForView;
 	});
 
+	// Sort the displayed books
+	function stripLeadingArticle(title: string): string {
+		return title.replace(/^(the|a|an)\s+/i, '');
+	}
+
+	const sortedBooks = $derived.by(() => {
+		const books = [...displayedBooks];
+		switch (sortBy) {
+			case 'title':
+				books.sort((a, b) => {
+					const cmp = stripLeadingArticle(a.title).localeCompare(stripLeadingArticle(b.title));
+					return sortDirection === 'asc' ? cmp : -cmp;
+				});
+				return books;
+			case 'author':
+				books.sort((a, b) => {
+					const authorA = a.author?.[0] || '';
+					const authorB = b.author?.[0] || '';
+					const cmp = authorA.localeCompare(authorB);
+					return sortDirection === 'asc' ? cmp : -cmp;
+				});
+				return books;
+			case 'added':
+			default:
+				books.sort((a, b) => {
+					const dateA = new Date(a.added_at).getTime();
+					const dateB = new Date(b.added_at).getTime();
+					return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
+				});
+				return books;
+		}
+	});
+
 	// Dynamic book count label that mirrors the NLP sentence language
 	const bookCountLabel = $derived.by(() => {
 		const count = displayedBooks.length;
@@ -370,8 +458,9 @@
 	let fileInput: HTMLInputElement | null = null;
 	let queryInput: HTMLTextAreaElement | null = null;
 
-	// Delete shelf state
-	let deletingShelfId = $state<string | null>(null);
+	// Delete shelf confirmation state
+	let showDeleteShelfConfirm = $state(false);
+	let deletingShelf = $state(false);
 
 	// Claim shelf prompt state (shown when ?q= present but user not authenticated)
 	let showClaimPrompt = $state(false);
@@ -385,7 +474,7 @@
 	const todayStr = new Date().toISOString().slice(0, 10);
 
 	const liftedBookIds = $derived.by(() => {
-		const baseSet = selectLiftedItems(displayedBooks, todayStr);
+		const baseSet = selectLiftedItems(sortedBooks, todayStr);
 		const active = new Set<string>();
 		for (const id of baseSet) {
 			if (!settledBookIds.has(id)) active.add(id);
@@ -602,58 +691,86 @@
 		}
 	}
 
-	async function deleteShelf(shelfId: string, shelfName: string) {
-		// Build confirmation message
-		let message = `Delete "${shelfName}"?\n\nBooks will remain in your library, but will be removed from this shelf.`;
-
-		// Add note about default shelf behavior
-		if (data.defaultShelfId === shelfId) {
-			message += '\n\nNote: This shelf is your default. After deletion, new books will go to "All Books".';
-		}
-
-		// Add note about current view if viewing this shelf
-		if (selectedShelfId === shelfId) {
-			message += '\n\nYou are currently viewing this shelf. After deletion, you will be redirected to "All Books".';
-		}
-
-		// Confirmation dialog
-		if (!confirm(message)) {
-			return;
-		}
-
-		// Set loading state
-		deletingShelfId = shelfId;
-
+	async function deleteShelf() {
+		if (!selectedShelfId) return;
+		deletingShelf = true;
 		try {
 			const response = await apiFetch('/api/shelves', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: shelfId })
+				body: JSON.stringify({ id: selectedShelfId })
 			});
-
-			// 401 is handled by apiFetch, just return early
-			if (response.status === 401) {
+			if (!response.ok) {
+				const result = await response.json();
+				console.error('Delete shelf error:', result.error);
 				return;
 			}
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Failed to delete shelf');
-			}
-
-			// If we're currently viewing the deleted shelf, switch to All Books
-			if (selectedShelfId === shelfId) {
-				selectedShelfId = null;
-				// URL will be updated automatically by the $effect
-			}
-
-			// Refresh the page data to update shelf list
+			showDeleteShelfConfirm = false;
+			selectedShelfId = null;
 			await invalidateAll();
+			showSavedFeedback('Shelf deleted');
 		} catch (error) {
-			alert(`Error deleting shelf: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			console.error('Delete shelf error:', error);
 		} finally {
-			deletingShelfId = null;
+			deletingShelf = false;
+		}
+	}
+
+	async function bulkUpdate(updates: { is_read?: boolean; is_owned?: boolean }) {
+		isBulkProcessing = true;
+		try {
+			const response = await apiFetch('/api/books/bulk', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					book_ids: Array.from(bulkSelectedBookIds),
+					operation: 'update',
+					updates
+				})
+			});
+			if (!response.ok) {
+				const result = await response.json();
+				console.error('Bulk update error:', result.error);
+				return;
+			}
+			const count = bulkSelectedBookIds.size;
+			await invalidateAll();
+			bulkSelectedBookIds = new Set();
+			bulkEditMode = false;
+			showSavedFeedback(`Updated ${count} books`);
+		} catch (error) {
+			console.error('Bulk update error:', error);
+		} finally {
+			isBulkProcessing = false;
+		}
+	}
+
+	async function bulkDelete() {
+		const count = bulkSelectedBookIds.size;
+		if (!confirm(`Delete ${count} book${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+		isBulkProcessing = true;
+		try {
+			const response = await apiFetch('/api/books/bulk', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					book_ids: Array.from(bulkSelectedBookIds),
+					operation: 'delete'
+				})
+			});
+			if (!response.ok) {
+				const result = await response.json();
+				console.error('Bulk delete error:', result.error);
+				return;
+			}
+			await invalidateAll();
+			bulkSelectedBookIds = new Set();
+			bulkEditMode = false;
+			showSavedFeedback(`Deleted ${count} books`);
+		} catch (error) {
+			console.error('Bulk delete error:', error);
+		} finally {
+			isBulkProcessing = false;
 		}
 	}
 
@@ -1282,11 +1399,16 @@
 						</button>
 
 						<!-- Shelf kebab menu -->
-						<div class="relative">
+						<div>
 							<button
-								onclick={() => shelfMenuOpen = !shelfMenuOpen}
+								bind:this={shelfMenuButton}
+								id="shelf-menu-toggle"
+								onclick={() => shelfMenuOpen ? closeShelfMenu() : openShelfMenu()}
 								class="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
 								aria-label="More options"
+								aria-haspopup="menu"
+								aria-expanded={shelfMenuOpen}
+								aria-controls="shelf-menu"
 								title="More options"
 							>
 								<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1295,61 +1417,172 @@
 									<circle cx="12" cy="19" r="1.5"/>
 								</svg>
 							</button>
-
-							{#if shelfMenuOpen}
-								<!-- Backdrop -->
-								<button
-									class="fixed inset-0 z-40"
-									onclick={() => shelfMenuOpen = false}
-									aria-label="Close menu"
-								></button>
-								<!-- Dropdown -->
-								<div class="absolute right-0 top-full mt-1 z-50 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border)] min-w-[160px] py-1">
-									<button
-										disabled
-										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
-									>
-										Sort
-									</button>
-									<button
-										onclick={() => {
-											shelfMenuOpen = false;
-											const shelf = data.shelves.find(s => s.id === selectedShelfId);
-											exportShelf(selectedShelfId || 'all', shelf?.name || 'all-books');
-										}}
-										class="w-full text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
-									>
-										Export
-									</button>
-									<button
-										disabled
-										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
-									>
-										Share
-									</button>
-									<button
-										disabled
-										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
-									>
-										Bulk edit
-									</button>
-									{#if selectedShelfId}
-										<div class="border-t border-[var(--border)] mt-1 pt-1">
-											<button
-												disabled
-												class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
-											>
-												Delete shelf
-											</button>
-										</div>
-									{/if}
-								</div>
-							{/if}
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+
+
+	<!-- Shelf kebab dropdown (outside sticky header to escape will-change containment) -->
+			{#if shelfMenuOpen}
+				<!-- Backdrop -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="fixed inset-0 z-40 bg-black/5"
+					onclick={() => closeShelfMenu()}
+					aria-hidden="true"
+				></div>
+				<!-- Dropdown -->
+				<div
+					bind:this={shelfMenuPanel}
+					id="shelf-menu"
+					class="fixed z-50 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border)] min-w-[180px] py-1"
+					style="top: {shelfMenuPos.top}px; right: {shelfMenuPos.right}px;"
+					role="menu"
+					aria-labelledby="shelf-menu-toggle"
+					onkeydown={handleShelfMenuKeydown}
+					transition:fade={{ duration: 100 }}
+				>
+					<!-- Sort submenu -->
+					<p class="px-4 py-1.5 text-xs text-[var(--text-tertiary)] uppercase tracking-wider select-none">Sort</p>
+					<button
+						onclick={() => {
+							if (sortBy === 'added') {
+								sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+							} else {
+								sortBy = 'added';
+								sortDirection = 'desc';
+							}
+							closeShelfMenu();
+						}}
+						class="w-full text-left pl-6 pr-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors flex items-center justify-between"
+						role="menuitem"
+						tabindex="-1"
+					>
+						<span>Date added</span>
+						{#if sortBy === 'added'}
+							<span class="text-[var(--accent)]" aria-hidden="true">
+								{#if sortDirection === 'desc'}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+								{:else}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+								{/if}
+							</span>
+						{/if}
+					</button>
+					<button
+						onclick={() => {
+							if (sortBy === 'title') {
+								sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+							} else {
+								sortBy = 'title';
+								sortDirection = 'asc';
+							}
+							closeShelfMenu();
+						}}
+						class="w-full text-left pl-6 pr-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors flex items-center justify-between"
+						role="menuitem"
+						tabindex="-1"
+					>
+						<span>Title (A–Z)</span>
+						{#if sortBy === 'title'}
+							<span class="text-[var(--accent)]" aria-hidden="true">
+								{#if sortDirection === 'asc'}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+								{:else}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+								{/if}
+							</span>
+						{/if}
+					</button>
+					<button
+						onclick={() => {
+							if (sortBy === 'author') {
+								sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+							} else {
+								sortBy = 'author';
+								sortDirection = 'asc';
+							}
+							closeShelfMenu();
+						}}
+						class="w-full text-left pl-6 pr-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors flex items-center justify-between"
+						role="menuitem"
+						tabindex="-1"
+					>
+						<span>Author (A–Z)</span>
+						{#if sortBy === 'author'}
+							<span class="text-[var(--accent)]" aria-hidden="true">
+								{#if sortDirection === 'asc'}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+								{:else}
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+								{/if}
+							</span>
+						{/if}
+					</button>
+					<div class="border-t border-[var(--border)] my-1"></div>
+					<button
+						onclick={() => {
+							closeShelfMenu();
+							const shelf = data.shelves.find(s => s.id === selectedShelfId);
+							exportShelf(selectedShelfId || 'all', shelf?.name || 'all-books');
+						}}
+						class="w-full text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+						role="menuitem"
+						tabindex="-1"
+					>
+						Export
+					</button>
+					<button
+						onclick={() => {
+							closeShelfMenu();
+							const base = window.location.origin;
+							const identifier = $page.params.identifier;
+							const url = selectedShelfId
+								? `${base}/${identifier}?shelf=${selectedShelfId}`
+								: `${base}/${identifier}`;
+							navigator.clipboard.writeText(url).then(() => {
+								showSavedFeedback('Link copied');
+							}).catch(() => {
+								prompt('Copy this link:', url);
+							});
+						}}
+						class="w-full text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+						role="menuitem"
+						tabindex="-1"
+					>
+						Share
+					</button>
+					<button
+						onclick={() => {
+							closeShelfMenu();
+							bulkEditMode = true;
+							bulkSelectedBookIds = new Set();
+						}}
+						class="w-full text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+						role="menuitem"
+						tabindex="-1"
+					>
+						Bulk edit
+					</button>
+					{#if selectedShelfId}
+						<div class="border-t border-[var(--border)] mt-1 pt-1">
+							<button
+								onclick={() => {
+									closeShelfMenu(false);
+									showDeleteShelfConfirm = true;
+								}}
+								class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+							role="menuitem"
+						tabindex="-1"
+							>
+								Delete shelf
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 		<!-- NLP Filter sentence -->
 		<div class="mt-3 md:mt-5 mb-4 md:mb-6">
@@ -1443,12 +1676,12 @@
 					Snap a cover photo or text an ISBN to get started.
 				</p>
 			</div>
-		{:else if displayedBooks.length === 0 && nlpStatus === 'without-notes' && nlpView === 'notes'}
+		{:else if sortedBooks.length === 0 && nlpStatus === 'without-notes' && nlpView === 'notes'}
 			<!-- Contradictory filter: "without notes" + "notes" view -->
 			<div class="text-center py-12">
 				<p class="text-[var(--text-secondary)] text-sm">No notes yet.</p>
 			</div>
-		{:else if displayedBooks.length === 0}
+		{:else if sortedBooks.length === 0}
 			<!-- Shelf is empty but user has books -->
 			<div class="text-center py-16">
 				<p class="font-serif italic text-xl text-[var(--text-primary)] mb-4">
@@ -1463,21 +1696,23 @@
 		<!-- Books List -->
 		{#key selectedShelfId}
 			<div
-				class="flex flex-col gap-6"
+				class="flex flex-col gap-6 isolate"
 				in:fade={{ duration: 300, delay: 150 }}
 				out:fade={{ duration: 150 }}
 			>
-				{#each displayedBooks as book, i (book.id)}
+				{#each sortedBooks as book, i (book.id)}
 					{@const isExpanded = expandedCardId === book.id}
 					{@const isLifted = liftedBookIds.has(book.id)}
-					{@const group = getTimeGroup(book.added_at)}
-					{@const prevGroup = i > 0 ? getTimeGroup(displayedBooks[i - 1].added_at) : null}
 
-					<!-- Time group marker -->
-					{#if group !== prevGroup}
-						<p class="text-xs text-[var(--warm-gray)] uppercase tracking-widest mt-6 mb-0 pl-16 select-none">
-							{TIME_GROUP_LABELS[group]}
-						</p>
+					<!-- Time group marker (only when sorting by date added) -->
+					{#if sortBy === 'added'}
+						{@const group = getTimeGroup(book.added_at)}
+						{@const prevGroup = i > 0 ? getTimeGroup(sortedBooks[i - 1].added_at) : null}
+						{#if group !== prevGroup}
+							<p class="text-xs text-[var(--warm-gray)] uppercase tracking-widest mt-6 mb-0 pl-16 select-none">
+								{TIME_GROUP_LABELS[group]}
+							</p>
+						{/if}
 					{/if}
 
 					<Card
@@ -1488,6 +1723,13 @@
 						expanded={isExpanded}
 						lifted={isLifted}
 						viewMode={nlpView}
+						selectable={bulkEditMode}
+						selected={bulkSelectedBookIds.has(book.id)}
+						onToggleSelect={(id) => {
+							const next = new Set(bulkSelectedBookIds);
+							if (next.has(id)) next.delete(id); else next.add(id);
+							bulkSelectedBookIds = next;
+						}}
 						onToggleRead={toggleRead}
 						onToggleOwned={toggleOwned}
 						onUpdateNote={updateNote}
@@ -1507,6 +1749,59 @@
 	{/key}
 
 	
+		<!-- Bulk Edit Action Bar -->
+		{#if bulkEditMode}
+			<div class="fixed bottom-0 left-0 right-0 z-30 bg-[var(--surface)] border-t border-[var(--border)] shadow-lg px-4 py-3">
+				<div class="max-w-[var(--content-width)] mx-auto flex items-center justify-between gap-3 flex-wrap">
+					<div class="flex items-center gap-3">
+						<span class="text-sm text-[var(--text-secondary)]">
+							{bulkSelectedBookIds.size} selected
+						</span>
+						<button
+							onclick={() => {
+								const all = sortedBooks.map(b => b.id);
+								bulkSelectedBookIds = bulkSelectedBookIds.size === all.length ? new Set() : new Set(all);
+							}}
+							class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]"
+						>
+							{bulkSelectedBookIds.size === sortedBooks.length ? 'Deselect all' : 'Select all'}
+						</button>
+					</div>
+					<div class="flex gap-2 items-center">
+						{#if bulkSelectedBookIds.size > 0}
+							<button
+								onclick={() => bulkUpdate({ is_read: true })}
+								disabled={isBulkProcessing}
+								class="text-sm px-3 py-1.5 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors disabled:opacity-50"
+							>
+								Mark read
+							</button>
+							<button
+								onclick={() => bulkUpdate({ is_owned: true })}
+								disabled={isBulkProcessing}
+								class="text-sm px-3 py-1.5 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors disabled:opacity-50"
+							>
+								Mark owned
+							</button>
+							<button
+								onclick={bulkDelete}
+								disabled={isBulkProcessing}
+								class="text-sm px-3 py-1.5 rounded text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+							>
+								Delete
+							</button>
+						{/if}
+						<button
+							onclick={() => { bulkEditMode = false; bulkSelectedBookIds = new Set(); }}
+							class="text-sm px-4 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--background-alt)] hover:text-[var(--text-primary)] transition-colors"
+						>
+							Done
+						</button>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Claim Shelf Prompt Modal (shown when ?q= but not authenticated) -->
 		{#if showClaimPrompt}
 			<div
@@ -2059,6 +2354,43 @@
 		</div>
 	</div>
 </div>
+
+<!-- Delete Shelf Confirmation Modal -->
+{#if showDeleteShelfConfirm && selectedShelfId}
+	{@const shelfToDelete = data.shelves.find(s => s.id === selectedShelfId)}
+	{@const bookCount = booksForCurrentShelf.length}
+	<!-- Backdrop -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 z-40 bg-black/30" onclick={() => { showDeleteShelfConfirm = false; shelfMenuButton?.focus(); }} aria-hidden="true"></div>
+	<!-- Modal -->
+	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+		<div class="bg-[var(--surface)] rounded-lg shadow-xl max-w-sm w-full p-6">
+			<h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2">Delete "{shelfToDelete?.name}"?</h3>
+			<p class="text-sm text-[var(--text-secondary)] mb-4">
+				{#if bookCount > 0}
+					{bookCount} {bookCount === 1 ? 'book' : 'books'} on this shelf will not be deleted — they'll remain in your collection.
+				{:else}
+					This shelf is empty.
+				{/if}
+			</p>
+			<div class="flex justify-end gap-3">
+				<button
+					onclick={() => { showDeleteShelfConfirm = false; shelfMenuButton?.focus(); }}
+					class="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={deleteShelf}
+					disabled={deletingShelf}
+					class="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+				>
+					{deletingShelf ? 'Deleting...' : 'Delete'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Share Modal -->
 {#if shareModalBook}
