@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import JsBarcode from 'jsbarcode';
 
@@ -84,6 +85,8 @@
 	let linksOpen = $state(false);
 	let copied = $state(false);
 	let barcodeCanvas = $state<HTMLCanvasElement | null>(null);
+	let shelvesPillEl = $state<HTMLButtonElement | null>(null);
+	let linksPillEl = $state<HTMLButtonElement | null>(null);
 
 	// Track what the server's note value is, so we know when it changes
 	let lastServerNote = $state(book.note);
@@ -218,6 +221,8 @@
 		expanded = !expanded;
 		onToggleExpand?.(book.id, expanded);
 		if (!expanded) {
+			shelvesOpen = false;
+			linksOpen = false;
 			noteFocused = false;
 			if (lifted) onSettle?.(book.id);
 		}
@@ -565,17 +570,19 @@
 				{/if}
 
 				<!-- Zone 2: Control Panel -->
-				<div class="mt-4 border-t border-[var(--border)] pt-3 pb-1 pl-[108px] pr-4">
+				<div class="mt-4 border-t border-[var(--border)] pt-3 pb-1">
 
-				<!-- Status pills -->
-				<div class="flex gap-2 mb-1.5">
+				<!-- Unified pill row -->
+				<div class="pl-[108px] pr-4 flex flex-wrap gap-2">
 					<button
+						type="button"
 						onclick={(e) => {
 							e.stopPropagation();
 							onToggleRead?.(book.id, book.is_read);
 							showSavedFeedback(book.is_read ? 'Marked unread' : 'Marked as read');
 							if (lifted) setTimeout(() => onSettle?.(book.id), 200);
 						}}
+						aria-pressed={book.is_read}
 						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_read
 							? 'bg-[var(--warm-gray)] text-white border-[var(--warm-gray)]'
 							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
@@ -583,102 +590,184 @@
 						{book.is_read ? '✓ Read' : 'Read'}
 					</button>
 					<button
+						type="button"
 						onclick={(e) => {
 							e.stopPropagation();
 							onToggleOwned?.(book.id, book.is_owned);
 							showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
 						}}
+						aria-pressed={book.is_owned}
 						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_owned
 							? 'bg-[var(--warm-gray)] text-white border-[var(--warm-gray)]'
 							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
 					>
 						{book.is_owned ? '✓ Owned' : 'Owned'}
 					</button>
-				</div>
-
-				<!-- Shelves -->
-				<div class="mb-0.5">
 					<button
-						onclick={() => shelvesOpen = !shelvesOpen}
-						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"
+						type="button"
+						bind:this={shelvesPillEl}
+						onclick={(e) => {
+							e.stopPropagation();
+							shelvesOpen = !shelvesOpen;
+							if (shelvesOpen) {
+								linksOpen = false;
+								tick().then(() => {
+									const panel = document.getElementById(`shelves-panel-${book.id}`);
+									const first = panel?.querySelector<HTMLElement>('button, a, [tabindex="0"]');
+									first?.focus();
+								});
+							}
+						}}
+						aria-controls="shelves-panel-{book.id}"
+						aria-expanded={shelvesOpen}
+						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 inline-flex items-center gap-1.5 {shelvesOpen
+							? 'bg-[var(--background-alt)] text-[var(--text-primary)] border-[var(--paper-dark)]'
+							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
 					>
-						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
 						</svg>
-						<span>Shelves ({activeShelfCount()})</span>
-						<svg class="w-3.5 h-3.5 transition-transform duration-150" class:rotate-180={shelvesOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-						</svg>
+						Shelves ({activeShelfCount()})
 					</button>
-					{#if shelvesOpen}
-						<div class="mt-1 mb-2">
-							<div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
-								{#each sortedShelves() as shelf}
-									{@const isChecked = activeShelfIds().has(shelf.id)}
-									<button
-										onclick={() => {
-											onToggleShelf?.(book.id, shelf.id, isChecked);
-											showSavedFeedback(isChecked ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
-										}}
-										class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-[var(--background-alt)] active:scale-[0.98] cursor-pointer group transition-all duration-150 text-left"
-										role="checkbox"
-										aria-checked={isChecked}
-										aria-label={`${shelf.name} shelf`}
-									>
-										<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-150 ease-out {isChecked
-											? 'bg-[var(--surface-dark)] border-[var(--surface-dark)] scale-100'
-											: 'border-[var(--paper-dark)] group-hover:border-[var(--warm-gray)] group-active:scale-95'}">
-											{#if isChecked}
-												<svg
-													class="w-3 h-3 text-white animate-check-pop"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="3"
-													viewBox="0 0 24 24"
-												>
-													<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-												</svg>
-											{/if}
-										</div>
-										<span class="text-xs transition-colors duration-150 {isChecked ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}">
-											{shelf.name}
-										</span>
-									</button>
-								{/each}
-								{#if shelves.length === 0}
-									<p class="text-xs text-[var(--text-tertiary)] italic py-1 col-span-2">No shelves yet</p>
-								{/if}
-							</div>
-						</div>
-					{/if}
-				</div>
-
-				<!-- Find Elsewhere -->
-				<div class="mb-0.5">
 					<button
-						onclick={() => linksOpen = !linksOpen}
-						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"
+						type="button"
+						bind:this={linksPillEl}
+						onclick={(e) => {
+							e.stopPropagation();
+							linksOpen = !linksOpen;
+							if (linksOpen) {
+								shelvesOpen = false;
+								tick().then(() => {
+									const panel = document.getElementById(`links-panel-${book.id}`);
+									const first = panel?.querySelector<HTMLElement>('a, button, [tabindex="0"]');
+									first?.focus();
+								});
+							}
+						}}
+						aria-controls="links-panel-{book.id}"
+						aria-expanded={linksOpen}
+						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 inline-flex items-center gap-1.5 {linksOpen
+							? 'bg-[var(--background-alt)] text-[var(--text-primary)] border-[var(--paper-dark)]'
+							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
 					>
-						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
 						</svg>
-						<span>Find Elsewhere</span>
-						<svg class="w-3.5 h-3.5 transition-transform duration-150" class:rotate-180={linksOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-						</svg>
+						Find Elsewhere
 					</button>
-					{#if linksOpen}
-						<div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 pb-1">
-							<a href={`https://www.google.com/search?tbm=bks&q=isbn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Google Books ↗</a>
-							<a href={`https://bookshop.org/a/5733/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Bookshop.org ↗</a>
-							<a href={`https://www.powells.com/book/-${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Powell's ↗</a>
-							<a href={`https://www.portbooknews.com/book/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">Port Book & News ↗</a>
-							<a href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">WorldCat ↗</a>
-						</div>
-					{/if}
 				</div>
 
+				<!-- Shelves panel -->
+				{#if shelvesOpen}
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+					<div
+						id="shelves-panel-{book.id}"
+						role="region"
+						aria-labelledby="shelves-panel-heading-{book.id}"
+						class="mt-3 px-4 border-t border-[var(--border)] pt-3 pb-2"
+						transition:slide={{ duration: 150 }}
+						onkeydown={(e) => {
+							if (e.key === 'Escape') {
+								e.stopPropagation();
+								shelvesOpen = false;
+								shelvesPillEl?.focus();
+							}
+						}}
+					>
+						<div class="flex items-center justify-between mb-2">
+							<span id="shelves-panel-heading-{book.id}" class="text-xs text-[var(--text-tertiary)] uppercase tracking-wider">Shelves</span>
+							<button
+								type="button"
+								onclick={() => { shelvesOpen = false; shelvesPillEl?.focus(); }}
+								class="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+								aria-label="Close shelves panel"
+							>
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+						<div class="flex flex-col gap-0.5">
+							{#each sortedShelves() as shelf}
+								{@const isChecked = activeShelfIds().has(shelf.id)}
+								<button
+									onclick={() => {
+										onToggleShelf?.(book.id, shelf.id, isChecked);
+										showSavedFeedback(isChecked ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
+									}}
+									class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded hover:bg-[var(--background-alt)] active:scale-[0.98] cursor-pointer group transition-all duration-150 text-left"
+									role="checkbox"
+									aria-checked={isChecked}
+									aria-label={`${shelf.name} shelf`}
+								>
+									<div class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-150 ease-out {isChecked
+										? 'bg-[var(--surface-dark)] border-[var(--surface-dark)] scale-100'
+										: 'border-[var(--paper-dark)] group-hover:border-[var(--warm-gray)] group-active:scale-95'}">
+										{#if isChecked}
+											<svg
+												class="w-3 h-3 text-white animate-check-pop"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="3"
+												viewBox="0 0 24 24"
+											>
+												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+											</svg>
+										{/if}
+									</div>
+									<span class="text-xs transition-colors duration-150 {isChecked ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}">
+										{shelf.name}
+									</span>
+								</button>
+							{/each}
+							{#if shelves.length === 0}
+								<p class="text-xs text-[var(--text-tertiary)] italic py-1">No shelves yet</p>
+							{/if}
+						</div>
 					</div>
+				{/if}
+
+				<!-- Find Elsewhere panel -->
+				{#if linksOpen}
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+					<div
+						id="links-panel-{book.id}"
+						role="region"
+						aria-labelledby="links-panel-heading-{book.id}"
+						class="mt-3 px-4 border-t border-[var(--border)] pt-3 pb-2"
+						transition:slide={{ duration: 150 }}
+						onkeydown={(e) => {
+							if (e.key === 'Escape') {
+								e.stopPropagation();
+								linksOpen = false;
+								linksPillEl?.focus();
+							}
+						}}
+					>
+						<div class="flex items-center justify-between mb-2">
+							<span id="links-panel-heading-{book.id}" class="text-xs text-[var(--text-tertiary)] uppercase tracking-wider">Find Elsewhere</span>
+							<button
+								type="button"
+								onclick={() => { linksOpen = false; linksPillEl?.focus(); }}
+								class="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+								aria-label="Close links panel"
+							>
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+						<div class="flex flex-col gap-0.5">
+							<a href={`https://www.google.com/search?tbm=bks&q=isbn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors">Google Books <span class="text-[var(--text-tertiary)]" aria-hidden="true">↗</span><span class="sr-only">(opens in new tab)</span></a>
+							<a href={`https://bookshop.org/a/5733/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors">Bookshop.org <span class="text-[var(--text-tertiary)]" aria-hidden="true">↗</span><span class="sr-only">(opens in new tab)</span></a>
+							<a href={`https://www.powells.com/book/-${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors">Powell's <span class="text-[var(--text-tertiary)]" aria-hidden="true">↗</span><span class="sr-only">(opens in new tab)</span></a>
+							<a href={`https://www.portbooknews.com/book/${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors">Port Book & News <span class="text-[var(--text-tertiary)]" aria-hidden="true">↗</span><span class="sr-only">(opens in new tab)</span></a>
+							<a href={`https://search.worldcat.org/search?q=bn:${book.isbn13}`} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 py-1.5 px-1 -mx-1 rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors">WorldCat <span class="text-[var(--text-tertiary)]" aria-hidden="true">↗</span><span class="sr-only">(opens in new tab)</span></a>
+						</div>
+					</div>
+				{/if}
+
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -688,6 +777,7 @@
 		<!-- Backdrop -->
 		<button
 			class="fixed inset-0 z-10"
+			tabindex="-1"
 			onclick={() => menuOpen = false}
 			aria-label="Close menu"
 		></button>
@@ -755,6 +845,8 @@
 	<!-- Soft success toast -->
 	{#if savedFeedback}
 		<div
+			role="status"
+			aria-live="polite"
 			class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-[var(--surface-dark)] text-[var(--text-on-dark)] text-xs rounded shadow-lg pointer-events-none z-20"
 			in:fade={{ duration: 150 }}
 			out:fade={{ duration: 200 }}
