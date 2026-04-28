@@ -45,6 +45,9 @@
 	let exportingShelfId = $state<string | null>(null);
 	let exportError = $state<string | null>(null);
 
+	// Shelf kebab menu
+	let shelfMenuOpen = $state(false);
+
 	// Detect if current visitor is likely the shelf owner
 	let isOwner = $state(false);
 
@@ -1277,6 +1280,62 @@
 						>
 							+
 						</button>
+
+						<!-- Shelf kebab menu -->
+						<div class="relative">
+							<button
+								onclick={() => shelfMenuOpen = !shelfMenuOpen}
+								class="w-10 h-10 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+								aria-label="More options"
+								title="More options"
+							>
+								<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+									<circle cx="12" cy="5" r="1.5"/>
+									<circle cx="12" cy="12" r="1.5"/>
+									<circle cx="12" cy="19" r="1.5"/>
+								</svg>
+							</button>
+
+							{#if shelfMenuOpen}
+								<!-- Backdrop -->
+								<button
+									class="fixed inset-0 z-10"
+									onclick={() => shelfMenuOpen = false}
+									aria-label="Close menu"
+								></button>
+								<!-- Dropdown -->
+								<div class="absolute right-0 top-full mt-1 z-20 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border)] min-w-[160px] py-1">
+									<button
+										disabled
+										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
+									>
+										Sort
+									</button>
+									<button
+										onclick={() => {
+											shelfMenuOpen = false;
+											const shelf = data.shelves.find(s => s.id === selectedShelfId);
+											exportShelf(selectedShelfId || 'all', shelf?.name || 'all-books');
+										}}
+										class="w-full text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+									>
+										Export
+									</button>
+									<button
+										disabled
+										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
+									>
+										Share
+									</button>
+									<button
+										disabled
+										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
+									>
+										Bulk edit
+									</button>
+								</div>
+							{/if}
+						</div>
 					</div>
 				</div>
 			</div>
