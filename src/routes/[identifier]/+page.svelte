@@ -1353,6 +1353,43 @@
 			/>
 		</div>
 
+		{#if showNewShelfInput && !shelfModalOpen}
+			<div class="flex gap-2 mb-4 max-w-sm">
+				<input
+					type="text"
+					bind:value={newShelfName}
+					placeholder="New shelf name"
+					class="flex-1 text-sm px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--surface)] focus:outline-none focus:border-[var(--accent)]"
+					onkeydown={(e) => {
+						if (e.key === 'Enter' && newShelfName.trim()) {
+							createShelf();
+						}
+						if (e.key === 'Escape') {
+							showNewShelfInput = false;
+							newShelfName = '';
+						}
+					}}
+					autofocus
+				/>
+				<button
+					onclick={() => {
+						showNewShelfInput = false;
+						newShelfName = '';
+					}}
+					class="px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={createShelf}
+					disabled={!newShelfName.trim() || creatingShelf}
+					class="px-4 py-2 text-sm bg-[var(--surface-dark)] text-white rounded-lg hover:bg-[var(--surface-dark-secondary)] transition-colors disabled:opacity-50"
+				>
+					{creatingShelf ? 'Creating...' : 'Create'}
+				</button>
+			</div>
+		{/if}
+
 		{#if hiddenNoteCount > 0}
 			<p class="text-sm text-[var(--text-secondary)] mb-4 font-sans">
 				Hiding {hiddenNoteCount} {hiddenNoteCount === 1 ? 'book' : 'books'} without notes.
