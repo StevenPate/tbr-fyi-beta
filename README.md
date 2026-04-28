@@ -18,7 +18,7 @@ Send any of these to `+1 (360) 504-4327`:
 
 - An ISBN (10 or 13 digits)
 - An Amazon link
-- A photo of a barcode
+- A photo of a barcode or book cover
 - A title and author ("The Hobbit by Tolkien")
 
 The book appears on your shelf automatically.
@@ -31,6 +31,8 @@ You can also add books directly at [TBR.fyi](https://tbr.fyi)—same result, sam
 
 Once added, you can mark books read or unread, note whether you own them, organize into custom shelves, and add context like "Recommended on Fresh Air" so you remember why you saved it.
 
+A natural language filter—"I'm looking at **unread books** in **TBR**"—lets you pivot between statuses, shelves, and a dedicated notes view by tapping the words in the sentence.
+
 ---
 
 ## Status
@@ -41,7 +43,7 @@ This is early. I'm testing it with a small group to see if it's useful. If somet
 
 ## What's under the hood
 
-TBR.fyi handles multiple input types (ISBN, Amazon URLs, barcode photos, free-text search) through a unified SMS endpoint, with Google Vision for OCR and a metadata pipeline that falls back from Google Books to Open Library. Authentication supports both magic links and SMS verification with rate limiting. The web app includes bulk CSV import with deduplication and validation, keyboard-driven search, book sharing via unique links, and structured logging with Pino throughout.
+TBR.fyi handles multiple input types (ISBN, Amazon URLs, barcode photos, cover photos, free-text search) through a unified SMS endpoint, with Google Vision for barcode OCR, Gemini Flash for cover recognition, and a metadata pipeline that falls back from Google Books to Open Library. Authentication supports both magic links and SMS verification with rate limiting. The web app includes a natural language filter UI, a notes/commonplace-book view, keyboard-driven search, book sharing via unique links, and structured logging with Pino throughout.
 
 ---
 
@@ -58,6 +60,7 @@ Everything below is for contributors and anyone who wants to run their own insta
 | SMS | Twilio |
 | Book metadata | Google Books API, Open Library fallback |
 | Barcode detection | Google Cloud Vision |
+| Cover recognition | Gemini Flash |
 | Email | Resend |
 | Hosting | Vercel |
 
@@ -86,6 +89,7 @@ Optional:
 
 - `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_CLOUD_PROJECT_ID` (barcode detection)
 - `GOOGLE_BOOKS_API_KEY` (higher quota)
+- `GEMINI_API_KEY` (cover photo recognition)
 - `RESEND_API_KEY` (magic link emails)
 - `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_LIST_ID` (feedback routing)
 
