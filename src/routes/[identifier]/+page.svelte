@@ -1299,12 +1299,12 @@
 							{#if shelfMenuOpen}
 								<!-- Backdrop -->
 								<button
-									class="fixed inset-0 z-10"
+									class="fixed inset-0 z-40"
 									onclick={() => shelfMenuOpen = false}
 									aria-label="Close menu"
 								></button>
 								<!-- Dropdown -->
-								<div class="absolute right-0 top-full mt-1 z-20 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border)] min-w-[160px] py-1">
+								<div class="absolute right-0 top-full mt-1 z-50 bg-[var(--surface)] rounded-lg shadow-lg border border-[var(--border)] min-w-[160px] py-1">
 									<button
 										disabled
 										class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
@@ -1333,6 +1333,16 @@
 									>
 										Bulk edit
 									</button>
+									{#if selectedShelfId}
+										<div class="border-t border-[var(--border)] mt-1 pt-1">
+											<button
+												disabled
+												class="w-full text-left px-4 py-2 text-sm text-[var(--paper-dark)] cursor-not-allowed"
+											>
+												Delete shelf
+											</button>
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>
