@@ -60,6 +60,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	// Get requested shelf from URL query parameter
 	const requestedShelfId = url.searchParams.get('shelf');
 	const viewParam = url.searchParams.get('view');
+	const statusParam = url.searchParams.get('status'); // 'all' | 'unread' | 'read' | 'without-notes'
 
 	// Fetch shelves for this user (newest first)
 	const { data: shelves, error: shelvesError } = await supabase
@@ -75,10 +76,21 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	// Determine which shelf to display
 	let selectedShelfId: string | null = null;
 
+	// Backward compat: ?view=all meant "show all books (no shelf selected)"
+	// New meaning of ?view=books|notes is for NLP filter view mode
+	let initialViewMode: 'books' | 'notes' = 'books';
 	if (viewParam === 'all') {
-		// User explicitly clicked "All Books" - don't use default shelf
+		// Old URL format: ?view=all means no shelf selected, books view
 		selectedShelfId = null;
-	} else if (requestedShelfId) {
+	} else if (viewParam === 'notes') {
+		initialViewMode = 'notes';
+	}
+
+	// Validate status param
+	const validStatuses = ['all', 'unread', 'read', 'without-notes'];
+	const initialStatus = validStatuses.includes(statusParam || '') ? statusParam! : 'all';
+
+	if (viewParam !== 'all' && requestedShelfId) {
 		// Validate requested shelf belongs to user
 		const shelfExists = shelves?.some((s) => s.id === requestedShelfId);
 		if (shelfExists) {
@@ -87,8 +99,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		// else: ignore hand-edited URL, fall through to default
 	}
 
-	if (!selectedShelfId && !viewParam && user?.default_shelf_id) {
-		// No explicit view param, no valid shelf param - use default shelf
+	if (!selectedShelfId && viewParam !== 'all' && user?.default_shelf_id) {
+		// No explicit "all" view param, no valid shelf param - use default shelf
 		selectedShelfId = user.default_shelf_id;
 	}
 	// else: null = "All Books"
@@ -108,6 +120,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			shelves: shelves || [],
 			bookShelves: [],
 			selectedShelfId,
+			initialStatus,
+			initialViewMode,
 			userId,
 			error: booksError.message
 		};
@@ -154,6 +168,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		bookShelves: bookShelves,
 		selectedShelfId,
 		defaultShelfId: user?.default_shelf_id || null,
+		initialStatus,
+		initialViewMode,
 		userId,
 		isPhoneBased,
 		hasUsername,

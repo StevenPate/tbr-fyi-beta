@@ -41,6 +41,7 @@
 		onShare?: (book: { isbn13: string; title: string }) => void;
 		expanded?: boolean;
 		lifted?: boolean;
+		viewMode?: 'books' | 'notes';
 		onToggleExpand?: (bookId: string, isExpanded: boolean) => void;
 		onSettle?: (bookId: string) => void;
 		onClose?: () => void;
@@ -60,6 +61,7 @@
 		onShare,
 		expanded = $bindable(false),
 		lifted = false,
+		viewMode = 'books',
 		onToggleExpand,
 		onSettle,
 		onClose
@@ -230,7 +232,7 @@
 	{id}
 	class="relative w-full transition-all duration-150
 		{expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'}
-		{lifted && !expanded ? 'py-3 bg-[var(--paper-light)]/30' : ''}
+		{lifted && !expanded && viewMode === 'books' ? 'py-3 bg-[var(--paper-light)]/30' : ''}
 		border-b border-[var(--border)]"
 >
 	{#if onClose}
@@ -296,6 +298,42 @@
 				</span>
 			{/if}
 		</div>
+	{:else if viewMode === 'notes' && book.note && !expanded}
+		<!-- Notes view: note-primary collapsed card -->
+		<div
+			class="px-4 py-4 cursor-pointer hover:bg-[var(--background-alt)] transition-colors"
+			onclick={toggleExpanded}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					toggleExpanded();
+				}
+			}}
+			role="button"
+			tabindex="0"
+			aria-expanded={false}
+			aria-label={`Expand ${book.title}`}
+		>
+			<!-- Note text as primary content -->
+			<p class="font-serif italic text-lg md:text-xl text-[var(--text-primary)] leading-relaxed mb-2 line-clamp-4">
+				{book.note}
+			</p>
+			<!-- Book citation -->
+			<div class="flex items-center gap-2">
+				{#if book.cover_url}
+					<img
+						src={book.cover_url}
+						alt=""
+						class="w-6 h-9 object-cover rounded-sm flex-shrink-0"
+						loading="lazy"
+						decoding="async"
+					/>
+				{/if}
+				<p class="text-sm text-[var(--text-secondary)] line-clamp-1">
+					{book.title}{#if book.author?.length} — {book.author.join(', ')}{/if}
+				</p>
+			</div>
+		</div>
 	{:else}
 		<!-- Interactive header (button role) -->
 		<div
@@ -355,7 +393,7 @@
 	{/if}
 
 	<!-- Lifted note zone: recognition + meaning (persists during expansion) -->
-	{#if lifted && (noteValue || noteEditing) && !onClose}
+	{#if lifted && viewMode === 'books' && (noteValue || noteEditing) && !onClose}
 		<div class="{expanded ? 'pl-[108px]' : 'pl-[68px]'} pr-4 {expanded ? '' : 'pb-3'} transition-[padding] duration-200 ease-out"
 			style="{expanded ? 'margin-top: calc(var(--spacing) * -15)' : ''}"
 		>

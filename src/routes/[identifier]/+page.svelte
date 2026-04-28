@@ -3,10 +3,10 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount, tick } from 'svelte';
-	import { fade, scale } from 'svelte/transition';
-	import { Card, Button, Input, Badge, SearchBar } from '$lib/components/ui';
+	import { fade } from 'svelte/transition';
+	import { Card, Button, SearchBar } from '$lib/components/ui';
 	import ShareModal from '$lib/components/ui/ShareModal.svelte';
-	import JsBarcode from 'jsbarcode';
+	import NLPFilter from '$lib/components/ui/NLPFilter.svelte';
 	import ClaimShelfBanner from '$lib/components/ClaimShelfBanner.svelte';
 	import { browser } from '$app/environment';
 	import { apiFetch } from '$lib/utils/api';
@@ -41,8 +41,6 @@
 	let newShelfName = $state('');
 	let showNewShelfInput = $state(false);
 	let creatingShelf = $state(false);
-	let selectedBookForShelfMenu = $state<string | null>(null);
-
 	// Export state
 	let exportingShelfId = $state<string | null>(null);
 	let exportError = $state<string | null>(null);
@@ -64,33 +62,45 @@
 		}
 	});
 
-	// Filter state (session-only, not persisted in URL)
-	let readFilter = $state<'all' | 'read' | 'unread'>('all');
-	let ownedFilter = $state<'all' | 'owned' | 'not-owned'>('all');
+	// NLP filter state (synced to URL)
+	let nlpStatus = $state<'all' | 'unread' | 'read' | 'without-notes'>((data.initialStatus as any) || 'all');
+	let nlpView = $state<'books' | 'notes'>((data.initialViewMode as any) || 'books');
 
-	// Filter dropdown state
-	let filterDropdownOpen = $state(false);
-	let filterButtonEl: HTMLButtonElement | undefined = $state();
-	let filterDropdownPosition = $state({ top: 0, right: 0 });
+	// URL sync: push state on any NLP filter change
+	let isInitialLoad = true;
+	function updateFilterUrl() {
+		const params = new URLSearchParams(window.location.search);
+		// Clear filter params before re-setting — other params (like ?q=) are preserved
+		params.delete('shelf');
+		params.delete('status');
+		params.delete('view');
+		if (selectedShelfId) {
+			params.set('shelf', selectedShelfId);
+		}
+		if (nlpStatus !== 'all') {
+			params.set('status', nlpStatus);
+		}
+		if (nlpView !== 'books') {
+			params.set('view', nlpView);
+		}
+		const queryString = params.toString();
+		const newUrl = queryString
+			? `${window.location.pathname}?${queryString}`
+			: window.location.pathname;
+		history.pushState({}, '', newUrl);
+	}
 
-	const hasActiveFilters = $derived(readFilter !== 'all' || ownedFilter !== 'all');
-
-	// Shelf pills scroll container ref
-	let shelfScrollContainer: HTMLDivElement | null = null;
-	let moreButtonRef: HTMLDivElement | null = null;
-	let dropdownLeft = $state(0);
-
-	// Scroll to selected shelf pill when selection changes
 	$effect(() => {
-		if (!browser || !shelfScrollContainer || !selectedShelfId) return;
-
-		// Small delay to ensure DOM is ready
-		setTimeout(() => {
-			const selectedPill = shelfScrollContainer?.querySelector(`[data-shelf-id="${selectedShelfId}"]`);
-			if (selectedPill) {
-				selectedPill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-			}
-		}, 100);
+		// Track all three filter variables
+		void nlpStatus;
+		void nlpView;
+		void selectedShelfId;
+		// Skip the initial render - URL already reflects server state
+		if (isInitialLoad) {
+			isInitialLoad = false;
+			return;
+		}
+		updateFilterUrl();
 	});
 
 	// Smart sticky header - show on scroll up, hide on scroll down
@@ -239,23 +249,66 @@
 		return localBooks.filter(book => bookIdsOnShelf.has(book.id));
 	});
 
-	// Apply status filters to shelf-filtered books
+	// Apply NLP status filter to shelf-filtered books
 	const booksFilteredByStatus = $derived.by(() => {
 		let result = booksForCurrentShelf;
-		if (readFilter !== 'all') {
-			result = result.filter(b => readFilter === 'read' ? b.is_read : !b.is_read);
-		}
-		if (ownedFilter !== 'all') {
-			result = result.filter(b => ownedFilter === 'owned' ? b.is_owned : !b.is_owned);
+		switch (nlpStatus) {
+			case 'read':
+				result = result.filter(b => b.is_read);
+				break;
+			case 'unread':
+				result = result.filter(b => !b.is_read);
+				break;
+			case 'without-notes':
+				result = result.filter(b => !b.note);
+				break;
+			// 'all' — no filtering
 		}
 		return result;
 	});
 
+	// Apply Notes view filtering (hides books without notes when in notes view)
+	const booksForView = $derived.by(() => {
+		if (nlpView === 'notes') {
+			return booksFilteredByStatus.filter(b => b.note);
+		}
+		return booksFilteredByStatus;
+	});
+
+	// Count of hidden books in notes view
+	const hiddenNoteCount = $derived(
+		nlpView === 'notes'
+			? booksFilteredByStatus.filter(b => !b.note).length
+			: 0
+	);
+
 	// Then apply search filter
 	const displayedBooks = $derived.by(() => {
 		return searchQuery.trim()
-			? booksFilteredByStatus.filter(b => matchesSearchQuery(b, searchQuery))
-			: booksFilteredByStatus;
+			? booksForView.filter(b => matchesSearchQuery(b, searchQuery))
+			: booksForView;
+	});
+
+	// Dynamic book count label that mirrors the NLP sentence language
+	const bookCountLabel = $derived.by(() => {
+		const count = displayedBooks.length;
+		const noun = count === 1 ? 'book' : 'books';
+		const statusText = nlpStatus === 'all' ? '' : nlpStatus === 'without-notes' ? 'without notes ' : nlpStatus + ' ';
+
+		const shelfName = selectedShelfId
+			? data.shelves.find(s => s.id === selectedShelfId)?.name || ''
+			: '';
+
+		if (nlpView === 'notes') {
+			const noteNoun = count === 1 ? 'note' : 'notes';
+			return shelfName
+				? `${count} ${statusText}${noteNoun} in ${shelfName}`
+				: `${count} ${statusText}${noteNoun}`;
+		}
+
+		return shelfName
+			? `${count} ${statusText}${noun} in ${shelfName}`
+			: `${count} ${statusText}${noun}`;
 	});
 
 	// Scroll to and highlight a book, then expand it
@@ -341,17 +394,6 @@
 		settledBookIds = new Set([...settledBookIds, bookId]);
 	}
 
-	let noteEditingMap = $state<Map<string, boolean>>(new Map());
-	let noteExpandedMap = $state<Map<string, boolean>>(new Map());
-	let descriptionOpenMap = $state<Map<string, boolean>>(new Map());
-	let linksOpenMap = $state<Map<string, boolean>>(new Map());
-	let shelvesOpenMap = $state<Map<string, boolean>>(new Map());
-	let barcodeOpenMap = $state<Map<string, boolean>>(new Map());
-	let menuOpenMap = $state<Map<string, boolean>>(new Map());
-	let removeConfirmMap = $state<Map<string, boolean>>(new Map());
-	let copiedMap = $state<Map<string, boolean>>(new Map());
-	let tempNoteMap = $state<Map<string, string>>(new Map());
-
 	// Soft success feedback (toast for status/shelf changes)
 	let savedFeedback = $state<string | null>(null);
 	let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -390,156 +432,12 @@
 		}
 	});
 
-	// Shelf navigation state
-	let showMoreShelves = $state(false);
-
-	// Streamlined shelf pills: only show the currently selected shelf (if any)
-	// All other shelves go in the "More" dropdown
-	const currentShelf = $derived(() => {
-		if (!selectedShelfId) return null;
-		return data.shelves.find(s => s.id === selectedShelfId) || null;
-	});
-
-	// All shelves except the currently selected one go in "More"
-	const otherShelves = $derived(() => {
-		if (!selectedShelfId) return data.shelves;
-		return data.shelves.filter(s => s.id !== selectedShelfId);
-	});
-
-	// Description collapse state
-	let expandedDescriptions = $state<Set<string>>(new Set());
-
-	function toggleDescription(bookId: string) {
-		const newSet = new Set(expandedDescriptions);
-		if (newSet.has(bookId)) {
-			newSet.delete(bookId);
-		} else {
-			newSet.add(bookId);
-		}
-		expandedDescriptions = newSet;
-	}
-
-	// Barcode generation state
-	let showBarcodeForBook = $state<string | null>(null);
-
-	function toggleBarcode(bookId: string) {
-		showBarcodeForBook = showBarcodeForBook === bookId ? null : bookId;
-	}
-
-	// ISBN copy state
-	let copiedIsbn = $state<string | null>(null);
-
-	async function copyISBN(isbn: string) {
-		try {
-			await navigator.clipboard.writeText(isbn);
-			copiedIsbn = isbn;
-			setTimeout(() => {
-				copiedIsbn = null;
-			}, 2000);
-		} catch (err) {
-			console.error('Failed to copy ISBN:', err);
-		}
-	}
-
-	// Svelte action for responsive barcode generation
-	function generateBarcode(node: HTMLCanvasElement, isbn: string) {
-		// Calculate responsive width based on container with minimal padding
-		const containerWidth = node.parentElement?.clientWidth || 300;
-		// Use most of the available width - only subtract minimal padding
-		const targetWidth = Math.max(150, containerWidth - 12); // Only 12px padding total
-
-		// EAN-13 has 95 bars total
-		// Use larger bar widths for better visibility
-		const barWidth = targetWidth < 200 ? 1.5 : targetWidth < 280 ? 2.0 : 2.5;
-
-		// Scale font size and height proportionally - make it bigger
-		const scale = targetWidth / 300;
-		const fontSize = Math.max(10, Math.floor(14 * scale));
-		const height = Math.max(50, Math.floor(65 * scale));
-
-		JsBarcode(node, isbn, {
-			format: 'EAN13',
-			width: barWidth,
-			height: height,
-			displayValue: true,
-			fontSize: fontSize,
-			margin: 0,
-			marginTop: 0,
-			marginBottom: 0,
-			marginLeft: 0,
-			marginRight: 0,
-			textMargin: 0,
-			flat: true  // Remove extra padding/quiet zones
-		});
-
-		// Explicitly set canvas styling for proper centering
-		node.style.maxWidth = '100%';
-		node.style.height = 'auto';
-		node.style.display = 'block';
-
-		// Regenerate barcode on resize for proper scaling
-		function regenerate() {
-			const containerWidth = node.parentElement?.clientWidth || 300;
-			const targetWidth = Math.max(150, containerWidth - 12);
-			const barWidth = targetWidth < 200 ? 1.5 : targetWidth < 280 ? 2.0 : 2.5;
-			const scale = targetWidth / 300;
-			const fontSize = Math.max(10, Math.floor(14 * scale));
-			const height = Math.max(50, Math.floor(65 * scale));
-
-			JsBarcode(node, isbn, {
-				format: 'EAN13',
-				width: barWidth,
-				height: height,
-				displayValue: true,
-				fontSize: fontSize,
-				margin: 0,
-				marginTop: 0,
-				marginBottom: 0,
-				marginLeft: 0,
-				marginRight: 0,
-				textMargin: 0,
-				flat: true
-			});
-
-			node.style.maxWidth = '100%';
-			node.style.height = 'auto';
-			node.style.display = 'block';
-		}
-
-		// Use ResizeObserver for container size changes
-		const resizeObserver = new ResizeObserver(() => {
-			regenerate();
-		});
-
-		// Observe the parent container
-		if (node.parentElement) {
-			resizeObserver.observe(node.parentElement);
-		}
-
-		return {
-			update(newIsbn: string) {
-				isbn = newIsbn;
-				regenerate();
-			},
-			destroy() {
-				resizeObserver.disconnect();
-			}
-		};
-	}
 
 	// Extract year from publication date (YYYY or YYYY-MM-DD)
 	function getPublicationYear(dateString: string | null | undefined): string | null {
 		if (!dateString) return null;
 		const yearMatch = dateString.match(/^\d{4}/);
 		return yearMatch ? yearMatch[0] : null;
-	}
-
-	// Helper to get shelves for a book
-	function getBookShelves(bookId: string) {
-		return localBookShelves
-			.filter(bs => bs.book_id === bookId)
-			.map(bs => data.shelves.find(s => s.id === bs.shelf_id))
-			.filter(s => s !== undefined);
 	}
 
 	// Check if book is on a shelf
@@ -701,26 +599,6 @@
 		}
 	}
 
-	function selectShelf(shelfId: string | null) {
-		// Update local state immediately (instant UI response)
-		selectedShelfId = shelfId;
-
-		// Update URL for bookmarkability/sharing (shallow - no server round-trip)
-		const params = new URLSearchParams(window.location.search);
-		if (shelfId) {
-			params.set('shelf', shelfId);
-			params.delete('view');
-		} else {
-			params.delete('shelf');
-			params.set('view', 'all');
-		}
-		const queryString = params.toString();
-		const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
-
-		// Use replaceState for shallow URL update (supports back/forward via popstate)
-		history.pushState({}, '', newUrl);
-	}
-
 	async function deleteShelf(shelfId: string, shelfName: string) {
 		// Build confirmation message
 		let message = `Delete "${shelfName}"?\n\nBooks will remain in your library, but will be removed from this shelf.`;
@@ -764,7 +642,7 @@
 			// If we're currently viewing the deleted shelf, switch to All Books
 			if (selectedShelfId === shelfId) {
 				selectedShelfId = null;
-				history.replaceState({}, '', `${window.location.pathname}?view=all`);
+				// URL will be updated automatically by the $effect
 			}
 
 			// Refresh the page data to update shelf list
@@ -1214,43 +1092,6 @@
 		currentPrompt = null;
 	}
 
-	// Portal action: teleports element to document.body for dropdown overlays
-	function portal(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
-	}
-
-	// Filter dropdown positioning and interaction helpers
-	function updateFilterDropdownPosition() {
-		if (filterButtonEl) {
-			const rect = filterButtonEl.getBoundingClientRect();
-			filterDropdownPosition = {
-				top: rect.bottom + 4,
-				right: window.innerWidth - rect.right
-			};
-		}
-	}
-
-	function toggleFilterDropdown() {
-		filterDropdownOpen = !filterDropdownOpen;
-		if (filterDropdownOpen) {
-			requestAnimationFrame(() => updateFilterDropdownPosition());
-		}
-	}
-
-	// Click-outside handler for filter dropdown
-	function handleGlobalClick(e: MouseEvent) {
-		const target = e.target as HTMLElement;
-
-		if (filterDropdownOpen && !target.closest('[aria-label="Filter books"]')) {
-			const inFilterDropdown = target.closest('.filter-dropdown-portal');
-			if (!inFilterDropdown) filterDropdownOpen = false;
-		}
-	}
 
 	// Global keyboard shortcut: press "+" to open ISBN entry
 	onMount(() => {
@@ -1261,14 +1102,6 @@
 		}
 
 		const handleKeydown = (e: KeyboardEvent) => {
-			// Escape: close filter dropdown and return focus to its trigger
-			if (e.key === 'Escape') {
-				if (filterDropdownOpen) {
-					filterDropdownOpen = false;
-					filterButtonEl?.focus();
-				}
-			}
-
 			// Cmd+K / Ctrl+K toggles search (works even in inputs)
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
 				e.preventDefault();
@@ -1294,15 +1127,6 @@
 			}
 		};
 
-		// Click outside handler for "More shelves" dropdown
-		const handleClick = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			// Close dropdown if clicking outside the more-shelves container
-			if (showMoreShelves && !target.closest('.more-shelves-container')) {
-				showMoreShelves = false;
-			}
-		};
-
 		// If URL contains ?q=, check auth status before opening add modal
 		try {
 			const searchParams = $page.url.searchParams;
@@ -1324,32 +1148,50 @@
 			console.warn('Failed to parse query params', e);
 		}
 
-		// Handle browser back/forward for shelf navigation
+		// Handle browser back/forward for all filter state
 		const handlePopState = () => {
+			// Temporarily disable URL sync to avoid double-push
+			isInitialLoad = true;
+
 			const params = new URLSearchParams(window.location.search);
 			const shelfParam = params.get('shelf');
+			const statusParam = params.get('status');
 			const viewParam = params.get('view');
 
+			// Restore shelf — ?view=all is legacy for "no shelf", otherwise use ?shelf param
 			if (viewParam === 'all') {
 				selectedShelfId = null;
 			} else if (shelfParam) {
-				// Validate shelf exists
 				const shelfExists = data.shelves.some(s => s.id === shelfParam);
-				selectedShelfId = shelfExists ? shelfParam : null;
+				selectedShelfId = shelfExists ? shelfParam : (data.defaultShelfId || null);
 			} else {
-				// No params - use default shelf if available
 				selectedShelfId = data.defaultShelfId || null;
 			}
+
+			// Restore status
+			const validStatuses = ['all', 'unread', 'read', 'without-notes'];
+			nlpStatus = (validStatuses.includes(statusParam || '') ? statusParam : 'all') as typeof nlpStatus;
+
+			// Restore view — ?view=all is legacy (maps to 'books'), otherwise validate
+			if (viewParam && viewParam !== 'all' && ['books', 'notes'].includes(viewParam)) {
+				nlpView = viewParam as typeof nlpView;
+			} else {
+				nlpView = 'books';
+			}
+
+			// Canonicalize contradictory combos
+			if (nlpView === 'notes' && nlpStatus === 'without-notes') {
+				nlpStatus = 'all';
+			}
+
+			// Re-enable URL sync after this tick
+			setTimeout(() => { isInitialLoad = false; }, 0);
 		};
 
 		window.addEventListener('keydown', handleKeydown);
-		window.addEventListener('click', handleClick);
-		window.addEventListener('click', handleGlobalClick);
 		window.addEventListener('popstate', handlePopState);
 		return () => {
 			window.removeEventListener('keydown', handleKeydown);
-			window.removeEventListener('click', handleClick);
-			window.removeEventListener('click', handleGlobalClick);
 			window.removeEventListener('popstate', handlePopState);
 		};
 	});
@@ -1402,8 +1244,8 @@
 								</svg>
 							</a>
 						</div>
-						<p class="text-xs md:text-sm text-[var(--text-secondary)] font-normal">
-							<span class="font-semibold text-[var(--text-primary)]">{booksForCurrentShelf.length}</span> {booksForCurrentShelf.length === 1 ? 'book' : 'books'}{#if selectedShelfId} on this shelf{/if}
+						<p class="text-xs md:text-sm text-[var(--text-secondary)] font-normal" aria-live="polite">
+							{bookCountLabel}
 						</p>
 					</div>
 
@@ -1417,27 +1259,6 @@
 							onSelect={scrollToBook}
 							onQueryChange={(q) => searchQuery = q}
 						/>
-
-						<!-- Filter button -->
-						<button
-							bind:this={filterButtonEl}
-							onclick={toggleFilterDropdown}
-							class="relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors border border-[var(--border)] bg-[var(--surface)] md:bg-transparent {hasActiveFilters
-								? 'text-[var(--accent)]'
-								: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--paper-light)]'}"
-							aria-label="Filter books"
-							aria-expanded={filterDropdownOpen}
-						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-								<circle cx="8" cy="6" r="2" fill="currentColor" stroke="currentColor" />
-								<circle cx="16" cy="12" r="2" fill="currentColor" stroke="currentColor" />
-								<circle cx="10" cy="18" r="2" fill="currentColor" stroke="currentColor" />
-							</svg>
-							{#if hasActiveFilters}
-								<span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border border-[var(--surface)]"></span>
-							{/if}
-						</button>
 
 						<!-- Manual ISBN Entry Button -->
 						<button
@@ -1461,174 +1282,27 @@
 			</div>
 		</div>
 
-		<!-- Shelf Navigation - separate sticky element, always visible -->
-		<!-- On mobile: positioned below header when header is visible, at top when header is hidden -->
-		<div
-			class="sticky z-20 -mx-4 px-4 shelf-nav-sticky backdrop-blur-sm transition-[top] duration-200 md:static md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:top-0 mt-3 md:mt-5 mb-4 md:mb-6"
-			style="top: {headerVisible ? '60px' : '0px'};"
-		>
-			<div class="relative py-2 md:py-0">
-			<!-- Fade gradient on right edge (mobile) -->
-			<div class="absolute right-0 top-0 bottom-0 w-8 shelf-nav-fade pointer-events-none z-10 md:hidden"></div>
-
-			<div
-				bind:this={shelfScrollContainer}
-				class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0 md:flex-wrap scrollbar-hide snap-x snap-mandatory scroll-smooth pr-12 md:pr-0"
-			>
-				<!-- All Books Tab -->
-				<button
-					onclick={() => selectShelf(null)}
-					class="flex-shrink-0 snap-start px-3 py-1.5 text-sm rounded font-medium transition-colors {!selectedShelfId
-						? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)]'
-						: 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)]'}"
-				>
-					All ({localBooks?.length || 0})
-				</button>
-
-				<!-- Current Shelf Tab (only shown when a shelf is selected) -->
-				{#if currentShelf()}
-					{@const shelf = currentShelf()}
-					{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf?.id).length}
-					<div
-						data-shelf-id={shelf?.id}
-						class="group inline-flex items-center gap-0 rounded overflow-hidden flex-shrink-0 snap-start"
-					>
-						<span
-							class="px-3 py-1.5 text-sm font-medium bg-[var(--surface-dark)] text-[var(--text-on-dark)] whitespace-nowrap"
-						>
-							{#if deletingShelfId === shelf?.id}
-								Deleting...
-							{:else}
-								{shelf?.name} ({bookCount})
-							{/if}
-						</span>
-						<!-- Deselect button (return to All) -->
-						<button
-							onclick={() => selectShelf(null)}
-							class="px-2 self-stretch flex items-center hover:bg-[var(--surface-dark-secondary)] transition-colors cursor-pointer bg-[var(--surface-dark)] text-[var(--text-on-dark)]"
-							aria-label="Show all books"
-							title="Show all books"
-						>
-							&times;
-						</button>
-					</div>
-				{/if}
-
-				<!-- More Shelves Button (always shown if there are other shelves) -->
-				{#if otherShelves().length > 0}
-					<div
-						bind:this={moreButtonRef}
-						class="more-shelves-container flex-shrink-0 snap-start"
-					>
-						<button
-							onclick={() => {
-								// Calculate dropdown position based on button location
-								if (moreButtonRef && shelfScrollContainer) {
-									const containerRect = shelfScrollContainer.parentElement?.getBoundingClientRect();
-									const buttonRect = moreButtonRef.getBoundingClientRect();
-									if (containerRect) {
-										dropdownLeft = buttonRect.left - containerRect.left;
-									}
-								}
-								showMoreShelves = !showMoreShelves;
-							}}
-							class="cursor-pointer whitespace-nowrap px-3 py-1.5 text-sm rounded font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors"
-						>
-							More ({otherShelves().length}) {showMoreShelves ? '▲' : '▼'}
-						</button>
-					</div>
-				{/if}
-
-				<!-- New Shelf Button -->
-				{#if !showNewShelfInput}
-					<Button
-						variant="ghost"
-						size="sm"
-						class="border border-dashed border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] flex-shrink-0 snap-start"
-						onclick={() => showNewShelfInput = true}
-					>
-						<span class="md:hidden">+ New</span>
-						<span class="hidden md:inline">+ New Shelf</span>
-					</Button>
-				{:else}
-					<div class="flex gap-2 flex-shrink-0">
-						<Input
-							size="md"
-							type="text"
-							bind:value={newShelfName}
-							placeholder="Shelf name"
-							onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && createShelf()}
-							class="w-32 md:w-48 flex-shrink-0"
-						/>
-						<Button variant="primary" size="md" onclick={createShelf}>
-							Create
-						</Button>
-						<Button
-							variant="secondary"
-							size="md"
-							onclick={() => { showNewShelfInput = false; newShelfName = ''; }}
-						>
-							Cancel
-						</Button>
-					</div>
-				{/if}
-			</div>
-
-			<!-- More Shelves Dropdown (outside scroll container to avoid clipping) -->
-			{#if showMoreShelves && otherShelves().length > 0}
-				<div
-					class="more-shelves-container absolute top-full mt-1 bg-[var(--surface)] rounded shadow-lg border border-[var(--border)] py-1 min-w-[200px] max-h-[60vh] overflow-y-auto z-[100]"
-					style="left: {dropdownLeft}px;"
-				>
-					{#each otherShelves() as shelf}
-						{@const bookCount = localBookShelves.filter(bs => bs.shelf_id === shelf.id).length}
-						<button
-							onclick={() => {
-								selectShelf(shelf.id);
-								showMoreShelves = false;
-							}}
-							class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-alt)] transition-colors"
-						>
-							<span class="truncate">{shelf.name}</span>
-							<span class="text-[var(--text-tertiary)] text-xs flex-shrink-0">({bookCount})</span>
-						</button>
-					{/each}
-
-					{#if currentShelf()}
-						{@const shelf = currentShelf()}
-						<div class="border-t border-[var(--border)] mt-1 pt-1">
-							<button
-								onclick={() => {
-									if (shelf) exportShelf(shelf.id, shelf.name, 'csv');
-									showMoreShelves = false;
-								}}
-								disabled={exportingShelfId === shelf?.id}
-								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors disabled:opacity-50"
-							>
-								<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" />
-								</svg>
-								Export "{shelf?.name}"
-							</button>
-							<button
-								onclick={() => {
-									if (shelf) deleteShelf(shelf.id, shelf.name);
-									showMoreShelves = false;
-								}}
-								disabled={deletingShelfId === shelf?.id}
-								class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-							>
-								<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-								</svg>
-								Delete "{shelf?.name}"
-							</button>
-						</div>
-					{/if}
-				</div>
-			{/if}
-			</div>
+		<!-- NLP Filter sentence -->
+		<div class="mt-3 md:mt-5 mb-4 md:mb-6">
+			<NLPFilter
+				bind:status={nlpStatus}
+				bind:view={nlpView}
+				bind:shelfId={selectedShelfId}
+				shelves={data.shelves}
+				defaultShelfId={data.defaultShelfId}
+				onCreateShelf={() => { showNewShelfInput = true; }}
+			/>
 		</div>
+
+		{#if hiddenNoteCount > 0}
+			<p class="text-sm text-[var(--text-secondary)] mb-4 font-sans">
+				Hiding {hiddenNoteCount} {hiddenNoteCount === 1 ? 'book' : 'books'} without notes.
+				<button
+					class="underline decoration-dotted underline-offset-2 hover:text-[var(--text-primary)] transition-colors"
+					onclick={() => { nlpStatus = 'without-notes'; nlpView = 'books'; }}
+				>Show them</button>
+			</p>
+		{/if}
 
 		<!-- Error Message -->
 		{#if data.error}
@@ -1662,6 +1336,11 @@
 				<p class="text-sm text-[var(--text-secondary)]">
 					Snap a cover photo or text an ISBN to get started.
 				</p>
+			</div>
+		{:else if displayedBooks.length === 0 && nlpStatus === 'without-notes' && nlpView === 'notes'}
+			<!-- Contradictory filter: "without notes" + "notes" view -->
+			<div class="text-center py-12">
+				<p class="text-[var(--text-secondary)] text-sm">No notes yet.</p>
 			</div>
 		{:else if displayedBooks.length === 0}
 			<!-- Shelf is empty but user has books -->
@@ -1702,6 +1381,7 @@
 						bookShelves={localBookShelves}
 						expanded={isExpanded}
 						lifted={isLifted}
+						viewMode={nlpView}
 						onToggleRead={toggleRead}
 						onToggleOwned={toggleOwned}
 						onUpdateNote={updateNote}
@@ -1720,6 +1400,7 @@
 			</div>
 	{/key}
 
+	
 		<!-- Claim Shelf Prompt Modal (shown when ?q= but not authenticated) -->
 		{#if showClaimPrompt}
 			<div
@@ -2294,46 +1975,6 @@
 	</div>
 {/if}
 
-{#if filterDropdownOpen}
-	<div
-		use:portal
-		class="filter-dropdown-portal fixed bg-[var(--surface)] border border-[var(--border)] rounded shadow-lg p-3 w-[220px]"
-		style="top: {filterDropdownPosition.top}px; right: {filterDropdownPosition.right}px; z-index: 99999;"
-	>
-		<!-- Read filter -->
-		<div class="flex items-center gap-2 mb-3">
-			<span class="text-xs text-[var(--text-tertiary)] w-12 shrink-0">Read:</span>
-			<div class="flex gap-1 flex-1">
-				{#each [['all', 'All'], ['read', 'Read'], ['unread', 'Unread']] as [value, label]}
-					<button
-						onclick={() => readFilter = value as typeof readFilter}
-						class="flex-1 px-2 py-1.5 text-xs rounded transition-colors {readFilter === value
-							? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)] font-medium'
-							: 'text-[var(--text-secondary)] hover:bg-[var(--background-alt)]'}"
-					>
-						{label}
-					</button>
-				{/each}
-			</div>
-		</div>
-		<!-- Owned filter -->
-		<div class="flex items-center gap-2">
-			<span class="text-xs text-[var(--text-tertiary)] w-12 shrink-0">Owned:</span>
-			<div class="flex gap-1 flex-1">
-				{#each [['all', 'All'], ['owned', 'Owned'], ['not-owned', 'Not Owned']] as [value, label]}
-					<button
-						onclick={() => ownedFilter = value as typeof ownedFilter}
-						class="flex-1 px-2 py-1.5 text-xs rounded transition-colors {ownedFilter === value
-							? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)] font-medium'
-							: 'text-[var(--text-secondary)] hover:bg-[var(--background-alt)]'}"
-					>
-						{label}
-					</button>
-				{/each}
-			</div>
-		</div>
-	</div>
-{/if}
 
 <style>
 	/* Shelf page design system overrides */
@@ -2341,14 +1982,6 @@
 		font-family: var(--font-sans);
 		background: var(--background);
 		color: var(--text-primary);
-	}
-
-	.shelf-nav-sticky {
-		background: color-mix(in srgb, var(--background) 95%, transparent);
-	}
-
-	.shelf-nav-fade {
-		background: linear-gradient(to left, var(--background) 0%, transparent 100%);
 	}
 
 	/* Book title styling - Lora italic */
@@ -2375,30 +2008,4 @@
 		}
 	}
 
-	/* Always show scrollbar on description text */
-	.description-scroll {
-		scrollbar-width: thin;
-		scrollbar-color: rgb(203 213 225) rgb(241 245 249);
-		scrollbar-gutter: stable;
-	}
-
-	.description-scroll::-webkit-scrollbar {
-		width: 10px;
-		-webkit-appearance: none;
-	}
-
-	.description-scroll::-webkit-scrollbar-track {
-		background: rgb(241 245 249);
-		border-radius: 4px;
-	}
-
-	.description-scroll::-webkit-scrollbar-thumb {
-		background-color: rgb(203 213 225);
-		border-radius: 4px;
-		border: 2px solid rgb(241 245 249);
-	}
-
-	.description-scroll::-webkit-scrollbar-thumb:hover {
-		background-color: rgb(148 163 184);
-	}
 </style>
