@@ -403,7 +403,7 @@
 	}
 
 	.modal-title {
-		font-size: 1.5rem;
+		font-size: var(--text-xl);
 		font-weight: 600;
 		color: var(--text-primary);
 	}
@@ -435,7 +435,7 @@
 
 	.form-label {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		color: var(--text-primary);
 		margin-bottom: 8px;
@@ -450,7 +450,7 @@
 		padding: 8px 12px;
 		border: 1px solid var(--border);
 		border-radius: 8px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-primary);
 		background: var(--surface);
 		resize: none;
@@ -473,7 +473,7 @@
 
 	.file-input {
 		width: 100%;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -482,7 +482,7 @@
 		padding: 8px 16px;
 		border-radius: 8px;
 		border: none;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		background: var(--paper-light);
 		color: var(--accent-hover);
@@ -502,12 +502,12 @@
 	}
 
 	.file-name {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
 	.file-remove {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: #dc2626;
 		background: none;
 		border: none;
@@ -520,14 +520,14 @@
 
 	.form-hint {
 		margin-top: 4px;
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--text-secondary);
 	}
 
 	.alert {
 		padding: 12px 16px;
 		border-radius: 8px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 	}
 
 	.alert-success {
@@ -560,7 +560,7 @@
 		flex: 1;
 		padding: 10px 16px;
 		border-radius: 8px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.2s;

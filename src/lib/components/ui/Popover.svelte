@@ -166,8 +166,8 @@
 	.popover-option-mobile {
 		padding: 12px 16px;
 		border-radius: 8px;
-		font-size: 1rem;
-		line-height: 1.5;
+		font-size: var(--text-base);
+		line-height: var(--leading-normal);
 	}
 
 	.popover-option-mobile:active {
@@ -176,8 +176,8 @@
 
 	.popover-option-desktop {
 		padding: 8px 16px;
-		font-size: 0.875rem;
-		line-height: 1.5;
+		font-size: var(--text-sm);
+		line-height: var(--leading-normal);
 	}
 
 	.popover-option-desktop:hover {

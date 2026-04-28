@@ -134,7 +134,7 @@
 
 	.auth-title {
 		text-align: center;
-		font-size: 1.875rem;
+		font-size: var(--text-xl);
 		font-weight: 700;
 		color: var(--text-primary);
 	}
@@ -142,7 +142,7 @@
 	.auth-subtitle {
 		margin-top: 8px;
 		text-align: center;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -164,7 +164,7 @@
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-primary);
 		background: var(--surface);
 		transition: border-color 0.2s;
@@ -193,7 +193,7 @@
 		padding: 10px 16px;
 		border: none;
 		border-radius: 8px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		color: white;
 		background: var(--accent);

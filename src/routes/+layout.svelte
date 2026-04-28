@@ -116,7 +116,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-on-dark);
 	}
 
@@ -152,7 +152,7 @@
 	.footer-tagline {
 		color: var(--text-on-dark);
 		opacity: 0.6;
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		white-space: nowrap;
 	}
 
@@ -200,7 +200,7 @@
 	.feedback-label {
 		display: none;
 		font-weight: 500;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 	}
 
 	@media (min-width: 640px) {

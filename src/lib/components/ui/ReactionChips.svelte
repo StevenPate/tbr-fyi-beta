@@ -25,8 +25,8 @@
 			type="button"
 			onclick={() => handleChipClick(chip)}
 			class="{wrap ? '' : 'flex-shrink-0'} flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out border active:scale-[0.97] {selected.has(chip.id)
-				? 'bg-stone-700 text-white border-stone-700 scale-[1.02]'
-				: 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100 hover:border-stone-300'}"
+				? 'bg-[var(--surface-dark)] text-[var(--text-on-dark)] border-[var(--surface-dark)] scale-[1.02]'
+				: 'bg-[var(--paper-light)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--paper-mid)] hover:border-[var(--warm-gray)]'}"
 			aria-pressed={selected.has(chip.id)}
 		>
 			<span class="text-base leading-none">{chip.emoji}</span>
@@ -38,7 +38,7 @@
 		<button
 			type="button"
 			onclick={handleOtherClick}
-			class="{wrap ? '' : 'flex-shrink-0'} flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out border active:scale-[0.97] bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100 hover:border-stone-300"
+			class="{wrap ? '' : 'flex-shrink-0'} flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out border active:scale-[0.97] bg-[var(--paper-light)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--paper-mid)] hover:border-[var(--warm-gray)]"
 		>
 			<span class="text-base leading-none">✏️</span>
 			<span>Other...</span>

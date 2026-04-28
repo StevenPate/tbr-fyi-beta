@@ -232,7 +232,7 @@
 	{id}
 	class="relative w-full transition-all duration-150
 		{expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'}
-		{lifted && !expanded && viewMode === 'books' ? 'py-3 bg-[var(--paper-light)]/30' : ''}
+		{lifted && !expanded && viewMode === 'books' ? 'py-3 bg-[var(--paper-light)]' : ''}
 		border-b border-[var(--border)]"
 >
 	{#if onClose}
@@ -287,7 +287,7 @@
 			<div class="flex-1 min-w-0">
 				<h2 class="font-serif italic text-lg text-[var(--text-primary)] leading-snug line-clamp-2">{book.title}{#if book.is_read}<span class="text-sm not-italic text-[var(--text-tertiary)]"> ✓</span>{/if}</h2>
 				{#if book.author && book.author.length > 0}
-					<p class="text-sm text-[var(--warm-gray)]/70 mt-1 line-clamp-1">{book.author.join(', ')}</p>
+					<p class="text-sm text-[var(--text-tertiary)] mt-1 line-clamp-1">{book.author.join(', ')}</p>
 				{/if}
 			</div>
 
@@ -379,7 +379,7 @@
 			<div class="flex-1 min-w-0">
 				<h2 class="font-serif italic text-lg text-[var(--text-primary)] leading-snug line-clamp-2">{book.title}{#if book.is_read}<span class="text-sm not-italic text-[var(--text-tertiary)]"> ✓</span>{/if}</h2>
 				{#if book.author && book.author.length > 0}
-					<p class="text-sm text-[var(--warm-gray)]/70 mt-1 line-clamp-1">{book.author.join(', ')}</p>
+					<p class="text-sm text-[var(--text-tertiary)] mt-1 line-clamp-1">{book.author.join(', ')}</p>
 				{/if}
 			</div>
 
@@ -500,7 +500,7 @@
 							<textarea
 								bind:value={tempNoteValue}
 								placeholder="Write a note…"
-								class="flex-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/50 rounded-md px-3 py-2 resize-none bg-transparent border border-[var(--border)]/30 focus:border-[var(--border)]/60 focus:bg-[var(--surface)]/50 focus:outline-none transition-all duration-150"
+								class="flex-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] rounded-md px-3 py-2 resize-none bg-transparent border border-[var(--border)] focus:border-[var(--accent)] focus:bg-[var(--surface)] focus:outline-none transition-all duration-150"
 								rows={1}
 							></textarea>
 							{#if noteFocused || tempNoteValue.trim()}
@@ -517,7 +517,7 @@
 
 				<!-- Description -->
 				{#if book.description}
-					<div class="mt-3 mb-5 pl-[108px] pr-4">
+					<div class="mt-3 mb-4 pl-[108px] pr-4">
 						<p class="text-sm text-[var(--text-tertiary)] leading-relaxed {descriptionExpanded ? '' : 'line-clamp-3'}">
 							{book.description}
 						</p>
@@ -540,10 +540,10 @@
 				{/if}
 
 				<!-- Zone 2: Control Panel -->
-				<div class="mt-5 mx-3 mb-1 rounded-lg border-t border-[var(--border)]/40 bg-[var(--background)]/50 pt-2.5 pb-2.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)]">
+				<div class="mt-4 border-t border-[var(--border)] pt-3 pb-1 pl-[108px] pr-4">
 
 				<!-- Status pills -->
-				<div class="pl-[96px] pr-3 flex gap-2 mb-1.5">
+				<div class="flex gap-2 mb-1.5">
 					<button
 						onclick={(e) => {
 							e.stopPropagation();
@@ -552,8 +552,8 @@
 							if (lifted) setTimeout(() => onSettle?.(book.id), 200);
 						}}
 						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_read
-							? 'bg-[var(--charcoal)] text-white border-[var(--charcoal)]'
-							: 'bg-transparent text-[var(--text-tertiary)] border-[var(--paper-dark)] hover:border-[var(--warm-gray)] hover:text-[var(--text-secondary)]'}"
+							? 'bg-[var(--warm-gray)] text-white border-[var(--warm-gray)]'
+							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
 					>
 						{book.is_read ? '✓ Read' : 'Read'}
 					</button>
@@ -564,15 +564,15 @@
 							showSavedFeedback(book.is_owned ? 'Marked not owned' : 'Marked as owned');
 						}}
 						class="px-3 py-1 text-[11px] rounded-full border transition-all duration-150 {book.is_owned
-							? 'bg-[var(--charcoal)] text-white border-[var(--charcoal)]'
-							: 'bg-transparent text-[var(--text-tertiary)] border-[var(--paper-dark)] hover:border-[var(--warm-gray)] hover:text-[var(--text-secondary)]'}"
+							? 'bg-[var(--warm-gray)] text-white border-[var(--warm-gray)]'
+							: 'bg-transparent text-[var(--warm-gray)] border-[var(--paper-mid)] hover:border-[var(--paper-dark)] hover:text-[var(--text-primary)]'}"
 					>
 						{book.is_owned ? '✓ Owned' : 'Owned'}
 					</button>
 				</div>
 
 				<!-- Shelves -->
-				<div class="pl-[96px] pr-3 mb-0.5">
+				<div class="mb-0.5">
 					<button
 						onclick={() => shelvesOpen = !shelvesOpen}
 						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"
@@ -629,7 +629,7 @@
 				</div>
 
 				<!-- Find Elsewhere -->
-				<div class="pl-[96px] pr-3 mb-0.5">
+				<div class="mb-0.5">
 					<button
 						onclick={() => linksOpen = !linksOpen}
 						class="py-1 text-[11px] text-left text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1.5"

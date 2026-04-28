@@ -286,7 +286,7 @@
 	}
 
 	.carousel-hint {
-		font-size: 13px;
+		font-size: var(--text-xs);
 		color: var(--text-secondary);
 		margin-top: 4px;
 	}
@@ -303,7 +303,7 @@
 		display: inline-block;
 		padding: 10px 14px;
 		border-radius: 16px;
-		font-size: 15px;
+		font-size: var(--text-sm);
 		max-width: 85%;
 	}
 

@@ -159,7 +159,7 @@
 	.back-link {
 		display: inline-block;
 		margin-bottom: 16px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 		text-decoration: none;
 		transition: color 0.1s;
@@ -170,7 +170,7 @@
 	}
 
 	.settings-title {
-		font-size: 1.875rem;
+		font-size: var(--text-xl);
 		font-weight: 700;
 		color: var(--text-primary);
 		margin-bottom: 8px;
@@ -189,7 +189,7 @@
 	}
 
 	.card-title {
-		font-size: 1.25rem;
+		font-size: var(--text-lg);
 		font-weight: 600;
 		color: var(--text-primary);
 		margin-bottom: 8px;
@@ -232,7 +232,7 @@
 
 	.format-hint {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -245,7 +245,7 @@
 		color: white;
 		border: none;
 		border-radius: 8px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		font-weight: 500;
 		cursor: pointer;
 		transition: background 0.2s;
@@ -267,7 +267,7 @@
 
 	.import-hint {
 		margin-top: 16px;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}
 
@@ -287,7 +287,7 @@
 		border-radius: 8px;
 		padding: 12px;
 		color: #991b1b;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 	}
 
 	.sr-only {

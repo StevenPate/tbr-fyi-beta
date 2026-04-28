@@ -76,19 +76,19 @@
 		onclick={handleBackdropClick}
 	>
 		<div
-			class="bg-white rounded-xl shadow-xl w-full max-w-md"
+			class="bg-[var(--surface)] rounded-xl shadow-xl w-full max-w-md"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="share-modal-title"
 		>
 			<!-- Header -->
-			<div class="flex items-center justify-between px-5 py-4 border-b border-stone-100">
-				<h2 id="share-modal-title" class="text-lg font-semibold text-stone-900">
+			<div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+				<h2 id="share-modal-title" class="text-lg font-semibold text-[var(--text-primary)]">
 					Share Book
 				</h2>
 				<button
 					onclick={onClose}
-					class="p-1 text-stone-400 hover:text-stone-600 transition-colors rounded-lg hover:bg-stone-100"
+					class="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors rounded-lg hover:bg-[var(--paper-light)]"
 					aria-label="Close"
 				>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,8 +104,8 @@
 
 			<!-- Content -->
 			<div class="p-5">
-				<p class="text-sm text-stone-600 mb-4">
-					Share <span class="font-medium text-stone-900">"{book.title}"</span> with others:
+				<p class="text-sm text-[var(--text-secondary)] mb-4">
+					Share <span class="font-medium text-[var(--text-primary)]">"{book.title}"</span> with others:
 				</p>
 
 				<!-- URL input -->
@@ -114,12 +114,12 @@
 						type="text"
 						readonly
 						value={getShareUrl()}
-						class="flex-grow px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg text-stone-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						class="flex-grow px-3 py-2 text-sm bg-[var(--paper-light)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
 						onclick={(e) => e.currentTarget.select()}
 					/>
 					<button
 						onclick={copyToClipboard}
-						class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors min-w-[90px] justify-center"
+						class="flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-hover)] transition-colors min-w-[90px] justify-center"
 					>
 						{#if copied}
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@
 					</button>
 				</div>
 
-				<p class="text-xs text-stone-500 mt-3">
+				<p class="text-xs text-[var(--text-secondary)] mt-3">
 					Anyone with this link can view the book and add it to their own shelf.
 				</p>
 			</div>

@@ -49,9 +49,9 @@ export default {
         lg: ['var(--text-lg)', { lineHeight: 'var(--leading-snug)' }],
         xl: ['var(--text-xl)', { lineHeight: 'var(--leading-snug)' }],
         '2xl': ['var(--text-2xl)', { lineHeight: 'var(--leading-tight)' }],
+        '3xl': ['var(--text-3xl)', { lineHeight: 'var(--leading-tight)' }],
       },
       borderRadius: {
-        sm: 'var(--radius-sm)',
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
       },

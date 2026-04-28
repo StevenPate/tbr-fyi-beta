@@ -80,20 +80,20 @@
 {#if !dismissed}
 	{#if isOwner}
 		<!-- Banner for shelf owner -->
-		<div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200">
+		<div class="bg-[var(--paper-light)] border-b border-[var(--border)]">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex items-center justify-between py-3">
 					<div class="flex items-start flex-1">
 						<div class="flex-shrink-0">
-							<svg class="h-6 w-6 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<svg class="h-6 w-6 text-[var(--accent)] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
 							</svg>
 						</div>
 						<div class="ml-3 flex-1">
-							<p class="text-sm font-medium text-gray-900">
+							<p class="text-sm font-medium text-[var(--text-primary)]">
 								Is this your shelf? Secure it with a free account
 							</p>
-							<div class="mt-1 text-sm text-gray-600">
+							<div class="mt-1 text-sm text-[var(--text-secondary)]">
 								<ul class="list-disc list-inside space-y-0.5">
 									<li>Get a custom username</li>
 									<li>Make shelves private</li>
@@ -103,13 +103,13 @@
 							<div class="mt-3 flex items-center gap-3">
 								<button
 									onclick={handleClaimClick}
-									class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+									class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
 								>
 									Create Account
 								</button>
 								<button
 									onclick={() => handleDismiss('temporary')}
-									class="text-sm text-gray-500 hover:text-gray-700"
+									class="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
 								>
 									Maybe Later
 								</button>
@@ -119,7 +119,7 @@
 					<div class="ml-4 flex-shrink-0">
 						<button
 							onclick={() => handleDismiss('long')}
-							class="text-gray-400 hover:text-gray-500"
+							class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
 							aria-label="Dismiss"
 						>
 							<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,33 +132,33 @@
 		</div>
 	{:else}
 		<!-- Banner for other visitors -->
-		<div class="bg-gradient-to-r from-green-50 to-teal-50 border-b border-green-200">
+		<div class="bg-[var(--paper-light)] border-b border-[var(--border)]">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex items-center justify-between py-3">
 					<div class="flex items-center flex-1">
 						<div class="flex-shrink-0">
-							<svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<svg class="h-6 w-6 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
 							</svg>
 						</div>
 						<div class="ml-3 flex-1">
-							<p class="text-sm font-medium text-gray-900">
+							<p class="text-sm font-medium text-[var(--text-primary)]">
 								Start your own reading list!
 							</p>
-							<p class="mt-1 text-sm text-gray-600">
+							<p class="mt-1 text-sm text-[var(--text-secondary)]">
 								Text any book ISBN to get started
 							</p>
 						</div>
 						<div class="ml-4 flex items-center gap-3">
 							<a
 								href="/about"
-								class="text-sm font-medium text-green-600 hover:text-green-500"
+								class="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
 							>
 								Learn More
 							</a>
 							<button
 								onclick={() => handleDismiss('long')}
-								class="text-gray-400 hover:text-gray-500"
+								class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
 								aria-label="Dismiss"
 							>
 								<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

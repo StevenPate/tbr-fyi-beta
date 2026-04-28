@@ -1221,7 +1221,7 @@
 	{/if}
 
 	<div class="py-8">
-		<div class="max-w-4xl mx-auto px-4">
+		<div class="max-w-[var(--content-width)] mx-auto px-4">
 		<!-- Header - slides up/down based on scroll direction (mobile only) -->
 		<div
 			class="sticky top-0 z-30 -mx-4 px-4 bg-[var(--background)] border-b border-[var(--border)] transition-transform duration-200 ease-out md:static md:mx-0 md:px-0 md:bg-transparent md:border-0 md:translate-y-0 {headerVisible ? 'translate-y-0' : '-translate-y-full'}"
@@ -1369,7 +1369,7 @@
 
 					<!-- Time group marker -->
 					{#if group !== prevGroup}
-						<p class="text-xs text-[var(--warm-gray)] uppercase tracking-widest mt-6 mb-0 pl-[60px] select-none">
+						<p class="text-xs text-[var(--warm-gray)] uppercase tracking-widest mt-6 mb-0 pl-16 select-none">
 							{TIME_GROUP_LABELS[group]}
 						</p>
 					{/if}
@@ -1561,23 +1561,23 @@
 								<!-- Success message -->
 								<div class="text-center py-2">
 									<p class="text-green-600 font-medium">✓ Added to your shelf</p>
-									<p class="text-sm text-stone-500 mt-1 line-clamp-1">{addedBookForNote.title}</p>
+									<p class="text-sm text-[var(--text-secondary)] mt-1 line-clamp-1">{addedBookForNote.title}</p>
 								</div>
 
 								<!-- Note prompt -->
 								<div class="space-y-3">
-									<p class="text-sm text-stone-600 text-center">Quick note for future you?</p>
+									<p class="text-sm text-[var(--text-secondary)] text-center">Quick note for future you?</p>
 
 									<textarea
 										bind:this={noteTextarea}
 										bind:value={noteText}
 										placeholder={currentPrompt?.text || "What caught your attention about this one?"}
-										class="w-full p-3 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-300 focus:ring-1 focus:ring-stone-200 resize-none"
+										class="w-full p-3 text-sm border border-[var(--border)] rounded-lg focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none"
 										rows={3}
 									></textarea>
 
 									{#if currentPrompt?.subtext}
-										<p class="text-xs text-stone-400 text-center">{currentPrompt.subtext}</p>
+										<p class="text-xs text-[var(--text-tertiary)] text-center">{currentPrompt.subtext}</p>
 									{/if}
 								</div>
 							</div>
@@ -1611,9 +1611,9 @@
 								{/if}
 
 								<div class="flex items-center gap-2">
-									<div class="flex-grow border-t border-gray-300"></div>
-									<span class="text-sm text-gray-500">or</span>
-									<div class="flex-grow border-t border-gray-300"></div>
+									<div class="flex-grow border-t border-[var(--border)]"></div>
+									<span class="text-sm text-[var(--text-secondary)]">or</span>
+									<div class="flex-grow border-t border-[var(--border)]"></div>
 								</div>
 
 								<button
@@ -1633,7 +1633,7 @@
 									hidden
 								/>
 
-								<p class="text-xs text-gray-500 text-center">
+								<p class="text-xs text-[var(--text-secondary)] text-center">
 									💡 Cover photos, barcodes, and CSV/TXT bulk imports all work here
 								</p>
 							</div>
@@ -1677,7 +1677,7 @@
 
 								{#if detectionMetadata}
 									<div class="text-sm space-y-1">
-										<div class="text-gray-600">
+										<div class="text-[var(--text-secondary)]">
 											Processed {detectionMetadata.totalLines} lines, found {detectionMetadata.validIsbns} valid ISBNs
 										</div>
 										{#if detectionMetadata.skippedLines > 0}
@@ -1686,7 +1686,7 @@
 											</div>
 										{/if}
 										{#if detectionMetadata.duplicatesRemoved && detectionMetadata.duplicatesRemoved > 0}
-											<div class="text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded text-xs">
+											<div class="text-[var(--accent)] bg-[var(--paper-light)] border border-[var(--border)] p-2 rounded text-xs">
 												ℹ️ Removed {detectionMetadata.duplicatesRemoved} duplicate{detectionMetadata.duplicatesRemoved > 1 ? 's' : ''}
 											</div>
 										{/if}
@@ -1696,7 +1696,7 @@
 								<!-- Book Selection List -->
 								<div class="space-y-2">
 									{#each detectedBooks as book}
-										<label class="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+										<label class="flex items-start gap-3 p-2 hover:bg-[var(--paper-light)] rounded cursor-pointer">
 											<input
 												type="checkbox"
 												checked={selectedBookIds.has(book.isbn13)}
@@ -1710,20 +1710,20 @@
 													class="w-12 h-16 object-cover rounded flex-shrink-0"
 												/>
 											{:else}
-												<div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
-													<span class="text-gray-400 text-xl">📖</span>
+												<div class="w-12 h-16 bg-[var(--paper-dark)] rounded flex items-center justify-center flex-shrink-0">
+													<span class="text-[var(--text-tertiary)] text-xl">📖</span>
 												</div>
 											{/if}
 											<div class="flex-grow min-w-0">
 												<div class="font-medium text-sm line-clamp-2">{book.title}</div>
 												{#if book.author && book.author.length > 0}
-													<div class="text-xs text-gray-600 line-clamp-1">
+													<div class="text-xs text-[var(--text-secondary)] line-clamp-1">
 														{book.author.join(', ')}
 													</div>
 												{/if}
 												{#if book.publisher || book.publicationDate}
 													{@const year = getPublicationYear(book.publicationDate)}
-													<div class="text-xs text-gray-500 line-clamp-1">
+													<div class="text-xs text-[var(--text-secondary)] line-clamp-1">
 														{book.publisher}{#if year}{book.publisher ? ' ' : ''}({year}){/if}
 													</div>
 												{/if}
@@ -1737,7 +1737,7 @@
 									<div class="border-t pt-4">
 										<button
 											onclick={() => showShelfSelection = !showShelfSelection}
-											class="w-full flex items-center justify-between text-sm text-gray-700 py-2 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+											class="w-full flex items-center justify-between text-sm text-[var(--text-primary)] py-2 px-3 rounded-lg border border-[var(--border)] hover:bg-[var(--paper-light)] transition-colors"
 										>
 											<span class="font-medium">Add to shelves (optional)</span>
 											<svg class="w-4 h-4 transition-transform" class:rotate-180={showShelfSelection} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1748,17 +1748,17 @@
 										{#if showShelfSelection}
 											<div class="mt-2 space-y-1 max-h-32 overflow-y-auto">
 												{#each data.shelves as shelf}
-													<label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+													<label class="flex items-center gap-2 p-2 hover:bg-[var(--paper-light)] rounded cursor-pointer">
 														<input
 															type="checkbox"
 															checked={selectedShelfIds.has(shelf.id)}
 															onchange={() => toggleShelfSelection(shelf.id)}
 														/>
-														<span class="text-sm text-gray-700">{shelf.name}</span>
+														<span class="text-sm text-[var(--text-primary)]">{shelf.name}</span>
 													</label>
 												{/each}
 											</div>
-											<p class="text-xs text-gray-500 mt-2">
+											<p class="text-xs text-[var(--text-secondary)] mt-2">
 												Books will be added to your library and assigned to selected shelves.
 											</p>
 										{/if}
@@ -1836,7 +1836,7 @@
 				>
 					<div
 						bind:this={shelfModalElement}
-						class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col"
+						class="bg-[var(--surface)] rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col"
 						onclick={(e) => e.stopPropagation()}
 						role="dialog"
 						aria-modal="true"
@@ -1844,14 +1844,14 @@
 						tabindex="-1"
 					>
 						<!-- Modal Header -->
-						<div class="flex items-center justify-between p-4 border-b border-stone-200">
+						<div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
 							<div>
-								<h2 id="shelf-modal-title" class="text-lg font-semibold text-stone-900">Manage Shelves</h2>
-								<p class="text-sm text-stone-500 mt-0.5">{currentBook.title}</p>
+								<h2 id="shelf-modal-title" class="text-lg font-semibold text-[var(--text-primary)]">Manage Shelves</h2>
+								<p class="text-sm text-[var(--text-secondary)] mt-0.5">{currentBook.title}</p>
 							</div>
 							<button
 								onclick={() => shelfModalBookId = null}
-								class="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+								class="p-1.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--paper-light)] rounded-lg transition-colors"
 								aria-label="Close modal"
 							>
 								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1871,31 +1871,31 @@
 											toggleBookOnShelf(shelfModalBookId ?? '', shelf.id, isOn);
 											showSavedFeedback(isOn ? `Removed from ${shelf.name}` : `Added to ${shelf.name}`);
 										}}
-										class="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg hover:bg-stone-50 transition-colors group"
+										class="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg hover:bg-[var(--paper-light)] transition-colors group"
 									>
 										<div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 {isOn
-											? 'bg-stone-800 border-stone-800'
-											: 'border-stone-300 group-hover:border-stone-400'}">
+											? 'bg-[var(--surface-dark)] border-[var(--surface-dark)]'
+											: 'border-[var(--border)] group-hover:border-[var(--warm-gray)]'}">
 											{#if isOn}
 												<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
 												</svg>
 											{/if}
 										</div>
-										<span class="text-sm flex-1 text-left {isOn ? 'text-stone-900 font-medium' : 'text-stone-600'}">
+										<span class="text-sm flex-1 text-left {isOn ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}">
 											{shelf.name}
 										</span>
-										<span class="text-xs text-stone-400">{bookCount}</span>
+										<span class="text-xs text-[var(--text-tertiary)]">{bookCount}</span>
 									</button>
 								{/each}
 							</div>
 
 							<!-- New Shelf Button -->
-							<div class="mt-4 pt-4 border-t border-stone-200">
+							<div class="mt-4 pt-4 border-t border-[var(--border)]">
 								{#if !showNewShelfInput}
 									<button
 										onclick={() => showNewShelfInput = true}
-										class="w-full text-left text-sm text-stone-500 py-2 px-3 rounded-lg border border-dashed border-stone-300 hover:border-stone-400 hover:text-stone-600 transition-colors"
+										class="w-full text-left text-sm text-[var(--text-secondary)] py-2 px-3 rounded-lg border border-dashed border-[var(--border)] hover:border-[var(--warm-gray)] hover:text-[var(--text-primary)] transition-colors"
 									>
 										+ Create new shelf
 									</button>
@@ -1905,7 +1905,7 @@
 											type="text"
 											bind:value={newShelfName}
 											placeholder="Shelf name"
-											class="flex-1 text-sm px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
+											class="flex-1 text-sm px-3 py-2 border border-[var(--border)] rounded-lg focus:outline-none focus:border-[var(--accent)]"
 											onkeydown={(e) => {
 												if (e.key === 'Enter' && newShelfName.trim()) {
 													createShelf();
@@ -1921,14 +1921,14 @@
 												showNewShelfInput = false;
 												newShelfName = '';
 											}}
-											class="px-3 py-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
+											class="px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
 										>
 											Cancel
 										</button>
 										<button
 											onclick={createShelf}
 											disabled={!newShelfName.trim() || creatingShelf}
-											class="px-4 py-2 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors disabled:opacity-50"
+											class="px-4 py-2 text-sm bg-[var(--surface-dark)] text-white rounded-lg hover:bg-[var(--surface-dark-secondary)] transition-colors disabled:opacity-50"
 										>
 											{creatingShelf ? 'Creating...' : 'Create'}
 										</button>
@@ -1938,10 +1938,10 @@
 						</div>
 
 						<!-- Modal Footer -->
-						<div class="p-4 border-t border-stone-200">
+						<div class="p-4 border-t border-[var(--border)]">
 							<button
 								onclick={() => shelfModalBookId = null}
-								class="w-full py-2 text-sm text-stone-600 font-medium hover:bg-stone-50 rounded-lg transition-colors"
+								class="w-full py-2 text-sm text-[var(--text-secondary)] font-medium hover:bg-[var(--paper-light)] rounded-lg transition-colors"
 							>
 								Done
 							</button>

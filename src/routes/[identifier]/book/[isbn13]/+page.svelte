@@ -205,7 +205,7 @@
 									class="w-40 h-56 bg-gradient-to-br from-[var(--paper-dark)] to-[var(--terracotta)] rounded-lg flex items-center justify-center"
 								>
 									<svg
-										class="w-12 h-12 text-stone-400"
+										class="w-12 h-12 text-[var(--text-tertiary)]"
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"

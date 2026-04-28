@@ -67,22 +67,22 @@
 		aria-labelledby="signin-prompt-title"
 	>
 		<div
-			class="bg-white rounded-lg shadow-xl max-w-md w-full"
+			class="bg-[var(--surface)] rounded-lg shadow-xl max-w-md w-full"
 			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
-			<div class="flex items-start justify-between p-5 border-b border-gray-200">
+			<div class="flex items-start justify-between p-5 border-b border-[var(--border)]">
 				<div>
-					<h2 id="signin-prompt-title" class="text-xl font-semibold text-gray-900">
+					<h2 id="signin-prompt-title" class="text-xl font-semibold text-[var(--text-primary)]">
 						Sign in required
 					</h2>
-					<p class="text-sm text-gray-600 mt-1">
+					<p class="text-sm text-[var(--text-secondary)] mt-1">
 						{storeState.message || 'Your session has expired. Please sign in to continue.'}
 					</p>
 				</div>
 				<button
 					onclick={handleDismiss}
-					class="text-gray-400 hover:text-gray-600 p-1 -mt-1 -mr-1"
+					class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] p-1 -mt-1 -mr-1"
 					aria-label="Close"
 				>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
 					<div class="mt-4">
 						<button
 							onclick={handleDismiss}
-							class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+							class="w-full px-4 py-2 border border-[var(--border)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--paper-light)] font-medium"
 						>
 							Close
 						</button>
@@ -117,7 +117,7 @@
 						{/if}
 
 						<div>
-							<label for="signin-email" class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="signin-email" class="block text-sm font-medium text-[var(--text-primary)] mb-1">
 								Email address
 							</label>
 							<input
@@ -127,7 +127,7 @@
 								required
 								disabled={loading}
 								placeholder="you@example.com"
-								class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"
+								class="w-full px-3 py-2 border border-[var(--border)] rounded-lg focus:ring-1 focus:ring-[var(--accent)] focus:border-[var(--accent)] disabled:opacity-50 disabled:bg-[var(--paper-light)]"
 							/>
 						</div>
 
@@ -136,14 +136,14 @@
 								type="button"
 								onclick={handleDismiss}
 								disabled={loading}
-								class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50"
+								class="flex-1 px-4 py-2 border border-[var(--border)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--paper-light)] font-medium disabled:opacity-50"
 							>
 								Cancel
 							</button>
 							<button
 								type="submit"
 								disabled={loading || !email.trim()}
-								class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+								class="flex-1 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							>
 								{#if loading}
 									<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
