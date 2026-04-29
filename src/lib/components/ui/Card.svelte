@@ -798,12 +798,12 @@
 				</svg>
 			</button>
 			{#if onEditDetails}
-				<button
-					onclick={() => { menuOpen = false; onEditDetails?.(book.id); }}
-					class="w-full text-center sm:text-left px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--background-alt)] transition-colors"
+				<span
+					class="w-full block text-center sm:text-left px-4 py-2 text-sm text-[var(--text-tertiary)] cursor-default opacity-50"
+					title="Coming soon"
 				>
 					Edit details
-				</button>
+				</span>
 			{/if}
 			{#if onShare}
 				<button
@@ -857,14 +857,9 @@
 </div>
 
 <style>
-	/* Responsive lift for note/expanded content beside the cover image.
-	   On mobile, titles wrap more so we need less pull-up to avoid overlapping the author. */
+	/* Lift for note/expanded content beside the cover image.
+	   Conservative value to avoid overlapping the author on long titles. */
 	.card-lift {
 		--card-lift: calc(var(--spacing) * -10);
-	}
-	@media (min-width: 640px) {
-		.card-lift {
-			--card-lift: calc(var(--spacing) * -15);
-		}
 	}
 </style>

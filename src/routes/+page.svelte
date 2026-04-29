@@ -159,36 +159,33 @@
 		aria-label="Phone demo carousel - click to switch views"
 	>
 		<div class="carousel-track" style="transform: translateX(-{currentSlide * 100}%)">
-			<!-- Slide 1: SMS Conversation -->
+			<!-- Slide 1: SMS Conversation (combined: cover photo + title search + note) -->
 			<div class="carousel-slide">
 				<div class="phone-mock">
 					<div class="message outgoing">
-						<div class="bubble"><span class="book-title">Braiding Sweetgrass</span></div>
-					</div>
-					<div class="message incoming">
-						<div class="bubble">Added <span class="book-title">Braiding Sweetgrass</span> by Robin Wall Kimmerer to your shelf.</div>
-					</div>
-					<div class="message outgoing">
 						<div class="bubble image-bubble">
-							<img src="/barcode.png" alt="Photo of book barcode" />
+							<img src="/all-systems-red-cover.jpg" alt="Photo of book cover: All Systems Red" />
 						</div>
 					</div>
 					<div class="message incoming">
 						<div class="bubble">Added <span class="book-title">All Systems Red</span> by Martha Wells.</div>
 					</div>
 					<div class="message outgoing">
-						<div class="bubble">https://amazon.com/dp/...</div>
+						<div class="bubble">The Witch of Prague</div>
 					</div>
 					<div class="message incoming">
-						<div class="bubble">Added <span class="book-title">The Pearl</span> by John Steinbeck to your shelf.</div>
+						<div class="bubble">Added <span class="book-title">The Witch of Prague</span> by J. M. Sidorova.<br/><br/>Who told you about this one?</div>
+					</div>
+					<div class="message outgoing">
+						<div class="bubble">Fisher the Bookseller. AND it's an exciting new publisher.</div>
 					</div>
 				</div>
 			</div>
 
-			<!-- Slide 2: Shelf Screenshot -->
+			<!-- Slide 2: Expanded Book Screenshot -->
 			<div class="carousel-slide">
 				<div class="phone-mock phone-mock-shelf">
-					<img src="/shelf-mockup.png" alt="Your shelf with book covers and titles" class="shelf-screenshot" />
+					<img src="/shelf-mockup-v5.png" alt="Expanded book view with note, description, and shelf controls" class="shelf-screenshot" />
 				</div>
 			</div>
 		</div>
@@ -206,7 +203,7 @@
 			></button>
 		{/each}
 	</div>
-	<p class="carousel-hint">Tap or swipe to see your shelf</p>
+	<p class="carousel-hint">Tap or swipe</p>
 </section>
 
 <style>
