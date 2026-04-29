@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { fade, fly, slide } from 'svelte/transition';
 	import JsBarcode from 'jsbarcode';
 
 	interface Book {
@@ -274,7 +274,7 @@
 
 	<!-- Header row (identical in all states — no badges, no menus, no timestamps) -->
 	{#if onClose}
-		<div class="py-3 px-4 flex gap-3 {expanded ? 'items-start' : 'items-center'}">
+		<div class="py-3 px-4 flex gap-3 items-start">
 			<!-- Cover 40×60 -->
 			<div class="flex-shrink-0">
 				{#if book.cover_url}
@@ -348,7 +348,7 @@
 	{:else}
 		<!-- Interactive header (button role) -->
 		<div
-			class="py-3 px-4 flex gap-3 {expanded ? 'items-start' : 'items-center'} cursor-pointer"
+			class="py-3 px-4 flex gap-3 items-start cursor-pointer"
 			onclick={(e) => {
 				const target = e.target as HTMLElement;
 				if (target.closest('button, a, input, textarea')) return;
@@ -424,8 +424,8 @@
 
 	<!-- Lifted note zone: recognition + meaning (persists during expansion) -->
 	{#if lifted && viewMode === 'books' && (noteValue || noteEditing) && !onClose}
-		<div class="{expanded ? 'pl-[108px]' : 'pl-[68px]'} pr-4 {expanded ? '' : 'pb-3'} transition-[padding] duration-200 ease-out"
-			style="{expanded ? 'margin-top: calc(var(--spacing) * -15)' : ''}"
+		<div class="{expanded ? 'pl-[108px]' : 'pl-[68px]'} pr-4 {expanded ? '' : 'pb-3'} transition-[padding,margin] duration-200 ease-out"
+			style="margin-top: {expanded ? 'calc(var(--spacing) * -15)' : '0'}"
 		>
 			{#if noteEditing}
 				<div class="relative space-y-2 mt-3">
@@ -461,7 +461,7 @@
 
 	<!-- Expanded content: act on the book -->
 	{#if expanded}
-		<div transition:slide={{ duration: lifted ? 100 : 150 }}>
+		<div in:fly={{ y: 8, duration: 200 }}>
 			<div class="pb-4" style="{lifted && (noteValue || noteEditing) ? '' : 'margin-top: calc(var(--spacing) * -15)'}">
 				<!-- Note -->
 				{#if lifted && noteEditing}
