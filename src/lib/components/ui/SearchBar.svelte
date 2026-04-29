@@ -18,6 +18,7 @@
 		query?: string;
 		onSelect?: (book: Book) => void;
 		onQueryChange?: (query: string) => void;
+		onAddBook?: (query: string) => void;
 	}
 
 	let {
@@ -25,7 +26,8 @@
 		expanded = $bindable(false),
 		query = $bindable(''),
 		onSelect,
-		onQueryChange
+		onQueryChange,
+		onAddBook
 	}: Props = $props();
 
 	let inputEl: HTMLInputElement | null = null;
@@ -219,6 +221,15 @@
 					<div class="px-4 py-3 text-sm text-[var(--text-tertiary)]">
 						No books match "{query}"
 					</div>
+					{#if onAddBook}
+						<button
+							onclick={() => { onAddBook?.(query); closeSearch(); }}
+							class="w-full px-4 py-2.5 text-sm text-left text-[var(--accent)] hover:bg-[var(--background-alt)] transition-colors border-t border-[var(--border)] flex items-center gap-2"
+						>
+							<span class="text-base leading-none">+</span>
+							Search to add "{query}"
+						</button>
+					{/if}
 				{:else}
 					{#each matchingBooks as book, i}
 						<button

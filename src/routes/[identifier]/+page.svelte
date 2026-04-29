@@ -1378,6 +1378,16 @@
 							bind:query={searchQuery}
 							onSelect={scrollToBook}
 							onQueryChange={(q) => searchQuery = q}
+							onAddBook={(q) => {
+								if (!data.isAuthenticatedOwner) {
+									authPrompt.trigger('Sign in to add books to your shelf.');
+									return;
+								}
+								inputText = q;
+								showIsbnInput = true;
+								addBookError = null;
+								addBookSuccess = false;
+							}}
 						/>
 
 						<!-- Manual ISBN Entry Button -->
