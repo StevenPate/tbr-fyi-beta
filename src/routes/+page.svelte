@@ -177,7 +177,7 @@
 						<div class="bubble">Added <span class="book-title">The Witch of Prague</span> by J. M. Sidorova.<br/><br/>Who told you about this one?</div>
 					</div>
 					<div class="message outgoing">
-						<div class="bubble">Fisher the Bookseller. AND it's an exciting new publisher.</div>
+						<div class="bubble">Fisher recommended. And I think it would be fun to talk about with JD.</div>
 					</div>
 				</div>
 			</div>
@@ -185,7 +185,7 @@
 			<!-- Slide 2: Expanded Book Screenshot -->
 			<div class="carousel-slide">
 				<div class="phone-mock phone-mock-shelf">
-					<img src="/shelf-mockup-v5.png" alt="Expanded book view with note, description, and shelf controls" class="shelf-screenshot" />
+					<img src="/shelf-mockup-v7.png" alt="Expanded book view with note, description, and shelf controls" class="shelf-screenshot" />
 				</div>
 			</div>
 		</div>
