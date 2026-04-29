@@ -110,6 +110,7 @@
 		>
 			(360) 504-4327
 		</a>
+		<p class="text-xs text-[var(--text-on-dark)] opacity-50 mt-8">Built by a bookseller working on tools for independent bookstores.</p>
 	</div>
 </section>
 
@@ -118,15 +119,16 @@
 	<p class="text-base text-[var(--text-primary)] leading-relaxed">
 		Snap a photo of a book, text an ISBN or a link — it lands on your shelf
 		in seconds. Organized, searchable, and shareable.
-		No app to install. No account to remember.
+		No app. No password. Just text or sign in.
 	</p>
 </section>
 
 <!-- Sign in -->
 <section class="max-w-sm mx-auto px-6 py-12 text-center">
-	<h2 class="text-lg font-medium text-[var(--text-primary)] mb-6">
+	<h2 class="text-lg font-medium text-[var(--text-primary)] mb-2">
 		Already have a shelf?
 	</h2>
+	<p class="text-sm text-[var(--text-secondary)] mb-6">Enter your username or phone number to open it.</p>
 	<form onsubmit={handleSubmit} class="flex gap-2">
 		<input
 			bind:value={identifier}
