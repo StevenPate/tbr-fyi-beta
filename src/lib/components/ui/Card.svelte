@@ -241,7 +241,7 @@
 
 <div
 	{id}
-	class="relative w-full transition-all duration-150
+	class="card-lift relative w-full transition-all duration-150
 		{expanded ? 'bg-[var(--surface)]' : 'hover:bg-[var(--background-alt)]'}
 		{lifted && !expanded && viewMode === 'books' ? 'py-3 bg-[var(--paper-light)]' : ''}
 		border-b border-[var(--border)]"
@@ -425,7 +425,7 @@
 	<!-- Lifted note zone: recognition + meaning (persists during expansion) -->
 	{#if lifted && viewMode === 'books' && (noteValue || noteEditing) && !onClose}
 		<div class="{expanded ? 'pl-[108px]' : 'pl-[68px]'} pr-4 {expanded ? '' : 'pb-3'} transition-[padding,margin] duration-200 ease-out"
-			style="margin-top: {expanded ? 'calc(var(--spacing) * -15)' : '0'}"
+			style="margin-top: {expanded ? 'var(--card-lift)' : '0'}"
 		>
 			{#if noteEditing}
 				<div class="relative space-y-2 mt-3">
@@ -462,7 +462,7 @@
 	<!-- Expanded content: act on the book -->
 	{#if expanded}
 		<div in:fly={{ y: 8, duration: 200 }}>
-			<div class="pb-4" style="{lifted && (noteValue || noteEditing) ? '' : 'margin-top: calc(var(--spacing) * -15)'}">
+			<div class="pb-4" style="{lifted && (noteValue || noteEditing) ? '' : 'margin-top: var(--card-lift)'}">
 				<!-- Note -->
 				{#if lifted && noteEditing}
 					<!-- Lifted zone above handles edit form -->
@@ -855,3 +855,16 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* Responsive lift for note/expanded content beside the cover image.
+	   On mobile, titles wrap more so we need less pull-up to avoid overlapping the author. */
+	.card-lift {
+		--card-lift: calc(var(--spacing) * -10);
+	}
+	@media (min-width: 640px) {
+		.card-lift {
+			--card-lift: calc(var(--spacing) * -15);
+		}
+	}
+</style>
