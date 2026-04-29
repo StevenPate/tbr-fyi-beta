@@ -7,7 +7,8 @@
 
 import type { BookMetadata } from './types';
 import { fetchGoogleBooksMetadata } from './google-books';
-import { fetchOpenLibraryMetadata } from './open-library';
+import { searchGoogleBooks, type GoogleBooksSearchResult } from './google-books';
+import { fetchOpenLibraryMetadata, searchOpenLibrary } from './open-library';
 
 /**
  * Fetch book metadata with automatic fallback
@@ -69,7 +70,33 @@ export async function fetchBookMetadata(isbn: string): Promise<BookMetadata | nu
 	return null;
 }
 
+/**
+ * Search for books by free text or parsed title/author.
+ * Tries Google Books first, falls back to Open Library on empty results or rate limit.
+ */
+export async function searchBooks(params: {
+	q?: string;
+	title?: string;
+	author?: string;
+	max?: number;
+}): Promise<GoogleBooksSearchResult[]> {
+	const googleResults = await searchGoogleBooks(params);
+	if (googleResults.length > 0) return googleResults;
+
+	// Google returned nothing (rate-limited, no results, or timeout) — try Open Library
+	console.log('Google Books search returned no results, falling back to Open Library');
+	const olResults = await searchOpenLibrary(params);
+	// Map to same shape
+	return olResults.map((r) => ({
+		isbn13: r.isbn13,
+		title: r.title,
+		authors: r.authors,
+		publisher: r.publisher,
+		publicationDate: r.publicationDate,
+		coverUrl: r.coverUrl
+	}));
+}
+
 // Re-export types for convenience
 export type { BookMetadata, ISBN13 } from './types';
 export { toISBN13, InvalidISBNError } from './types';
-export { searchGoogleBooks as searchBooks } from './google-books';

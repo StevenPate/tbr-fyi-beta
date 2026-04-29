@@ -150,6 +150,139 @@ function normalizeOpenLibraryResponse(book: OpenLibraryBook, isbn13: ISBN13): Bo
 }
 
 /**
+ * Search Open Library by free text or parsed title/author.
+ * Used as fallback when Google Books is rate-limited or returns no results.
+ */
+export interface OpenLibrarySearchResult {
+	isbn13: string;
+	title: string;
+	authors: string[];
+	publisher?: string;
+	publicationDate?: string;
+	coverUrl?: string;
+}
+
+interface OpenLibrarySearchDoc {
+	title?: string;
+	author_name?: string[];
+	isbn?: string[];
+	cover_i?: number;
+	publisher?: string[];
+	first_publish_year?: number;
+}
+
+interface OpenLibrarySearchResponse {
+	numFound: number;
+	docs: OpenLibrarySearchDoc[];
+}
+
+export async function searchOpenLibrary(params: {
+	q?: string;
+	title?: string;
+	author?: string;
+	max?: number;
+	timeoutMs?: number;
+}): Promise<OpenLibrarySearchResult[]> {
+	const { q, title, author, max = 8, timeoutMs = 5000 } = params;
+
+	// Build query — Open Library uses plain text queries
+	let query = '';
+	if (q) query = q;
+	else if (title && author) query = `${title} ${author}`;
+	else if (title) query = title;
+	else if (author) query = author;
+	else return [];
+
+	const searchParams = new URLSearchParams({
+		q: query,
+		limit: String(Math.min(Math.max(max, 1), 40)),
+		fields: 'title,author_name,isbn,cover_i,publisher,first_publish_year'
+	});
+
+	const url = `https://openlibrary.org/search.json?${searchParams.toString()}`;
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+	try {
+		const response = await fetch(url, {
+			signal: controller.signal,
+			headers: { 'User-Agent': 'TBR Personal/1.0' }
+		});
+		clearTimeout(timeoutId);
+
+		if (!response.ok) {
+			console.error('Open Library search error:', response.status);
+			return [];
+		}
+
+		const data = (await response.json()) as OpenLibrarySearchResponse;
+		if (!data.docs || data.docs.length === 0) return [];
+
+		const results: OpenLibrarySearchResult[] = [];
+		for (const doc of data.docs) {
+			// Find an ISBN-13 from the isbn array
+			const isbn13 = extractISBN13FromArray(doc.isbn);
+			if (!isbn13) continue;
+
+			const coverUrl = doc.cover_i
+				? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+				: undefined;
+
+			results.push({
+				isbn13,
+				title: doc.title || 'Unknown Title',
+				authors: doc.author_name || [],
+				publisher: doc.publisher?.[0],
+				publicationDate: doc.first_publish_year ? String(doc.first_publish_year) : undefined,
+				coverUrl
+			});
+		}
+
+		return results;
+	} catch (e) {
+		clearTimeout(timeoutId);
+		if (e instanceof Error && e.name === 'AbortError') {
+			console.warn('Open Library search timeout');
+			return [];
+		}
+		console.error('Open Library search failed:', e);
+		return [];
+	}
+}
+
+/**
+ * Find the first valid ISBN-13 in an array of mixed ISBN-10/ISBN-13 strings.
+ */
+function extractISBN13FromArray(isbns?: string[]): string | null {
+	if (!isbns || isbns.length === 0) return null;
+
+	// Prefer native ISBN-13
+	for (const isbn of isbns) {
+		if (/^978\d{10}$/.test(isbn)) {
+			try {
+				return toISBN13(isbn);
+			} catch {
+				continue;
+			}
+		}
+	}
+
+	// Fallback: convert first valid ISBN-10
+	for (const isbn of isbns) {
+		if (/^\d{9}[\dXx]$/.test(isbn)) {
+			try {
+				return toISBN13(isbn);
+			} catch {
+				continue;
+			}
+		}
+	}
+
+	return null;
+}
+
+/**
  * Assess metadata confidence based on available fields
  */
 function assessConfidence(book: OpenLibraryBook): 'high' | 'medium' | 'low' {

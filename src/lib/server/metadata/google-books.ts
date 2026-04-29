@@ -311,7 +311,8 @@ function normalizeGoogleBooksResponse(
 }
 
 /**
- * Extract ISBN-13 from Google Books identifiers
+ * Extract ISBN-13 from Google Books identifiers.
+ * Prefers a native ISBN_13 entry; falls back to converting ISBN_10.
  */
 function extractISBN13(
 	identifiers?: Array<{ type: string; identifier: string }>
@@ -320,6 +321,16 @@ function extractISBN13(
 
 	const isbn13 = identifiers.find((id) => id.type === 'ISBN_13');
 	if (isbn13) return isbn13.identifier;
+
+	// Many volumes only carry ISBN_10 — convert it
+	const isbn10 = identifiers.find((id) => id.type === 'ISBN_10');
+	if (isbn10) {
+		try {
+			return toISBN13(isbn10.identifier);
+		} catch {
+			// Invalid checksum, skip
+		}
+	}
 
 	return null;
 }

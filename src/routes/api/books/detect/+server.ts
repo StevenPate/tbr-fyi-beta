@@ -153,7 +153,14 @@ export const POST = async ({ request }: any) => {
 				// Fallback: try common delimiters, else use full text as query
 				const q = title || author ? undefined : raw.replace(/["\[\]()]/g, '').trim();
 
-				const candidates = await searchBooks({ q, title, author, max: 8 });
+				let candidates = await searchBooks({ q, title, author, max: 8 });
+
+				// If structured intitle:/inauthor: query returned nothing, retry as plain text
+				if ((!candidates || candidates.length === 0) && (title || author)) {
+					const plainQ = raw.replace(/["\[\]()]/g, '').trim();
+					candidates = await searchBooks({ q: plainQ, max: 8 });
+				}
+
 				if (!candidates || candidates.length === 0) {
 					return json({ error: 'No books found for your query' }, { status: 404 });
 				}
