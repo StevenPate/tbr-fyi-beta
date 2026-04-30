@@ -116,13 +116,16 @@
 
 <!-- Pitch -->
 <section class="max-w-lg mx-auto px-6 py-12 text-center">
-	<p class="text-base text-[var(--text-primary)] leading-relaxed">
+	<p class="text-lg text-[var(--text-primary)] leading-relaxed">
 		We'll ask once — <em>why this one?</em> — when you add a book. Then it's yours.
 	</p>
-	<p class="text-base text-[var(--text-primary)] leading-relaxed mt-4">
+	<p class="text-base text-[var(--text-secondary)] leading-relaxed mt-3">
+		No more scrolling past books you don't recognize.
+	</p>
+	<p class="text-sm text-[var(--text-secondary)] leading-relaxed mt-6">
 		Snap a photo, text an ISBN, or send a link and it lands on your shelf in seconds.
 	</p>
-	<p class="text-base text-[var(--text-primary)] leading-relaxed mt-4">
+	<p class="text-sm text-[var(--text-secondary)] leading-relaxed mt-2">
 		No app. No password. Just text or sign in.
 	</p>
 </section>
