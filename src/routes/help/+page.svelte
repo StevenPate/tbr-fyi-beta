@@ -107,23 +107,23 @@
 
         <!-- Exporting Your Data -->
         <div class="card">
-            <h2 id="exporting" class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Exporting your data</h2>
+            <h2 id="exporting" class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Your data is always yours</h2>
 
             <div class="space-y-6 text-[var(--text-secondary)]">
                 <p class="text-sm">
-                    Your data belongs to you. Export your complete library anytime from your Settings page.
+                    You can export your books and notes anytime. No lock-in, no friction.
                 </p>
 
                 <div>
                     <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-3">Export formats</h3>
                     <ul class="space-y-2 text-sm ml-4">
-                        <li>• <strong>CSV (Goodreads format)</strong> — Compatible with StoryGraph, Hardcover, BookWyrm, Literal, and most book tracking apps</li>
+                        <li>• <strong>CSV (Goodreads format)</strong> — Compatible with most book tracking apps</li>
                         <li>• <strong>JSON</strong> — For developers or full data backup</li>
                     </ul>
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-3">Import to other platforms</h3>
+                    <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-3">Want to move your list somewhere else? Here's how.</h3>
                     <ul class="space-y-2 text-sm ml-4">
                         <li>• <strong>StoryGraph</strong> — Manage Account &rarr; Goodreads Import</li>
                         <li>• <strong>Hardcover</strong> — Settings &rarr; Import</li>

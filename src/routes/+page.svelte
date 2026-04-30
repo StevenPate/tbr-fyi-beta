@@ -110,15 +110,19 @@
 		>
 			(360) 504-4327
 		</a>
-		<p class="text-xs text-[var(--text-on-dark)] opacity-50 mt-8">Built by a bookseller working on tools for independent bookstores.</p>
+		<p class="text-sm text-[var(--text-on-dark)] opacity-50 mt-8">Built by a bookseller working on tools for independent bookstores.</p>
 	</div>
 </section>
 
 <!-- Pitch -->
 <section class="max-w-lg mx-auto px-6 py-12 text-center">
 	<p class="text-base text-[var(--text-primary)] leading-relaxed">
-		Snap a photo of a book, text an ISBN or a link — it lands on your shelf
-		in seconds. Organized, searchable, and shareable.
+		We'll ask once — <em>why this one?</em> — when you add a book. Then it's yours.
+	</p>
+	<p class="text-base text-[var(--text-primary)] leading-relaxed mt-4">
+		Snap a photo, text an ISBN, or send a link and it lands on your shelf in seconds.
+	</p>
+	<p class="text-base text-[var(--text-primary)] leading-relaxed mt-4">
 		No app. No password. Just text or sign in.
 	</p>
 </section>
@@ -206,6 +210,22 @@
 		{/each}
 	</div>
 	<p class="carousel-hint">Tap or swipe</p>
+</section>
+
+<!-- Builder note -->
+<section class="max-w-md mx-auto px-6 py-10 text-center border-t border-[var(--border)]">
+	<h3 class="text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)] mb-4">A note from the builder</h3>
+	<p class="text-sm text-[var(--text-secondary)] leading-relaxed">
+		I built this because my reading list stopped working.
+		It turned into a graveyard of books I couldn't remember choosing.
+	</p>
+	<p class="text-sm text-[var(--text-secondary)] leading-relaxed mt-3">
+		This is the first version of something I've wanted for a long time —
+		a way to keep the reason, not just the title.
+	</p>
+	<p class="text-sm text-[var(--text-secondary)] leading-relaxed mt-3">
+		It's early. It works. I'm improving it as people use it.
+	</p>
 </section>
 
 <style>
