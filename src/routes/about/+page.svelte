@@ -1,10 +1,16 @@
+<script lang="ts">
+	import { page } from '$app/stores';
+	import SiteNav from '$lib/components/ui/SiteNav.svelte';
+</script>
+
 <svelte:head>
 	<title>About TBR.fyi</title>
 </svelte:head>
 
+<SiteNav user={$page.data.user} />
+
 <div class="about-page">
 	<div class="about-content">
-		<a href="/" class="back-link">&larr; Home</a>
 
 		<!-- Header -->
 		<header class="about-header">
@@ -174,16 +180,6 @@
 </div>
 
 <style>
-	.back-link {
-		font-size: var(--text-sm);
-		color: var(--accent);
-		text-decoration: none;
-	}
-
-	.back-link:hover {
-		color: var(--accent-hover);
-	}
-
 	.about-page {
 		max-width: 640px;
 		margin: 0 auto;

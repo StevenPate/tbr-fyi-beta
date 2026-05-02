@@ -1,10 +1,16 @@
+<script lang="ts">
+	import { page } from '$app/stores';
+	import SiteNav from '$lib/components/ui/SiteNav.svelte';
+</script>
+
 <svelte:head>
     <title>Help - TBR.fyi</title>
 </svelte:head>
 
+<SiteNav user={$page.data.user} />
+
 <div class="help-page">
     <div class="help-content">
-        <a href="/" class="back-link">&larr; Home</a>
 
         <!-- Header -->
         <header class="help-header">
@@ -198,16 +204,6 @@
 </div>
 
 <style>
-    .back-link {
-        font-size: var(--text-sm);
-        color: var(--accent);
-        text-decoration: none;
-    }
-
-    .back-link:hover {
-        color: var(--accent-hover);
-    }
-
     .help-page {
         max-width: 640px;
         margin: 0 auto;

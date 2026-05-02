@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import SiteNav from '$lib/components/ui/SiteNav.svelte';
 
 	let identifier = $state('');
 	let isReturningUser = $state(false);
@@ -90,11 +92,7 @@
 	<meta name="twitter:image" content="https://tbr.fyi/og-image.png" />
 </svelte:head>
 
-<!-- Nav -->
-<nav class="nav">
-	<a href="/" class="nav-logo">TBR.fyi</a>
-	<a href="/auth/signin" class="nav-signin">Sign in</a>
-</nav>
+<SiteNav user={$page.data.user} />
 
 <!-- Headline -->
 <section class="headline">
@@ -201,34 +199,6 @@
 </section>
 
 <style>
-	/* Nav */
-	.nav {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 16px 24px;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.nav-logo {
-		font-family: var(--font-serif);
-		font-weight: 600;
-		font-size: 20px;
-		color: var(--text-primary);
-		text-decoration: none;
-	}
-
-	.nav-signin {
-		font-size: var(--text-sm);
-		color: var(--accent);
-		text-decoration: none;
-	}
-
-	.nav-signin:hover {
-		color: var(--accent-hover);
-		text-decoration: underline;
-	}
-
 	/* Headline */
 	.headline {
 		text-align: center;
