@@ -1,248 +1,291 @@
 <svelte:head>
-	<title>About TBR.fyi - Never Lose a Book Recommendation</title>
+	<title>About TBR.fyi</title>
 </svelte:head>
 
-<div class="static-page">
-	<div class="max-w-3xl mx-auto px-4 py-16">
+<div class="about-page">
+	<div class="about-content">
+		<a href="/" class="back-link">&larr; Home</a>
+
 		<!-- Header -->
-		<div class="text-center mb-12">
-			<img
-				src="/tbr-lockup-transparent.png"
-				alt="TBR.fyi"
-				class="h-16 mx-auto mb-6"
-			/>
-			<h1 class="text-4xl text-[var(--text-primary)] mb-4 page-title">
-				About TBR.fyi
-			</h1>
-			<p class="text-xl text-[var(--text-secondary)] leading-relaxed">
-				A simple way to never lose a book recommendation again.
-			</p>
-		</div>
+		<header class="about-header">
+			<h1 class="page-title">About TBR.fyi</h1>
+			<p class="about-subtitle">A simple way to never lose a book recommendation again.</p>
+		</header>
 
 		<!-- Intro -->
-		<div class="card">
-			<p class="text-[var(--text-secondary)] text-lg leading-relaxed">
+		<section class="about-section">
+			<p>
 				Someone mentions a book on a podcast, in a group chat, or across the table—and you can save it instantly. No notes app, no screenshots, no forgotten tabs. Everything lands in one calm, searchable shelf.
 			</p>
-		</div>
+		</section>
+
+		<hr class="ghost-rule" />
 
 		<!-- Why This Exists -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Why this exists</h2>
+		<section class="about-section">
+			<h2 class="section-heading">Why this exists</h2>
 
-			<div class="space-y-4 text-[var(--text-secondary)]">
+			<p>
+				Book recommendations come from everywhere, and they almost always arrive when you're busy. TBR.fyi is designed to capture those moments with as little friction as possible—whether you're on your phone, at your desk, or mid-conversation. It also helps you remember why you saved each book.
+			</p>
 
-				<p>
-					Book recommendations come from everywhere, and they almost always arrive when you're busy. TBR.fyi is designed to capture those moments with as little friction as possible—whether you're on your phone, at your desk, or mid-conversation. It also helps you remember why you saved each book.
-				</p>
+			<p>
+				I'm Steven Pate, a bookseller at <a href="https://portbookandnews.com" target="_blank" rel="noopener noreferrer">Port Book and News</a> in Port Angeles, WA. I built this because I see the same pattern every day—people hear about a book and want to remember it, but the moment passes.
+			</p>
 
-				<p>
-					I'm Steven Pate, a bookseller at <a href="https://portbookandnews.com" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">Port Book and News</a> in Port Angeles, WA. I built this because I see the same pattern every day—people hear about a book and want to remember it, but the moment passes.
-				</p>
+			<p>
+				If TBR.fyi is useful to you, you can <a href="https://ko-fi.com/stevenpate" target="_blank" rel="noopener noreferrer">leave me a tip</a>.
+			</p>
 
-				<p>
-					If TBR.fyi is useful to you, you can <a href="https://ko-fi.com/stevenpate" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">leave me a tip</a>.
-				</p>
+			<p class="emphasis">
+				No feeds. No algorithms. Just a place to put the books you actually want to read.
+			</p>
+		</section>
 
-				<p class="font-medium text-[var(--text-primary)]">
-					No feeds. No algorithms. Just a place to put the books you actually want to read.
-				</p>
-			</div>
-		</div>
+		<hr class="ghost-rule" />
 
 		<!-- How It Works -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">How it works</h2>
+		<section class="about-section">
+			<h2 class="section-heading">How it works</h2>
 
-			<div class="space-y-4 text-[var(--text-secondary)]">
+			<p>
+				There are two ways to add books—use whichever fits the moment:
+			</p>
+
+			<div class="method-block">
+				<h3 class="method-label">Text it in.</h3>
 				<p>
-					There are two ways to add books—use whichever fits the moment:
+					Send a photo of a book cover, an ISBN, a link, or just the title:
 				</p>
-
-				<div class="bg-[var(--paper-light)] rounded-lg p-4 mt-4">
-					<p class="font-semibold text-[var(--text-primary)] mb-2">Text it in.</p>
-					<p class="text-sm mb-3">
-						Send a photo of a book cover, an ISBN, a link, or just the title:
-					</p>
-					<div class="bg-[var(--surface)] border-2 border-[var(--accent)] rounded-lg p-3 text-center my-3">
-						<a href="sms:+13605044327" class="font-mono text-xl text-[var(--accent)] font-semibold hover:text-[var(--accent-hover)] transition-colors">
-							+1 (360) 504-4327
-						</a>
-						<p class="text-xs text-[var(--text-secondary)] mt-1">US number · standard messaging rates apply</p>
-					</div>
-					<p class="text-sm text-[var(--text-secondary)]">
-						TBR.fyi figures out the book and adds it to your shelf automatically.
-					</p>
-				</div>
-
-				<div class="bg-[var(--paper-light)] rounded-lg p-4">
-					<p class="font-semibold text-[var(--text-primary)] mb-2">Use the web app.</p>
-					<p class="text-sm text-[var(--text-secondary)]">
-						You can also add books directly here—same result, same shelf, no SMS required.
-					</p>
-				</div>
-
-				<p class="mt-4">
-					Once added, books show up on your shelf. You can mark them read or unread, note whether you own them, and add context like "Recommended on Fresh Air" so you remember why you saved it. When a book resurfaces months later, that context comes with it—so you're not staring at a title wondering why it's there.
+				<a href="sms:+13605044327" class="phone-link phone-link-large">(360) 504-4327</a>
+				<p class="note">US number · standard messaging rates apply</p>
+				<p>
+					TBR.fyi figures out the book and adds it to your shelf automatically.
 				</p>
 			</div>
-		</div>
 
-		<!-- What It Is (and Isn't) -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">What it is (and isn't)</h2>
-
-			<div class="space-y-4 text-[var(--text-secondary)]">
+			<div class="method-block">
+				<h3 class="method-label">Use the web app.</h3>
 				<p>
-					TBR.fyi is a lightweight tool for capturing and organizing book recommendations. It's fast, forgiving, and intentionally simple—built for real life, not perfect data entry.
-				</p>
-
-				<p>
-					It isn't a social network. It isn't a recommendation engine. It isn't a reading tracker with stats and streaks.
+					You can also add books directly here—same result, same shelf, no SMS required.
 				</p>
 			</div>
-		</div>
+
+			<p>
+				Once added, books show up on your shelf. You can mark them read or unread, note whether you own them, and add context like "Recommended on Fresh Air" so you remember why you saved it. When a book resurfaces months later, that context comes with it—so you're not staring at a title wondering why it's there.
+			</p>
+		</section>
+
+		<hr class="ghost-rule" />
+
+		<!-- What It Is -->
+		<section class="about-section">
+			<h2 class="section-heading">What it is (and isn't)</h2>
+
+			<p>
+				TBR.fyi is a lightweight tool for capturing and organizing book recommendations. It's fast, forgiving, and intentionally simple—built for real life, not perfect data entry.
+			</p>
+
+			<p>
+				It isn't a social network. It isn't a recommendation engine. It isn't a reading tracker with stats and streaks.
+			</p>
+		</section>
+
+		<hr class="ghost-rule" />
 
 		<!-- Where This Is At -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Where this is at</h2>
+		<section class="about-section">
+			<h2 class="section-heading">Where this is at</h2>
 
-			<div class="space-y-4 text-[var(--text-secondary)]">
-				<p>
-					Built and maintained by one person. Still early—developing in the open on <a href="https://github.com/stevenpate/tbr-fyi-beta" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a>.
-				</p>
+			<p>
+				Built and maintained by one person. Still early—developing in the open on <a href="https://github.com/stevenpate/tbr-fyi-beta" target="_blank" rel="noopener noreferrer">GitHub</a>.
+			</p>
 
-				<div class="mt-4">
-					<h3 class="text-base font-semibold text-[var(--text-primary)] mb-3">On the list:</h3>
-					<ul class="space-y-1 text-sm text-[var(--text-secondary)] ml-4">
-						<li>• Pagination for large shelves</li>
-						<li>• Edition finder (wrong cover? find the right one)</li>
-					</ul>
-				</div>
+			<h3 class="method-label">On the list:</h3>
+			<ul class="simple-list">
+				<li>Pagination for large shelves</li>
+				<li>Edition finder (wrong cover? find the right one)</li>
+			</ul>
 
-				<p class="mt-4">
-					If something breaks, telling me is genuinely helpful.
-				</p>
-			</div>
-		</div>
+			<p>
+				If something breaks, telling me is genuinely helpful.
+			</p>
+		</section>
+
+		<hr class="ghost-rule" />
 
 		<!-- Feedback -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Feedback</h2>
+		<section class="about-section">
+			<h2 class="section-heading">Feedback</h2>
 
-			<div class="space-y-4 text-[var(--text-secondary)]">
-				<p>
-					If you have thoughts—good or bad—I want to hear them. You can open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a> or just reply to any SMS.
-				</p>
+			<p>
+				If you have thoughts—good or bad—I want to hear them. You can open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer">GitHub</a> or just reply to any SMS.
+			</p>
 
-				<div class="mt-4">
-					<p class="font-semibold text-[var(--text-primary)] mb-2">Specific things that help:</p>
-					<ul class="space-y-1 text-sm ml-4">
-						<li>• "I stopped using it because..."</li>
-						<li>• "This is confusing..."</li>
-						<li>• "I wish it did..."</li>
-						<li>• "I use it when..."</li>
-					</ul>
-				</div>
+			<h3 class="method-label">Specific things that help:</h3>
+			<ul class="simple-list">
+				<li>"I stopped using it because..."</li>
+				<li>"This is confusing..."</li>
+				<li>"I wish it did..."</li>
+				<li>"I use it when..."</li>
+			</ul>
 
-				<div class="mt-4">
-					<p class="font-semibold text-[var(--text-primary)] mb-2">Things that help less:</p>
-					<ul class="space-y-1 text-sm text-[var(--text-secondary)] ml-4">
-						<li>• "It's cool!" (but why?)</li>
-						<li>• "You should add fifty features" (maybe, but which one matters most?)</li>
-					</ul>
-				</div>
-			</div>
-		</div>
+			<h3 class="method-label">Things that help less:</h3>
+			<ul class="simple-list">
+				<li>"It's cool!" (but why?)</li>
+				<li>"You should add fifty features" (maybe, but which one matters most?)</li>
+			</ul>
+		</section>
+
+		<hr class="ghost-rule" />
 
 		<!-- Privacy -->
-		<div class="card">
-			<h2 class="text-2xl font-semibold text-[var(--text-primary)] mb-4">Privacy</h2>
+		<section class="about-section">
+			<h2 class="section-heading">Privacy</h2>
 
-			<div class="space-y-4 text-[var(--text-secondary)]">
-				<p>
-					TBR.fyi only stores what it needs to work: your phone number (if you use SMS) and the books you add. It doesn't sell your data, scan your contacts, or do anything clever behind the scenes.
-				</p>
+			<p>
+				TBR.fyi only stores what it needs to work: your phone number (if you use SMS) and the books you add. It doesn't sell your data, scan your contacts, or do anything clever behind the scenes.
+			</p>
 
-				<p>
-					SMS is handled through Twilio on a registered 10DLC number—no shared short codes, no spam, no resale. Reply STOP at any time to unsubscribe instantly.
-				</p>
+			<p>
+				SMS is handled through Twilio on a registered 10DLC number—no shared short codes, no spam, no resale. Reply STOP at any time to unsubscribe instantly.
+			</p>
 
-				<p>
-					Your books are yours. Claim your shelf and you can export your full library anytime—CSV (Goodreads-compatible) or JSON—from your <a href="/settings" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">Settings</a> page.
-				</p>
+			<p>
+				Your books are yours. Claim your shelf and you can export your full library anytime—CSV (Goodreads-compatible) or JSON—from your <a href="/settings">Settings</a> page.
+			</p>
 
-				<p>
-					If I ever shut this down, you'll get 60 days' notice first.
-				</p>
+			<p>
+				If I ever shut this down, you'll get 60 days' notice first.
+			</p>
 
-				<p>
-					To unsubscribe from SMS, text STOP. To delete your data entirely, open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-hover)] hover:text-[var(--accent)] underline">GitHub</a>.
-				</p>
-			</div>
-		</div>
+			<p>
+				To unsubscribe from SMS, text STOP. To delete your data entirely, open an issue on <a href="https://github.com/stevenpate/tbr-fyi-beta/issues" target="_blank" rel="noopener noreferrer">GitHub</a>.
+			</p>
+		</section>
 
-		<!-- Get Started -->
-		<div class="cta-card">
-			<h2 class="text-2xl font-semibold mb-4">Get started</h2>
+		<hr class="ghost-rule" />
 
-			<div class="space-y-3 text-white/90">
-				<p>
-					If you already have an account, jump back to your shelf and add a book. If you're new, try adding one right now—by text or directly in the web app—and see if it earns a place in your workflow.
-				</p>
-
-				<div class="flex flex-col sm:flex-row gap-3 mt-6">
-					<a
-						href="/"
-						class="inline-flex items-center justify-center px-6 py-3 bg-white text-[var(--accent-hover)] rounded-lg hover:bg-[var(--paper-light)] transition-colors font-medium"
-					>
-						Go to TBR.fyi
-					</a>
-					<a
-						href="https://github.com/stevenpate/tbr-fyi-beta"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--terracotta-dark)] text-white rounded-lg hover:bg-[var(--charcoal)] transition-colors font-medium"
-					>
-						<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-							<path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
-						</svg>
-						View on GitHub
-					</a>
-				</div>
-			</div>
-		</div>
+		<!-- Closing Signature -->
+		<section class="closing-signature">
+			<p>Ready to begin? Text a book to <a href="sms:+13605044327" class="phone-link">(360) 504-4327</a>.</p>
+		</section>
 	</div>
 </div>
 
 <style>
-	.static-page {
-		font-family: var(--font-sans);
-		background: var(--background);
+	.back-link {
+		font-size: var(--text-sm);
+		color: var(--accent);
+		text-decoration: none;
+	}
+
+	.back-link:hover {
+		color: var(--accent-hover);
+	}
+
+	.about-page {
+		max-width: 640px;
+		margin: 0 auto;
+		padding: 48px 24px;
+	}
+
+	.about-header {
+		margin-bottom: 40px;
+	}
+
+	.about-subtitle {
+		font-size: var(--text-base);
+		color: var(--text-secondary);
+		margin-top: 12px;
+	}
+
+	.about-section {
+		margin-bottom: 0;
+	}
+
+	.about-section p {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		line-height: 1.6;
+		margin-bottom: 12px;
+	}
+
+	.about-section p.emphasis {
 		color: var(--text-primary);
-		min-height: 100vh;
+		font-weight: 500;
 	}
 
-	.page-title {
-		font-family: var(--font-serif);
-		font-style: italic;
-		font-weight: 400;
+	.about-section a {
+		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		text-decoration-thickness: 1px;
 	}
 
-	.card {
-		background: var(--surface);
-		border-radius: 16px;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-		padding: 32px;
-		margin-bottom: 24px;
-		border: 1px solid var(--border);
+	.about-section a:hover {
+		color: var(--accent-hover);
 	}
 
-	.cta-card {
-		background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-		border-radius: 16px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		padding: 32px;
-		color: white;
+	.method-block {
+		background: var(--background-alt);
+		border-radius: 4px;
+		padding: 20px;
+		margin: 16px 0;
+	}
+
+	.method-block p {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		line-height: 1.6;
+		margin-bottom: 8px;
+	}
+
+	.method-label {
+		font-family: var(--font-sans);
+		font-weight: 500;
+		font-size: var(--text-sm);
+		color: var(--text-primary);
+		margin-bottom: 8px;
+	}
+
+	.phone-link-large {
+		font-size: 20px;
+	}
+
+	.note {
+		font-size: var(--text-xs) !important;
+		color: var(--text-tertiary) !important;
+	}
+
+	.simple-list {
+		list-style: none;
+		padding: 0;
+		margin: 0 0 16px;
+	}
+
+	.simple-list li {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		line-height: 1.6;
+		padding-left: 16px;
+		position: relative;
+		margin-bottom: 4px;
+	}
+
+	.simple-list li::before {
+		content: '·';
+		position: absolute;
+		left: 4px;
+		color: var(--text-tertiary);
+	}
+
+	.closing-signature {
+		text-align: center;
+	}
+
+	.closing-signature p {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
 	}
 </style>

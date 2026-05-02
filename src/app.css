@@ -78,6 +78,45 @@
 	--transition-slow: 300ms ease;
 }
 
+/* Editorial page patterns */
+.page-title {
+	font-family: var(--font-serif);
+	font-style: italic;
+	font-weight: 500;
+	font-size: 38px;
+	line-height: var(--leading-tight);
+	color: var(--text-primary);
+}
+
+.section-heading {
+	font-family: var(--font-sans);
+	font-weight: 500;
+	font-size: var(--text-lg);
+	letter-spacing: 0.01em;
+	color: var(--text-primary);
+}
+
+.phone-link {
+	font-family: var(--font-serif);
+	font-variant-numeric: oldstyle-nums;
+	color: var(--accent);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+	padding: 8px 0;
+	display: inline-block;
+}
+
+.phone-link:hover {
+	color: var(--accent-hover);
+}
+
+.ghost-rule {
+	border: none;
+	border-top: 1px solid #E5E2DD;
+	margin: 32px 0;
+}
+
 /* Hide scrollbar for horizontal scroll areas */
 @layer utilities {
 	.scrollbar-hide {

@@ -1,4 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+
+	let identifier = $state('');
+	let isReturningUser = $state(false);
 	let currentSlide = $state(0);
 	let touchStartX = $state(0);
 	let touchEndX = $state(0);
@@ -35,6 +40,41 @@
 
 	function toggleSlide() {
 		currentSlide = (currentSlide + 1) % totalSlides;
+	}
+
+	onMount(() => {
+		const savedId = localStorage.getItem('tbr-userId') || '';
+		if (savedId) {
+			identifier = savedId;
+			isReturningUser = true;
+		}
+	});
+
+	function handleSubmit(e: Event) {
+		e.preventDefault();
+		if (!identifier) return;
+
+		const trimmed = identifier.trim();
+		const hasLetters = /[a-zA-Z]/.test(trimmed);
+		const isPhoneFormat = trimmed.startsWith('+') || /^\d{10,}$/.test(trimmed.replace(/\D/g, ''));
+
+		if (hasLetters && !isPhoneFormat) {
+			goto(`/${encodeURIComponent(trimmed)}`);
+		} else {
+			let normalized = trimmed.replace(/\D/g, '');
+			if (normalized.length === 10) {
+				normalized = '+1' + normalized;
+			} else if (normalized.length === 11 && normalized.startsWith('1')) {
+				normalized = '+' + normalized;
+			} else if (!trimmed.startsWith('+')) {
+				normalized = '+' + normalized;
+			} else {
+				normalized = trimmed;
+			}
+
+			localStorage.setItem('tbr-userId', normalized);
+			goto(`/${encodeURIComponent(normalized)}`);
+		}
 	}
 </script>
 
@@ -143,10 +183,22 @@
 	<p>Built by a bookseller in Port Angeles. Designed for people who care more about the reading than the tracking.</p>
 </section>
 
-<!-- Footer -->
-<footer class="page-footer">
-	<p>Already have a shelf? <a href="/auth/signin">Sign in</a></p>
-</footer>
+<!-- Shelf lookup -->
+<section class="shelf-lookup">
+	<h2 class="shelf-lookup-title">Already have a shelf?</h2>
+	<p class="shelf-lookup-subtitle">Enter your username or phone number to open it.</p>
+	<form onsubmit={handleSubmit} class="shelf-lookup-form">
+		<input
+			bind:value={identifier}
+			placeholder="Username or phone number"
+			class="shelf-lookup-input"
+		/>
+		<button type="submit" class="shelf-lookup-button">Go</button>
+	</form>
+	<p class="shelf-lookup-alt">
+		Or <a href="/auth/signin">sign in with email</a>
+	</p>
+</section>
 
 <style>
 	/* Nav */
@@ -400,24 +452,81 @@
 		line-height: 1.6;
 	}
 
-	/* Footer */
-	.page-footer {
-		border-top: 1px solid var(--border);
-		padding: 24px;
+	/* Shelf lookup */
+	.shelf-lookup {
+		max-width: 360px;
+		margin: 0 auto;
+		padding: 32px 24px 48px;
 		text-align: center;
 	}
 
-	.page-footer p {
-		font-size: var(--text-sm);
-		color: var(--text-secondary);
+	.shelf-lookup-title {
+		font-family: var(--font-sans);
+		font-weight: 500;
+		font-size: var(--text-base);
+		color: var(--text-primary);
+		margin-bottom: 4px;
 	}
 
-	.page-footer a {
+	.shelf-lookup-subtitle {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		margin-bottom: 16px;
+	}
+
+	.shelf-lookup-form {
+		display: flex;
+		gap: 8px;
+	}
+
+	.shelf-lookup-input {
+		flex: 1;
+		padding: 8px 12px;
+		font-size: var(--text-sm);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		background: var(--surface);
+		color: var(--text-primary);
+	}
+
+	.shelf-lookup-input::placeholder {
+		color: var(--text-tertiary);
+	}
+
+	.shelf-lookup-input:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+
+	.shelf-lookup-button {
+		padding: 8px 16px;
+		font-size: var(--text-sm);
+		font-weight: 500;
+		border: 1.5px solid var(--accent);
+		border-radius: 4px;
+		color: var(--accent);
+		background: transparent;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.shelf-lookup-button:hover {
+		background: var(--accent);
+		color: white;
+	}
+
+	.shelf-lookup-alt {
+		font-size: var(--text-xs);
+		color: var(--text-tertiary);
+		margin-top: 12px;
+	}
+
+	.shelf-lookup-alt a {
 		color: var(--accent);
 		text-decoration: none;
 	}
 
-	.page-footer a:hover {
+	.shelf-lookup-alt a:hover {
 		color: var(--accent-hover);
 		text-decoration: underline;
 	}

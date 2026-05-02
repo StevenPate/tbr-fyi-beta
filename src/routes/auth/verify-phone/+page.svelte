@@ -228,8 +228,10 @@
 	}
 
 	.auth-title {
+		font-family: var(--font-serif);
+		font-style: italic;
 		font-size: var(--text-xl);
-		font-weight: 700;
+		font-weight: 500;
 		color: var(--text-primary);
 	}
 
@@ -254,8 +256,8 @@
 		width: 100%;
 		padding: 8px 12px;
 		border: 1px solid var(--border);
-		border-radius: 8px;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		border-radius: 4px;
+		box-shadow: none;
 		font-size: var(--text-sm);
 		color: var(--text-primary);
 		background: var(--surface);
@@ -282,23 +284,24 @@
 		justify-content: center;
 		align-items: center;
 		padding: 10px 16px;
-		border: none;
-		border-radius: 8px;
+		border: 1.5px solid var(--accent);
+		border-radius: 4px;
 		font-size: var(--text-sm);
 		font-weight: 500;
-		color: white;
-		background: var(--accent);
+		color: var(--accent);
+		background: transparent;
 		cursor: pointer;
-		transition: background 0.2s;
+		transition: all 0.2s;
 	}
 
 	.auth-button:hover:not(:disabled) {
-		background: var(--accent-hover);
+		background: var(--accent);
+		color: white;
 	}
 
 	.auth-button:focus {
 		outline: none;
-		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.3);
+		box-shadow: 0 0 0 3px rgba(196, 166, 124, 0.2);
 	}
 
 	.auth-button:disabled {
