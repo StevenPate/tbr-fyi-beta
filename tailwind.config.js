@@ -40,7 +40,7 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        serif: ['var(--font-serif)', 'Lora', 'Georgia', 'serif'],
+        serif: ['var(--font-serif)', 'Cormorant Garamond', 'Georgia', 'serif'],
       },
       fontSize: {
         xs: ['var(--text-xs)', { lineHeight: 'var(--leading-normal)' }],

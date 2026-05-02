@@ -2446,7 +2446,7 @@
 		color: var(--text-primary);
 	}
 
-	/* Book title styling - Lora italic */
+	/* Book title styling - Cormorant Garamond italic */
 	.shelf-page :global(.book-title),
 	.shelf-page :global(.font-serif) {
 		font-family: var(--font-serif);
