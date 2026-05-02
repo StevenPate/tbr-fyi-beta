@@ -50,22 +50,12 @@
 	</main>
 
 	<footer class="site-footer">
-		<div class="footer-container">
-			<div class="footer-content">
-				<nav class="footer-nav">
-					<a href="/" class="footer-link">Home</a>
-					<span class="footer-separator">•</span>
-					<a href="/about" class="footer-link">About</a>
-					<span class="footer-separator">•</span>
-					<a href="/help" class="footer-link">Help</a>
-					<span class="footer-separator">•</span>
-					<a href={currentUserId() ? `/${currentUserId()}/settings` : '/settings'} class="footer-link">Settings</a>
-					</nav>
-				<div class="footer-tagline">
-					TBR.FYI
-				</div>
-			</div>
-		</div>
+		<nav class="footer-nav">
+			<a href="/" class="footer-link">Home</a>
+			<a href="/about" class="footer-link">About</a>
+			<a href="/help" class="footer-link">Help</a>
+			<a href={currentUserId() ? `/${currentUserId()}/settings` : '/settings'} class="footer-link">Settings</a>
+		</nav>
 	</footer>
 
 	<!-- Floating Feedback Button (FAB) -->
@@ -100,60 +90,27 @@
 	}
 
 	.site-footer {
-		background: var(--surface-dark);
+		border-top: 1px solid var(--border);
 		margin-top: 48px;
-	}
-
-	.footer-container {
-		max-width: 80rem;
-		margin: 0 auto;
-		padding: var(--space-8) var(--space-6);
-	}
-
-	.footer-content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		font-size: var(--text-sm);
-		color: var(--text-on-dark);
-	}
-
-	@media (min-width: 640px) {
-		.footer-content {
-			flex-direction: row;
-		}
+		padding: 24px;
 	}
 
 	.footer-nav {
 		display: flex;
 		align-items: center;
-		gap: 16px;
-		flex-wrap: wrap;
 		justify-content: center;
+		gap: 24px;
 	}
 
 	.footer-link {
-		color: var(--text-on-dark);
-		transition: color 0.2s;
-		white-space: nowrap;
+		font-size: 13px;
+		letter-spacing: 0.03em;
+		color: var(--text-primary);
+		text-decoration: none;
 	}
 
 	.footer-link:hover {
 		color: var(--accent);
-	}
-
-	.footer-separator {
-		color: var(--text-on-dark);
-		opacity: 0.3;
-	}
-
-	.footer-tagline {
-		color: var(--text-on-dark);
-		opacity: 0.6;
-		font-size: var(--text-xs);
-		white-space: nowrap;
 	}
 
 	.feedback-fab {
